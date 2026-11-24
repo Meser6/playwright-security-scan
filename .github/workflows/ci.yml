@@ -34,6 +34,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm check:types-generated
       - run: pnpm check:rule-fixtures
+      - run: pnpm check:docs-generated
       - run: pnpm check:ac
       - run: pnpm build
       - run: pnpm publint

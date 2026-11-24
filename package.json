@@ -68,7 +68,9 @@
     "attw": "attw --pack . --profile node16",
     "gen:types": "node scripts/generate-types.mjs",
     "check:types-generated": "node scripts/generate-types.mjs --check",
-    "check:rule-fixtures": "node scripts/check-rule-fixtures.mjs"
+    "check:rule-fixtures": "node scripts/check-rule-fixtures.mjs",
+    "gen:docs": "node scripts/generate-docs.mjs",
+    "check:docs-generated": "node scripts/generate-docs.mjs --check"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
