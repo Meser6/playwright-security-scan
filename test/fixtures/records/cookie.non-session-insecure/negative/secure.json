@@ -1,0 +1,13 @@
+{
+  "title": "Secure set",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "theme=dark; Secure; SameSite=Lax"
+      }
+    ]
+  },
+  "expect": []
+}

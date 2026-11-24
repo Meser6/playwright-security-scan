@@ -1,0 +1,17 @@
+{
+  "title": "missing: info",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "missing",
+      "severity": "info"
+    }
+  ]
+}

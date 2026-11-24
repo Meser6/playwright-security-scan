@@ -1,0 +1,13 @@
+{
+  "title": "logout cookie",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=; Path=/; Max-Age=0"
+      }
+    ]
+  },
+  "expect": []
+}

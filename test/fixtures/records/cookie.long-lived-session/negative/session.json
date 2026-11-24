@@ -1,0 +1,13 @@
+{
+  "title": "session cookie without expiry",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Secure; HttpOnly"
+      }
+    ]
+  },
+  "expect": []
+}

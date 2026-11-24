@@ -1,0 +1,18 @@
+{
+  "title": "in-scope origin over HTTP",
+  "input": {
+    "url": "http://app.test/",
+    "origin": "http://app.test",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "http://app.test"
+    }
+  ]
+}

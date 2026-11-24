@@ -1,0 +1,19 @@
+{
+  "title": "fixed origin",
+  "input": {
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "origin",
+        "value": "https://partner.test"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "access-control-allow-origin",
+        "value": "https://partner.test"
+      }
+    ]
+  },
+  "expect": []
+}

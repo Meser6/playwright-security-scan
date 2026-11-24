@@ -1,0 +1,21 @@
+{
+  "title": "unsafe-url",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "referrer-policy",
+        "value": "unsafe-url"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "unsafe-url",
+      "severity": "low"
+    }
+  ]
+}

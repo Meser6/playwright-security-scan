@@ -1,0 +1,20 @@
+{
+  "title": "the jar cannot tell",
+  "input": {
+    "kind": "cookie-jar",
+    "cookies": [
+      {
+        "name": "theme",
+        "value": "d",
+        "domain": "app.test",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "Lax",
+        "expires": -1,
+        "origin": "https://app.test"
+      }
+    ]
+  },
+  "expect": []
+}

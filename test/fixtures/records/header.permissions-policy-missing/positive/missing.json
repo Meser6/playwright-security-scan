@@ -1,0 +1,12 @@
+{
+  "title": "no Permissions-Policy",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [{}]
+}

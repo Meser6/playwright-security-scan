@@ -1,0 +1,17 @@
+{
+  "title": "no SameSite",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "theme=dark; Secure"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "severity": "info"
+    }
+  ]
+}

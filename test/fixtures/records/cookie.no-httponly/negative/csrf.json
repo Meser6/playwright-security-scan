@@ -1,0 +1,13 @@
+{
+  "title": "XSRF-TOKEN is an exception",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "XSRF-TOKEN=Zq8xK2mP9vL4tR7wY1nB3c; Path=/; Secure"
+      }
+    ]
+  },
+  "expect": []
+}

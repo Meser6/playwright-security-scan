@@ -261,7 +261,7 @@ export class TestCollector {
 /** Whether a rule applies to a record (06, chapter 2). */
 export function applies(rule: BuiltInRule, record: ResponseRecord): boolean {
   const to = rule.appliesTo;
-  if (to.events !== undefined && to.events.length > 0) return false;
+  if (to.events !== undefined && to.events.length > 0 && to.records !== true) return false;
   if (to.sources !== undefined && !to.sources.includes(record.source)) return false;
   if (!rule.manifest.sources.includes(record.source)) return false;
   return to.resourceTypes === undefined || to.resourceTypes.includes(record.resourceType);

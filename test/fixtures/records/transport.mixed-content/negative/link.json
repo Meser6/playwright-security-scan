@@ -1,0 +1,13 @@
+{
+  "title": "plain links are not mixed content",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<a href=\"http://other.test/\">x</a><img src=\"https://cdn.test/a.png\">"
+  },
+  "expect": []
+}

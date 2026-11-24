@@ -1,0 +1,17 @@
+{
+  "title": "session cookie without Secure over HTTPS",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Path=/; HttpOnly; SameSite=Lax"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "sid@app.test"
+    }
+  ]
+}

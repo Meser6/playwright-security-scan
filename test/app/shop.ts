@@ -145,9 +145,6 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports) {
     if (on('header.csp-report-only')) h['content-security-policy-report-only'] = csp;
     else if (!on('header.csp-missing')) h['content-security-policy'] = csp;
     if (!on('header.clickjacking')) h['x-frame-options'] = 'DENY';
-    if (on('header.hsts-weak')) h['strict-transport-security'] = 'max-age=60';
-    else if (!on('header.hsts-missing'))
-      h['strict-transport-security'] = 'max-age=31536000; includeSubDomains';
     h['referrer-policy'] = on('header.referrer-policy-unsafe')
       ? 'unsafe-url'
       : 'strict-origin-when-cross-origin';
@@ -160,6 +157,10 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports) {
   const common = (): Record<string, string> => {
     const h: Record<string, string> = {};
     if (!on('header.xcto-missing')) h['x-content-type-options'] = 'nosniff';
+    // HSTS on every response of the app, as a well-configured server sends it.
+    if (on('header.hsts-weak')) h['strict-transport-security'] = 'max-age=60';
+    else if (!on('header.hsts-missing'))
+      h['strict-transport-security'] = 'max-age=31536000; includeSubDomains';
     if (on('disclosure.server-version')) {
       h.server = 'nginx/1.25.3';
       h['x-powered-by'] = 'PHP/8.2.12';

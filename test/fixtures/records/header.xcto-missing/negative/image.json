@@ -1,0 +1,13 @@
+{
+  "title": "images are not judged",
+  "input": {
+    "resourceType": "image",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "image/png"
+      }
+    ]
+  },
+  "expect": []
+}

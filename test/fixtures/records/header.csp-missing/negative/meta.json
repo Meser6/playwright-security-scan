@@ -1,0 +1,13 @@
+{
+  "title": "CSP in a meta tag",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<html><head><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'\"></head></html>"
+  },
+  "expect": []
+}

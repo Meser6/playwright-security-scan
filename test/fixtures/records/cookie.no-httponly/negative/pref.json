@@ -1,0 +1,13 @@
+{
+  "title": "non-session cookie",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "theme=dark; Path=/; Secure"
+      }
+    ]
+  },
+  "expect": []
+}

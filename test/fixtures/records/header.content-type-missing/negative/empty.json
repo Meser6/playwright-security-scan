@@ -1,0 +1,13 @@
+{
+  "title": "empty body",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-length",
+        "value": "0"
+      }
+    ]
+  },
+  "expect": []
+}

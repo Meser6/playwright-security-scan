@@ -1,0 +1,16 @@
+{
+  "title": "COOP present",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "cross-origin-opener-policy",
+        "value": "same-origin"
+      }
+    ]
+  },
+  "expect": []
+}

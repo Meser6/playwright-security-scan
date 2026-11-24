@@ -1,0 +1,27 @@
+{
+  "title": "ACAO * with credentials",
+  "input": {
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "origin",
+        "value": "https://partner.test"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "access-control-allow-origin",
+        "value": "*"
+      },
+      {
+        "name": "access-control-allow-credentials",
+        "value": "true"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "GET /"
+    }
+  ]
+}

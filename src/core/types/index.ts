@@ -101,6 +101,8 @@ export interface CookieView {
   sameSite: 'Strict' | 'Lax' | 'None';
   /** Unix seconds; -1 for a session cookie. */
   expires: number;
+  /** The in-scope origin whose host the cookie belongs to (set by the collector). */
+  origin?: string;
 }
 
 /** An event from the browser, in the memory of the worker only (02, chapter 3). */

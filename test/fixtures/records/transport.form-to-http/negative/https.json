@@ -1,0 +1,13 @@
+{
+  "title": "relative and https actions",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<form action=\"/login\"></form><form action='https://app.test/x'></form>"
+  },
+  "expect": []
+}

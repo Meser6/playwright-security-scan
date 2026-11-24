@@ -1,0 +1,13 @@
+{
+  "title": "90 days",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Secure; HttpOnly; Max-Age=7776000"
+      }
+    ]
+  },
+  "expect": [{}]
+}

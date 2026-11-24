@@ -1,0 +1,13 @@
+{
+  "title": "session with SameSite=None",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Secure; HttpOnly; SameSite=None"
+      }
+    ]
+  },
+  "expect": [{}]
+}

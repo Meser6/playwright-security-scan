@@ -1,0 +1,23 @@
+{
+  "title": "own origin echoed (in scope)",
+  "input": {
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "origin",
+        "value": "https://app.test"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "access-control-allow-origin",
+        "value": "https://app.test"
+      },
+      {
+        "name": "access-control-allow-credentials",
+        "value": "true"
+      }
+    ]
+  },
+  "expect": []
+}

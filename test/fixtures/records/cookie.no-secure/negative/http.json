@@ -1,0 +1,14 @@
+{
+  "title": "plain HTTP (transport.cleartext)",
+  "input": {
+    "resourceType": "fetch",
+    "url": "http://app.test/",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Path=/"
+      }
+    ]
+  },
+  "expect": []
+}

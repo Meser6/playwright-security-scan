@@ -1,0 +1,16 @@
+{
+  "title": "HTTPS document without HSTS",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "confidence": "high"
+    }
+  ]
+}

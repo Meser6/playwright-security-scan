@@ -1,0 +1,13 @@
+{
+  "title": "JSON response",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": []
+}

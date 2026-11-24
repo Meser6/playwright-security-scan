@@ -67,7 +67,8 @@
     "publint": "publint --strict",
     "attw": "attw --pack . --profile node16",
     "gen:types": "node scripts/generate-types.mjs",
-    "check:types-generated": "node scripts/generate-types.mjs --check"
+    "check:types-generated": "node scripts/generate-types.mjs --check",
+    "check:rule-fixtures": "node scripts/check-rule-fixtures.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",

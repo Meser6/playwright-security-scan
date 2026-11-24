@@ -1,0 +1,12 @@
+{
+  "title": "no CSP at all (header.csp-missing)",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": []
+}

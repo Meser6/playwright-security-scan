@@ -1,0 +1,24 @@
+{
+  "title": "cookie jar",
+  "input": {
+    "kind": "cookie-jar",
+    "cookies": [
+      {
+        "name": "session",
+        "value": "x",
+        "domain": "app.test",
+        "path": "/",
+        "secure": false,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "expires": -1,
+        "origin": "https://app.test"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "session@app.test"
+    }
+  ]
+}

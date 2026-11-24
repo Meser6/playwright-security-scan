@@ -1,0 +1,15 @@
+{
+  "title": "TLS 1.0",
+  "input": {
+    "tls": {
+      "protocol": "TLS 1.0"
+    },
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [{}]
+}
