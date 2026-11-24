@@ -76,6 +76,21 @@ function handle(req: IncomingMessage, res: ServerResponse): void {
     res.end(big());
     return;
   }
+  if (path === '/api/hang') {
+    // Never answers within the test timeout (15-AC-03).
+    setTimeout(() => res.writeHead(204).end(), 10_000).unref();
+    return;
+  }
+  if (path === '/api/orders' && req.method === 'POST') {
+    res.writeHead(201, { 'content-type': 'application/json', 'x-content-type-options': 'nosniff' });
+    res.end(JSON.stringify({ id: 7, status: 'created' }));
+    return;
+  }
+  if (path === '/api/config') {
+    res.writeHead(200, { 'content-type': 'application/json', 'x-content-type-options': 'nosniff' });
+    res.end(JSON.stringify({ stripe: SECRETS.awsKey }));
+    return;
+  }
   if (path.startsWith('/api/items/')) {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ id: path.split('/').pop(), name: 'Item' }));

@@ -1,0 +1,5 @@
+{
+  "name": "perf-chain-project",
+  "private": true,
+  "type": "module"
+}

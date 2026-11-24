@@ -32,6 +32,8 @@ export interface TestResult {
   status: string;
   /** The pw-sec-findings attachment, parsed; null when the test has none. */
   attachment: TestAttachment | null;
+  /** The pw-perf-samples attachment of the perf package, parsed; null when none. */
+  perf: { apiRequests: unknown[]; requests: unknown[] } | null;
 }
 
 export interface ProjectRun {
@@ -75,6 +77,12 @@ export async function startHarness(): Promise<Harness> {
         type,
       );
       symlinkSync(ROOT, join(dir, 'node_modules/playwright-security-scan'), type);
+      // The perf package, for the compatibility projects (01-AC-02, 15-AC-05).
+      symlinkSync(
+        realpathSync(join(ROOT, 'node_modules/playwright-performance-regression')),
+        join(dir, 'node_modules/playwright-performance-regression'),
+        type,
+      );
       return dir;
     },
     run: (dir, options = {}) => runProject(dir, app, options),
@@ -113,7 +121,21 @@ function readResults(path: string): TestResult[] {
           } else if (a?.path !== undefined) {
             attachment = JSON.parse(readFileSync(a.path, 'utf8')) as TestAttachment;
           }
-          results.push({ project: t.projectName, title: spec.title, status: r.status, attachment });
+          const p = r.attachments.find((x) => x.name === 'pw-perf-samples');
+          const perf =
+            p?.body === undefined
+              ? null
+              : (JSON.parse(Buffer.from(p.body, 'base64').toString('utf8')) as {
+                  apiRequests: unknown[];
+                  requests: unknown[];
+                });
+          results.push({
+            project: t.projectName,
+            title: spec.title,
+            status: r.status,
+            attachment,
+            perf,
+          });
         }
       }
     }

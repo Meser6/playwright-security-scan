@@ -2,13 +2,15 @@
 // fixture is added and nothing else changes (05-REQ-01, P-02).
 import { randomBytes } from 'node:crypto';
 import { relative } from 'node:path';
-import type { BrowserContext, Page, TestInfo, TestType } from '@playwright/test';
+import type { APIRequestContext, BrowserContext, Page, TestInfo, TestType } from '@playwright/test';
 import { resolveConfig } from '../core/config/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { Redactor } from '../core/fingerprint/index.ts';
 import { canonicalOrigin, createKeyBuilder } from '../core/normalize/index.ts';
 import { BUILT_IN_RULES } from '../core/rules/index.ts';
 import type { TestContextRef } from '../core/types/index.ts';
+import { drainApi, isApiRequestContext, wrapRequestContext } from '../collector/api.ts';
+import type { ApiSink } from '../collector/api.ts';
 import { instrumentContext, scanContext } from '../collector/browser.ts';
 import { Scope } from '../collector/scope.ts';
 import { AnalysisCache, ATTACHMENT_NAME, TestCollector } from '../collector/test-collector.ts';
@@ -27,6 +29,8 @@ import {
 export interface SecurityApi {
   /** Scans a context created in the test, e.g. with browser.newContext() (05-REQ-02). */
   track(context: BrowserContext): Promise<void>;
+  /** Scans the calls of an APIRequestContext from playwright.request.newContext() (15-REQ-01). */
+  trackRequestContext(requestContext: APIRequestContext): void;
 }
 
 export interface SecurityFixtures {
@@ -100,6 +104,7 @@ export function testRef(testInfo: TestInfo): TestContextRef {
 /** The scan of one test: its collector and the trackers of its contexts. */
 class TestScan {
   readonly collector: TestCollector;
+  readonly api: ApiSink;
   readonly #state: WorkerState;
   readonly #trackers = new Map<BrowserContext, ResponseTracker>();
   readonly #finished = new Set<BrowserContext>();
@@ -107,11 +112,20 @@ class TestScan {
   constructor(collector: TestCollector, state: WorkerState) {
     this.collector = collector;
     this.#state = state;
+    this.api = { collector, keys: state.keys, pending: new Set(), reportedOrigins: new Set() };
+  }
+
+  /** Wraps an APIRequestContext once (15-REQ-01); calls go to the active test. */
+  wrapRequest(requestContext: APIRequestContext): void {
+    if (!this.#state.config.scope.api) return;
+    wrapRequestContext(requestContext, () => activeCollector<TestScan>()?.api);
   }
 
   async track(context: BrowserContext): Promise<void> {
     if (this.#trackers.has(context)) return;
     this.#trackers.set(context, new ResponseTracker(context, this.collector, this.#state.keys));
+    // page.request and context.request (15-REQ-01).
+    this.wrapRequest(context.request);
     if (this.#state.config.browser.cspEvents) {
       try {
         await instrumentContext(
@@ -136,11 +150,13 @@ class TestScan {
     const tracker = this.#trackers.get(context);
     if (tracker === undefined) return;
     await scanContext(context, this.collector, this.#state.config.browser.storageScan);
+    await drainApi(this.api);
     await tracker.drain();
   }
 
   async finishAll(): Promise<void> {
     for (const context of this.#trackers.keys()) await this.finish(context);
+    await drainApi(this.api);
   }
 }
 
@@ -152,6 +168,9 @@ interface SecBuffer {
 const PASSIVE_API: SecurityApi = {
   track: async () => {
     // Nothing is scanned outside scan mode or in projects that are not scanned.
+  },
+  trackRequestContext: () => {
+    // Nothing is scanned outside scan mode.
   },
 };
 
@@ -176,7 +195,13 @@ function openBuffer(baseURL: string | undefined, testInfo: TestInfo): SecBuffer 
     );
   }
   const scan = new TestScan(collector, state);
-  return { scan, api: { track: (context) => scan.track(context) } };
+  return {
+    scan,
+    api: {
+      track: (context) => scan.track(context),
+      trackRequestContext: (requestContext) => scan.wrapRequest(requestContext),
+    },
+  };
 }
 
 /* eslint-disable no-empty-pattern -- Playwright reads fixture dependencies from the pattern. */
@@ -227,6 +252,16 @@ const scanFixtures = {
     await _secBuffer.scan?.track(page.context());
     await use(page);
   },
+  // The same object with its request methods wrapped (15-REQ-01); untouched without a scan.
+  request: async (
+    { request, _secBuffer }: { request: APIRequestContext; _secBuffer: SecBuffer },
+    use: (request: APIRequestContext) => Promise<void>,
+  ): Promise<void> => {
+    _secBuffer.scan?.wrapRequest(request);
+    await use(request);
+    // Before the base fixture disposes the context: bodies are still readable (15-REQ-03).
+    if (_secBuffer.scan) await drainApi(_secBuffer.scan.api);
+  },
   security: async (
     { _secBuffer }: { _secBuffer: SecBuffer },
     use: (api: SecurityApi) => Promise<void>,
@@ -263,4 +298,16 @@ export async function trackContext(context: BrowserContext): Promise<void> {
   }
   // Registered during a test: scanned from now on (05-REQ-02).
   await activeCollector<TestScan>()?.track(context);
+}
+
+/**
+ * Scans the calls of an APIRequestContext created with playwright.request.newContext(), also in a
+ * worker-scoped fixture (15-REQ-01): each call made during a test of a scanned project is analysed
+ * by that test. Does nothing outside scan mode or with scope.api off.
+ */
+export function trackRequestContext(requestContext: APIRequestContext): void {
+  if (!scanModeOn()) return;
+  const state = workerState(undefined);
+  if (!state.config.scope.api || !isApiRequestContext(requestContext)) return;
+  wrapRequestContext(requestContext, () => activeCollector<TestScan>()?.api);
 }
