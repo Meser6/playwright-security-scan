@@ -32,6 +32,9 @@ importers:
       json-schema-to-typescript:
         specifier: 16.0.0
         version: 16.0.0
+      playwright-performance-regression:
+        specifier: 1.0.0
+        version: 1.0.0(@playwright/test@1.57.0)
       prettier:
         specifier: 3.10.1
         version: 3.10.1
@@ -1248,6 +1251,13 @@ packages:
     resolution: {integrity: sha512-agTcKlMw/mjBWOnD6kFZttAAGHgi/Nw0CZ2o6JqWSbMlI219lAFLZZCyqByTsvVAJq5XA5H8cA6PrvBRpBWEuQ==}
     engines: {node: '>=18'}
     hasBin: true
+
+  playwright-performance-regression@1.0.0:
+    resolution: {integrity: sha512-GyycTDDOBJop1joEt2tlMArEp2WlN7o6oWd0JZLMh/gfLHPS/HWcIYLANMWNzIma+JLkk+IYDlVP8f03wdDh8A==}
+    engines: {node: '>=22.18.0'}
+    hasBin: true
+    peerDependencies:
+      '@playwright/test': '>=1.57.0'
 
   playwright@1.57.0:
     resolution: {integrity: sha512-ilYQj1s8sr2ppEJ2YVadYBN0Mb3mdo9J0wQ+UuDhzYqURwSoW4n1Xs5vs7ORwgDGmyEh33tRMeS8KhdkMoLXQw==}
@@ -2608,6 +2618,10 @@ snapshots:
       pathe: 2.0.3
 
   playwright-core@1.57.0: {}
+
+  playwright-performance-regression@1.0.0(@playwright/test@1.57.0):
+    dependencies:
+      '@playwright/test': 1.57.0
 
   playwright@1.57.0:
     dependencies:
