@@ -1,5 +1,5 @@
 {
-  "specCommit": "npm-spec@a7200a9",
+  "specCommit": "npm-spec@c4ec1ee",
   "ids": [
     {"id":"01-AC-01","kind":"AC"},
     {"id":"01-AC-02","kind":"AC"},
@@ -26,6 +26,8 @@
     {"id":"03-REQ-02","kind":"REQ"},
     {"id":"03-REQ-03","kind":"REQ"},
     {"id":"03-REQ-04","kind":"REQ"},
+    {"id":"03-REQ-05","kind":"REQ"},
+    {"id":"03-REQ-06","kind":"REQ"},
     {"id":"04-AC-01","kind":"AC"},
     {"id":"04-AC-02","kind":"AC"},
     {"id":"04-REQ-01","kind":"REQ"},
