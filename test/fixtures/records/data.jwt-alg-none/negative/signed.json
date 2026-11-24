@@ -1,0 +1,16 @@
+{
+  "title": "HS256",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/token",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"access_token\":\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo5fQ.c2lnbmF0dXJlLXZhbHVl\"}"
+  },
+  "expect": []
+}

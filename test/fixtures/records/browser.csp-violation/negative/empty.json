@@ -1,0 +1,11 @@
+{
+  "title": "event without a directive",
+  "input": {
+    "kind": "csp-violation",
+    "documentOrigin": "https://app.test",
+    "directive": "",
+    "blockedOrigin": "",
+    "disposition": "enforce"
+  },
+  "expect": []
+}

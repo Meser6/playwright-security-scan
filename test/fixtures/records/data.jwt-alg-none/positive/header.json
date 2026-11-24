@@ -1,0 +1,27 @@
+{
+  "title": "unsigned JWT sent in authorization",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/me",
+    "requestHeaders": [
+      {
+        "name": "authorization",
+        "value": "Bearer eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0."
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "https://app.test",
+      "scope": "origin",
+      "discriminator": "request-authorization"
+    }
+  ]
+}

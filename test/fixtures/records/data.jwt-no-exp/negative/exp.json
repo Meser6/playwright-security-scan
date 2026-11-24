@@ -1,0 +1,16 @@
+{
+  "title": "with exp",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/token",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"access_token\":\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaWF0IjoxLCJleHAiOjkwMX0.c2lnbmF0dXJlLXZhbHVl\"}"
+  },
+  "expect": []
+}

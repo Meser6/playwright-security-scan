@@ -1,0 +1,16 @@
+{
+  "title": "blocked inline script",
+  "input": {
+    "kind": "csp-violation",
+    "documentOrigin": "https://app.test",
+    "directive": "script-src-elem",
+    "blockedOrigin": "inline",
+    "disposition": "enforce"
+  },
+  "expect": [
+    {
+      "discriminator": "script-src-elem",
+      "subject": "https://app.test"
+    }
+  ]
+}

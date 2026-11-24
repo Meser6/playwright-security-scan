@@ -1,0 +1,18 @@
+{
+  "title": "a JWT in any parameter",
+  "input": {
+    "resourceType": "fetch",
+    "url": "https://app.test/cb?state=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJlLXZhbHVl",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "state"
+    }
+  ]
+}

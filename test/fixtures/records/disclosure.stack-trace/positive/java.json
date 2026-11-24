@@ -1,0 +1,21 @@
+{
+  "title": "Java stack",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/fail",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "java.lang.NullPointerException\n\tat com.shop.web.OrderController.get(OrderController.java:42)",
+    "status": 500
+  },
+  "expect": [
+    {
+      "discriminator": "java"
+    }
+  ]
+}

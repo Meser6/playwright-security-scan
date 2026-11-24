@@ -1,0 +1,14 @@
+{
+  "title": "Index of",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<html><head><title>Index of /static/</title>"
+  },
+  "expect": [{}]
+}

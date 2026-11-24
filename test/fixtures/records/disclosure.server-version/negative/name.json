@@ -1,0 +1,21 @@
+{
+  "title": "name without version",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "server",
+        "value": "nginx"
+      },
+      {
+        "name": "x-powered-by",
+        "value": "Express"
+      }
+    ]
+  },
+  "expect": []
+}

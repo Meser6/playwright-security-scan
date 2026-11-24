@@ -1,0 +1,21 @@
+{
+  "title": "Node stack",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/fail",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "TypeError: x\n    at f (/srv/app/node_modules/express/lib/router.js:95:5)",
+    "status": 500
+  },
+  "expect": [
+    {
+      "discriminator": "node"
+    }
+  ]
+}

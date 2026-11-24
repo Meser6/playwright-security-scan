@@ -1,0 +1,20 @@
+{
+  "title": "sourceMappingURL comment",
+  "input": {
+    "resourceType": "script",
+    "url": "https://app.test/app.3f2a9c1b.js",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/javascript"
+      }
+    ],
+    "body": "var a;\n//# sourceMappingURL=app.3f2a9c1b.js.map"
+  },
+  "expect": [
+    {
+      "subject": "https://app.test/app.*.js",
+      "severity": "info"
+    }
+  ]
+}

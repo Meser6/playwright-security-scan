@@ -1,0 +1,14 @@
+{
+  "title": "ordinary page",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<title>Shop</title>"
+  },
+  "expect": []
+}

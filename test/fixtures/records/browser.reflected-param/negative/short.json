@@ -1,0 +1,15 @@
+{
+  "title": "short, numeric and missing values",
+  "input": {
+    "resourceType": "document",
+    "url": "https://app.test/search?q=abc&page=123456&sort=desc",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<p>abc 123456 desc</p>"
+  },
+  "expect": []
+}

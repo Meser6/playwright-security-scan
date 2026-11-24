@@ -1,0 +1,17 @@
+{
+  "title": "4xx is not a server error",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/fail",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{}",
+    "status": 400
+  },
+  "expect": []
+}

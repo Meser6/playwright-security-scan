@@ -1,0 +1,16 @@
+{
+  "title": "public and loopback addresses, versions",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/me",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"a\":\"8.8.8.8\",\"b\":\"127.0.0.1\",\"v\":\"1.10.0.1.2\"}"
+  },
+  "expect": []
+}

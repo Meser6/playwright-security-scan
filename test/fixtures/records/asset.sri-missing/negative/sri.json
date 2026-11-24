@@ -1,0 +1,14 @@
+{
+  "title": "integrity and own origin",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<script src=\"https://cdn.other.test/lib.js\" integrity=\"sha384-x\" crossorigin></script><script src=\"/app.js\"></script><link rel=icon href=\"https://cdn.other.test/i.png\">"
+  },
+  "expect": []
+}

@@ -1,0 +1,16 @@
+{
+  "title": "10/8 address in JSON",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/me",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"host\":\"10.20.30.40\"}"
+  },
+  "expect": [{}]
+}

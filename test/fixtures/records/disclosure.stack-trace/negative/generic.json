@@ -1,0 +1,17 @@
+{
+  "title": "generic error",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/fail",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"error\":\"Internal error\"}",
+    "status": 500
+  },
+  "expect": []
+}

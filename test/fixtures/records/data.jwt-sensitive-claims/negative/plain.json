@@ -1,0 +1,16 @@
+{
+  "title": "ordinary claims",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/token",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"t\":\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjo5LCJyb2xlIjoidXNlciJ9.c2lnbmF0dXJlLXZhbHVl\"}"
+  },
+  "expect": []
+}

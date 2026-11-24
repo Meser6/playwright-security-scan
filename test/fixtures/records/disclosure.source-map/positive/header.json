@@ -1,0 +1,18 @@
+{
+  "title": "SourceMap header",
+  "input": {
+    "resourceType": "script",
+    "url": "https://app.test/a.js",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/javascript"
+      },
+      {
+        "name": "sourcemap",
+        "value": "a.js.map"
+      }
+    ]
+  },
+  "expect": [{}]
+}

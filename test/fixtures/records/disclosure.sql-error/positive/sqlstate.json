@@ -1,0 +1,17 @@
+{
+  "title": "SQLSTATE",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/fail",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"error\":\"SQLSTATE[42000]: Syntax error\"}",
+    "status": 400
+  },
+  "expect": [{}]
+}
