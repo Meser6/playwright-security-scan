@@ -1,4 +1,13 @@
 {
   "$comment": "Acceptance criteria verified by hand or outside the regular CI. scripts/check-ac-coverage.mjs counts them as covered.",
-  "criteria": []
+  "criteria": [
+    {
+      "id": "09-AC-01",
+      "how": "Schema validation is automatic (test/contract/sarif-junit.test.ts); the upload with github/codeql-action/upload-sarif is checked by hand before the release."
+    },
+    {
+      "id": "09-AC-04",
+      "how": "Structure checked automatically; display in GitLab (artifacts:reports:junit) and Azure DevOps (PublishTestResults@2) checked by hand before the release, result in test/corpus/ci.md."
+    }
+  ]
 }

@@ -1,5 +1,5 @@
 // The reporter on real runs (04, 08, 09): banner, summary, report.json, outcome.json, baseline.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { startShop } from '../app/shop.ts';
@@ -154,5 +154,25 @@ describe('reporter (04, 08, 09)', () => {
       expect(partial.report?.diagnostics.map((d) => d.code)).toContain('PARTIAL_RUN');
     },
     RUN_TIMEOUT * 2,
+  );
+
+  test(
+    '09-REQ-06 and 09-REQ-10 a scan writes results.sarif and junit.xml next to report.json',
+    async () => {
+      const s = await shop(['cookie.no-httponly', 'header.csp-unsafe']);
+      const run = await harness.run(harness.copy('shop'), { env: env(s, 'scan') });
+      const dir = join(run.dir, 'reports/pw-sec');
+      expect(existsSync(join(dir, 'results.sarif')), run.output).toBe(true);
+      const sarif = JSON.parse(readFileSync(join(dir, 'results.sarif'), 'utf8')) as {
+        runs: { results: { ruleId: string }[] }[];
+      };
+      expect(sarif.runs[0]?.results.map((r) => r.ruleId)).toEqual(
+        expect.arrayContaining(['cookie.no-httponly', 'header.csp-unsafe']),
+      );
+      const junit = readFileSync(join(dir, 'junit.xml'), 'utf8');
+      expect(junit).toContain('<testsuites name="pw-sec"');
+      expect(junit).toContain('classname="pw-sec.cookie.cookie.no-httponly"');
+    },
+    RUN_TIMEOUT,
   );
 });
