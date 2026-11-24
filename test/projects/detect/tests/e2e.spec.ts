@@ -1,0 +1,55 @@
+import { expect, test } from '../fixtures';
+
+test('home page and navigation', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('h1')).toHaveText('Shop');
+  await page.waitForLoadState('networkidle');
+  await page.click('#account');
+  await expect(page.locator('h1')).toHaveText('Account');
+});
+
+test('login, profile and token in the browser', async ({ page }) => {
+  await page.goto('/account');
+  const status = await page.evaluate(async () => {
+    const login = await fetch('/api/login', { method: 'POST' });
+    await fetch('/api/me');
+    await fetch('/api/token');
+    return login.status;
+  });
+  expect(status).toBe(200);
+});
+
+test('search', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#search');
+  await expect(page.locator('p')).toBeVisible();
+});
+
+test('redirect after login', async ({ page }) => {
+  await page.goto(
+    `/redirect?next=${encodeURIComponent(`${String(test.info().project.metadata.partner)}/landing`)}`,
+  );
+  await expect(page.locator('body')).toBeVisible();
+});
+
+test('partner page calls the API', async ({ page }) => {
+  await page.goto(`${String(test.info().project.metadata.partner)}/partner`);
+  await page.waitForFunction(
+    () => (window as unknown as { done?: Promise<boolean> }).done !== undefined,
+  );
+  await page.evaluate(() => (window as unknown as { done: Promise<boolean> }).done);
+});
+
+test('error page and static directory', async ({ page }) => {
+  await page.goto('/account');
+  const statuses = await page.evaluate(async () => [
+    (await fetch('/api/fail')).status,
+    (await fetch('/static/')).status,
+  ]);
+  expect(statuses.every((s) => s >= 200)).toBe(true);
+});
+
+test('subscribe form', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#subscribe')).toBeVisible();
+});

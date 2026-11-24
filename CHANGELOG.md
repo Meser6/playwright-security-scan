@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Fixed
+
+- Responses whose body the page never read (e.g. `fetch` without `.json()`) were lost when the test ended before the body arrived; the collector now waits for them.
+
 ### Added
 
 - SARIF 2.1.0 (`reports/pw-sec/results.sarif`) for GitHub code scanning and other security dashboards: every rule with help, CWE/OWASP tags and `security-severity`, findings located at the test that first saw them, stable fingerprints. JUnit XML (`reports/pw-sec/junit.xml`, `report.junitPath`) for GitLab, Azure DevOps, Jenkins and other CI: one suite per rule group, blocking findings as failures, baseline entries as skipped.

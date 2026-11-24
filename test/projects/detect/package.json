@@ -1,0 +1,5 @@
+{
+  "name": "detect-project",
+  "private": true,
+  "type": "module"
+}
