@@ -1,6 +1,6 @@
 // 01-AC-01: the config entry point does not load the collector or the rule code. Runs on dist/
 // (`pnpm build` first), following the static imports of the built entry.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
@@ -45,4 +45,15 @@ describe('01-AC-01 the config entry point does not load collector/ or core/rules
       }
     },
   );
+});
+
+describe('01-AC-03 the package never routes requests (P-04)', () => {
+  test.skipIf(!built)('no route() call in dist/', () => {
+    const files = readdirSync(DIST).filter((f) => /\.(c?js)$/.test(f));
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const source = readFileSync(join(DIST, file), 'utf8');
+      expect(/\.(route|routeFromHAR|routeWebSocket)\s*\(/.test(source), file).toBe(false);
+    }
+  });
 });

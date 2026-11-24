@@ -8,6 +8,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- `withSecurityFixtures()`, `trackContext()` and the `security` fixture (`playwright-security-scan/fixture`): in scan mode the browser contexts of each test are scanned passively — responses in scope, CSP violation events, and the cookie jar and Web Storage at the end of the test — and the redacted findings are attached to the test result. Bodies are read with limits, static assets once per worker. Without `PW_SEC_MODE` only an inactive `security` fixture is added.
+- First rules: `header.xcto-missing`, `data.secret-in-asset`, `data.token-in-storage`.
 - `withSecurity()` and `defineSecurityConfig()` (`playwright-security-scan/config`): `PW_SEC_MODE=scan|baseline` turns the scan on, the package reporter is appended, and the package config is validated with suggestions for mistyped options and rule ids. Without `PW_SEC_MODE` the Playwright config is returned unchanged. `PW_SEC_CONFIG` points to another config file.
 - Rule presets `recommended` (default), `strict` and `minimal`.
 - JSON Schemas of the file formats (`schemas/`, exported as `playwright-security-scan/schemas/*`): test attachment, baseline file, run report and outcome file.
