@@ -1,0 +1,21 @@
+{
+  "title": "search term in the HTML",
+  "input": {
+    "resourceType": "document",
+    "url": "https://app.test/search?q=xyzzy42plugh",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<p>Results for xyzzy42plugh</p>"
+  },
+  "expect": [
+    {
+      "discriminator": "q",
+      "severity": "info",
+      "confidence": "low"
+    }
+  ]
+}

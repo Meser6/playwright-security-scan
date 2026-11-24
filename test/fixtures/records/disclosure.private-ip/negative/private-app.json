@@ -1,0 +1,16 @@
+{
+  "title": "the app itself on a private address",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://10.0.0.5/api/me",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"peer\":\"10.0.0.6\"}"
+  },
+  "expect": []
+}

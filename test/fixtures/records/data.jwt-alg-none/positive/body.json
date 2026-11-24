@@ -1,0 +1,21 @@
+{
+  "title": "unsigned JWT issued in a body",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/token",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"access_token\":\"eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIiwiZXhwIjo5fQ.\"}"
+  },
+  "expect": [
+    {
+      "subject": "GET /api/token",
+      "scope": "endpoint"
+    }
+  ]
+}

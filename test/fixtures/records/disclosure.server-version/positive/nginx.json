@@ -1,0 +1,22 @@
+{
+  "title": "nginx version",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "server",
+        "value": "nginx/1.25.3"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "server",
+      "subject": "https://app.test"
+    }
+  ]
+}

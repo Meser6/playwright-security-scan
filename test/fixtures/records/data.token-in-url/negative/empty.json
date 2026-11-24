@@ -1,0 +1,14 @@
+{
+  "title": "empty token",
+  "input": {
+    "resourceType": "fetch",
+    "url": "https://app.test/x?token=",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": []
+}

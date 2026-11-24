@@ -1,0 +1,17 @@
+{
+  "title": "192.168 address in a header",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      },
+      {
+        "name": "x-backend",
+        "value": "192.168.1.15:8080"
+      }
+    ]
+  },
+  "expect": [{}]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "relative redirect",
+  "input": {
+    "resourceType": "document",
+    "url": "https://app.test/redirect?next=%2Fhome",
+    "status": 302,
+    "responseHeaders": [
+      {
+        "name": "location",
+        "value": "/home"
+      }
+    ]
+  },
+  "expect": []
+}

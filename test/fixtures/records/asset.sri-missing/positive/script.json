@@ -1,0 +1,18 @@
+{
+  "title": "third-party script without integrity",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<script src=\"https://cdn.other.test/lib.1a2b3c4d.js\"></script>"
+  },
+  "expect": [
+    {
+      "subject": "https://cdn.other.test/lib.*.js"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "no map",
+  "input": {
+    "resourceType": "script",
+    "url": "https://app.test/a.js",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/javascript"
+      }
+    ],
+    "body": "var a;"
+  },
+  "expect": []
+}

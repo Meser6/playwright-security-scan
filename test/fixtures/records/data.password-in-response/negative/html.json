@@ -1,0 +1,14 @@
+{
+  "title": "not JSON",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<input name=password value=secret>"
+  },
+  "expect": []
+}

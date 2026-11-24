@@ -1,0 +1,22 @@
+{
+  "title": "503 response",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/fail",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{}",
+    "status": 503
+  },
+  "expect": [
+    {
+      "discriminator": "503",
+      "severity": "info"
+    }
+  ]
+}

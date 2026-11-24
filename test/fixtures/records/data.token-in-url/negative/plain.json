@@ -1,0 +1,14 @@
+{
+  "title": "ordinary parameters",
+  "input": {
+    "resourceType": "fetch",
+    "url": "https://app.test/search?q=shoes&page=2",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": []
+}

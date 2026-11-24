@@ -1,0 +1,16 @@
+{
+  "title": "the word SQL alone",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/doc",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"doc\":\"We use SQL databases\"}"
+  },
+  "expect": []
+}

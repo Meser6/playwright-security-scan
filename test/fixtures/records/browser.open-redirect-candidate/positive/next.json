@@ -1,0 +1,20 @@
+{
+  "title": "redirect to the host in next",
+  "input": {
+    "resourceType": "document",
+    "url": "https://app.test/redirect?next=https%3A%2F%2Fevil.test%2Fx",
+    "status": 302,
+    "responseHeaders": [
+      {
+        "name": "location",
+        "value": "https://evil.test/x"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "next",
+      "subject": "GET /redirect?next"
+    }
+  ]
+}

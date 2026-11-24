@@ -1,0 +1,16 @@
+{
+  "title": "refresh tokens are long-lived by design",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/token",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"refresh_token\":\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaWF0IjowLCJleHAiOjI1OTIwMDB9.c2lnbmF0dXJlLXZhbHVl\"}"
+  },
+  "expect": []
+}

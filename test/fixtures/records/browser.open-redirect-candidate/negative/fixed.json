@@ -1,0 +1,15 @@
+{
+  "title": "redirect to a host not from parameters",
+  "input": {
+    "resourceType": "document",
+    "url": "https://app.test/login?next=%2Fa",
+    "status": 302,
+    "responseHeaders": [
+      {
+        "name": "location",
+        "value": "https://sso.test/auth"
+      }
+    ]
+  },
+  "expect": []
+}

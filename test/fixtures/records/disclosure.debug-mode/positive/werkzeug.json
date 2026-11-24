@@ -1,0 +1,19 @@
+{
+  "title": "Werkzeug debugger",
+  "input": {
+    "resourceType": "document",
+    "status": 500,
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<title>Werkzeug Debugger</title>"
+  },
+  "expect": [
+    {
+      "discriminator": "werkzeug"
+    }
+  ]
+}

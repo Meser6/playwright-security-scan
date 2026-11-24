@@ -1,0 +1,18 @@
+{
+  "title": "third-party stylesheet",
+  "input": {
+    "resourceType": "document",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<link href='https://cdn.other.test/a.css' rel=stylesheet>"
+  },
+  "expect": [
+    {
+      "subject": "https://cdn.other.test/a.css"
+    }
+  ]
+}

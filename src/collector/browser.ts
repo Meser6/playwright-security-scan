@@ -38,6 +38,8 @@ export async function instrumentContext(
       const documentOrigin = canonicalOrigin(String(payload.documentURI ?? ''));
       if (documentOrigin === null || !collector.options.scope.has(documentOrigin)) return;
       const blocked = String(payload.blocked ?? '');
+      // The browser's own favicon request (Firefox) is not the page's doing (WP-02).
+      if (/\/favicon\.ico(?:[?#]|$)/i.test(blocked)) return;
       collector.analyzeEvent({
         kind: 'csp-violation',
         documentOrigin,
