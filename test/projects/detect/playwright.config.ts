@@ -1,0 +1,31 @@
+import { defineConfig } from '@playwright/test';
+import { withSecurity } from 'playwright-security-scan/config';
+
+// One project per app instance (10-REQ-04, 10-REQ-05): APP_INSTANCES is a JSON list of
+// { name, url, partner }; "secure" is the app without switches, the others have one switch each.
+const instances = JSON.parse(process.env.APP_INSTANCES ?? '[]') as {
+  name: string;
+  url: string;
+  partner: string;
+}[];
+
+export default withSecurity(
+  defineConfig({
+    testDir: './tests',
+    fullyParallel: true,
+    workers: 4,
+    reporter: [['json', { outputFile: 'results.json' }]],
+    use: { ignoreHTTPSErrors: true, browserName: 'chromium' },
+    projects: instances.map((i) => ({
+      name: i.name,
+      use: { baseURL: i.url },
+      metadata: { partner: i.partner },
+    })),
+  }),
+  {
+    // Every instance is its own origin; the strict preset reports the strict-only rules too.
+    scope: { origins: instances.map((i) => i.url) },
+    rules: { preset: 'strict' },
+    gate: { failOnNoTraffic: false },
+  },
+);

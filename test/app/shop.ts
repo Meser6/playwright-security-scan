@@ -127,7 +127,9 @@ function escapeHtml(text: string): string {
 }
 
 /** The request handler of the app for one set of switches. */
-function appHandler(vulns: ReadonlySet<string>, ports: () => Ports) {
+function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: string) {
+  // The bundle name carries a build hash, like a bundler output (07-AC-02).
+  const bundle = `app.${createHash('sha256').update(build).digest('hex').slice(0, 8)}.js`;
   const on = (rule: AppRule): boolean => vulns.has(rule);
 
   const securityHeaders = (nonce: string): Record<string, string> => {
@@ -250,7 +252,7 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports) {
         const parts = [
           '<h1>Shop</h1>',
           '<nav><a id="account" href="/account">Account</a> <a id="search" href="/search?q=xyzzy42plugh">Search</a></nav>',
-          '<script nonce="{{nonce}}" src="/static/app.3f2a9c1b.js"></script>',
+          `<script nonce="{{nonce}}" src="/static/${bundle}"></script>`,
           on('asset.sri-missing')
             ? `<script nonce="{{nonce}}" src="${partner}/lib.js"></script>`
             : `<script nonce="{{nonce}}" src="${partner}/lib.js" integrity="${LIB_SRI}" crossorigin="anonymous"></script>`,
@@ -299,10 +301,10 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports) {
         res.writeHead(303, { ...common(), location: '/' });
         res.end();
         return;
-      case '/static/app.3f2a9c1b.js': {
+      case `/static/${bundle}`: {
         let js = APP_JS;
         if (on('data.secret-in-asset')) js += `\nwindow.cfg = { awsKey: "${SECRETS.awsKey}" };`;
-        if (on('disclosure.source-map')) js += '\n//# sourceMappingURL=app.3f2a9c1b.js.map';
+        if (on('disclosure.source-map')) js += `\n//# sourceMappingURL=${bundle}.map`;
         send(res, 200, 'text/javascript; charset=utf-8', js, { etag: `"js-${vulns.size}"` });
         return;
       }
@@ -440,7 +442,10 @@ const listen = (server: Server, host: string): Promise<number> =>
   );
 
 /** Starts the app with the given switches; none = the secure mode (10-REQ-02). */
-export async function startShop(vulns: Iterable<string> = []): Promise<Shop> {
+export async function startShop(
+  vulns: Iterable<string> = [],
+  options: { build?: string } = {},
+): Promise<Shop> {
   const set = new Set(vulns);
   for (const rule of set) {
     if (!(APP_RULES as readonly string[]).includes(rule))
@@ -452,7 +457,7 @@ export async function startShop(vulns: Iterable<string> = []): Promise<Shop> {
     cert: readFileSync(join(certs, 'cert.pem')),
   };
   let ports: Ports = { app: '', http: '', partner: '' };
-  const handler = appHandler(set, () => ports);
+  const handler = appHandler(set, () => ports, options.build ?? '1');
   const app = createHttpsServer(tls, handler);
   const plain = createServer(httpHandler(handler));
   const partner = createHttpsServer(

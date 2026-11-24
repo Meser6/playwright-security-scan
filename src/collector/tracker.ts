@@ -27,6 +27,8 @@ export class ResponseTracker {
   readonly #pending: (() => Promise<void>)[] = [];
   readonly #running = new Set<Promise<void>>();
   readonly #detach: (() => void)[] = [];
+  /** Responses with headers but no requestfinished yet: their bodies are still arriving. */
+  readonly #awaiting = new Set<Request>();
   #nextId = 1;
   #accepting = true;
 
@@ -36,7 +38,7 @@ export class ResponseTracker {
     this.#keys = keys;
     // Responses whose body has not arrived yet: a context closed during the read loses them
     // without requestfinished (05-REQ-09, 05-AC-03).
-    const awaiting = new Set<Request>();
+    const awaiting = this.#awaiting;
     const lost = (count: number): void => {
       if (count === 0) return;
       this.#collector.diagnostic(
@@ -100,9 +102,15 @@ export class ResponseTracker {
   /** Waits for queued records (before the base fixture closes the context, 05-REQ-09), then detaches. */
   async drain(budgetMs = DRAIN_BUDGET_MS): Promise<void> {
     const deadline = Date.now() + budgetMs;
-    while ((this.#running.size > 0 || this.#pending.length > 0) && Date.now() < deadline) {
+    // Bodies still arriving (a fetch whose body the page did not read) finish within the budget;
+    // their requestfinished then queues the record (05-REQ-09).
+    const busy = (): boolean =>
+      this.#running.size > 0 || this.#pending.length > 0 || this.#awaiting.size > 0;
+    while (busy() && Date.now() < deadline) {
       await Promise.race([
-        Promise.all([...this.#running]),
+        this.#running.size > 0
+          ? Promise.all([...this.#running])
+          : new Promise((r) => setTimeout(r, 20)),
         new Promise((resolve) => setTimeout(resolve, Math.max(0, deadline - Date.now()))),
       ]);
     }
