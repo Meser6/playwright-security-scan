@@ -1,5 +1,5 @@
 {
-  "specCommit": "npm-spec@6260328",
+  "specCommit": "npm-spec@88fcd4d",
   "ids": [
     {"id":"01-AC-01","kind":"AC"},
     {"id":"01-AC-02","kind":"AC"},
