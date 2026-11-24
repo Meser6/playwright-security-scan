@@ -1,0 +1,4 @@
+{
+  "$comment": "Acceptance criteria verified by hand or outside the regular CI. scripts/check-ac-coverage.mjs counts them as covered.",
+  "criteria": []
+}

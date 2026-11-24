@@ -1,0 +1,83 @@
+{
+  "name": "playwright-security-scan",
+  "version": "0.0.0",
+  "description": "Passive security scan (DAST) of the HTTP traffic of your existing Playwright e2e and API tests, with a committed baseline that fails the run only on new findings.",
+  "keywords": [
+    "playwright",
+    "security",
+    "dast",
+    "passive-scan",
+    "e2e",
+    "api-testing",
+    "sarif",
+    "owasp"
+  ],
+  "license": "MIT",
+  "author": "Jakub Kaczmarczyk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Meser6/playwright-security-scan.git"
+  },
+  "homepage": "https://github.com/Meser6/playwright-security-scan#readme",
+  "bugs": "https://github.com/Meser6/playwright-security-scan/issues",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./config": {
+      "import": "./dist/config.js",
+      "require": "./dist/config.cjs"
+    },
+    "./fixture": {
+      "import": "./dist/fixture.js",
+      "require": "./dist/fixture.cjs"
+    },
+    "./reporter": {
+      "import": "./dist/reporter.js",
+      "require": "./dist/reporter.cjs"
+    },
+    "./rules": {
+      "import": "./dist/rules.js",
+      "require": "./dist/rules.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.57.0"
+  },
+  "packageManager": "pnpm@10.16.1",
+  "scripts": {
+    "build": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\" && tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check:ac": "node scripts/check-ac-coverage.mjs",
+    "check:pr-title": "node scripts/check-pr-title.mjs",
+    "publint": "publint --strict",
+    "attw": "attw --pack . --profile node16"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.57.0",
+    "@types/node": "^22.20.5",
+    "ajv": "8.20.0",
+    "eslint": "10.15.0",
+    "globals": "^17.14.0",
+    "prettier": "3.10.1",
+    "publint": "0.3.25",
+    "tsup": "9.0.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0",
+    "vitest": "5.1.1"
+  }
+}

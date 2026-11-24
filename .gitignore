@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Test output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+reports/
+test/projects/**/reports/
+test/projects/**/test-results/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

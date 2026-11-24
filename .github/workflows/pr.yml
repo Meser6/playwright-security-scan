@@ -1,0 +1,54 @@
+name: PR
+
+# Checks that depend only on the pull request metadata. Separate from CI so that editing the
+# title or labels does not rerun the build and tests.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      # The title goes through the environment, never into the script text.
+      - run: node scripts/check-pr-title.mjs
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+
+  changelog:
+    name: CHANGELOG
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changelog') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # 13-REQ-03: changes to the published code, schemas or manifests need a CHANGELOG entry
+      # unless the PR has the no-changelog label.
+      - name: Require a CHANGELOG.md entry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed="$(git diff --name-only "$BASE_SHA" HEAD)"
+          if ! printf '%s\n' "$changed" | grep -Eq '^(src/|schemas/|package\.json$)'; then
+            echo "No changes to src/, schemas/ or package.json."
+            exit 0
+          fi
+          if printf '%s\n' "$changed" | grep -qx 'CHANGELOG.md'; then
+            echo "CHANGELOG.md updated."
+            exit 0
+          fi
+          echo "::error::This PR changes src/, schemas/ or package.json but not CHANGELOG.md. Add an entry under Unreleased or label the PR no-changelog."
+          exit 1

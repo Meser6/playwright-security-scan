@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+dist/
+coverage/
+# Exported from the spec repository by its own script; never edited by hand.
+spec-ids.json
