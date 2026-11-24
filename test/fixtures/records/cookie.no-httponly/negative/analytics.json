@@ -1,0 +1,31 @@
+{
+  "title": "Google Analytics cookies (pwexample pilot)",
+  "input": {
+    "kind": "cookie-jar",
+    "cookies": [
+      {
+        "name": "_ga_0BJFXRKTYC",
+        "value": "GS1.1.1795000000.1.1.1795000123.0.0.0",
+        "domain": ".app.test",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "sameSite": "Lax",
+        "expires": -1,
+        "origin": "https://app.test"
+      },
+      {
+        "name": "_ga",
+        "value": "GA1.1.123456789.1795000000",
+        "domain": ".app.test",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "sameSite": "Lax",
+        "expires": -1,
+        "origin": "https://app.test"
+      }
+    ]
+  },
+  "expect": []
+}

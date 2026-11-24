@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import type { PlaywrightTestConfig } from '@playwright/test';
+import { reporterFlagIssue } from '../../../src/config/with-security.ts';
 import { ConfigError, withSecurity } from '../../../src/entries/config.ts';
 import { getRegistered, resetRegistryForTests } from '../../../src/registry/index.ts';
 
@@ -131,5 +132,17 @@ describe('withSecurity() (01, chapter 7; 04)', () => {
     expect(getRegistered()?.config.gate.minSeverity).toBe('high');
     process.env.PW_SEC_CONFIG = join(dir, 'missing.json');
     expect(() => withSecurity(base)).toThrow(/CONFIG|cannot load/);
+  });
+
+  test('--reporter without the package reporter stops the run (the scan could not fail)', () => {
+    const argv = (...a: string[]) => ['node', 'playwright', 'test', ...a];
+    expect(reporterFlagIssue(argv())).toBeUndefined();
+    expect(reporterFlagIssue(argv('--reporter=dot'))?.code).toBe('RUN_REPORTER_FLAG');
+    expect(reporterFlagIssue(argv('--reporter', 'list'))?.hint).toContain(
+      '--reporter=list,playwright-security-scan/reporter',
+    );
+    expect(
+      reporterFlagIssue(argv('--reporter=dot,playwright-security-scan/reporter')),
+    ).toBeUndefined();
   });
 });

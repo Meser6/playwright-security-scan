@@ -8,6 +8,9 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Fixed
 
+- Google Analytics, consent and CDN cookies (e.g. `_ga_*`, `cf_clearance`) are no longer taken for session cookies; the session heuristic is configurable with `nonSessionNames`.
+- `data.password-in-response` no longer reports labels such as `"password": "Password"` in translation files; the value must look like a password or a hash.
+- `--reporter` on the command line removed the package reporter, so a scan could not fail; it now stops with `RUN_REPORTER_FLAG` and the flag to use.
 - Responses whose body the page never read (e.g. `fetch` without `.json()`) were lost when the test ended before the body arrived; the collector now waits for them.
 
 ### Added

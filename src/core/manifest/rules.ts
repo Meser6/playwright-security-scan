@@ -31,7 +31,35 @@ const BROWSER: Source[] = ['browser'];
 export const SESSION_NAME_PATTERN =
   '(sess|sid|auth|token|jwt|login|remember|connect\\.sid|PHPSESSID|JSESSIONID|ASP\\.NET_SessionId|laravel_session)';
 
-const cookieOptions = { sessionNamePattern: SESSION_NAME_PATTERN };
+/** Analytics, consent and CDN cookies that are never session cookies (pwexample pilot). */
+export const NON_SESSION_COOKIES = [
+  '_ga',
+  '_ga_*',
+  '_gid',
+  '_gat*',
+  '_gcl_*',
+  '__utm*',
+  '_fbp',
+  '_fbc',
+  '_hj*',
+  '_clck',
+  '_clsk',
+  'ajs_*',
+  'mp_*',
+  'cf_clearance',
+  '__cf_bm',
+  '__cfruid',
+  '_cfuvid',
+  'OptanonConsent',
+  'OptanonAlertBoxClosed',
+  'CookieConsent',
+  'cookieconsent_status',
+];
+
+const cookieOptions = {
+  sessionNamePattern: SESSION_NAME_PATTERN,
+  nonSessionNames: NON_SESSION_COOKIES,
+};
 
 /** Default query parameter names of data.token-in-url (06, chapter 4.5). */
 export const TOKEN_PARAM_NAMES = [

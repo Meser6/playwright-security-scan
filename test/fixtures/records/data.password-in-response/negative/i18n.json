@@ -1,0 +1,15 @@
+{
+  "title": "translation strings (pwexample pilot)",
+  "input": {
+    "resourceType": "fetch",
+    "url": "https://app.test/assets/i18n/en.json",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"forms\":{\"password\":\"Password\",\"hash\":\"Mot de passe\"}}"
+  },
+  "expect": []
+}

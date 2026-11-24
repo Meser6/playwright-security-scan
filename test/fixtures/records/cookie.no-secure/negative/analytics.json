@@ -1,0 +1,13 @@
+{
+  "title": "CDN cookies are not session cookies",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "cf_clearance=Zq8xK2mP9vL4tR7wY1nB3cD5eF7gH9; Path=/; HttpOnly"
+      }
+    ]
+  },
+  "expect": []
+}

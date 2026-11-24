@@ -29,10 +29,11 @@ CSRF tokens meant to be read by JavaScript (XSRF-TOKEN, csrftoken) are excluded 
 
 ## Options
 
-| Option               | Default                                                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `sessionNamePattern` | `"(sess\|sid\|auth\|token\|jwt\|login\|remember\|connect\\.sid\|PHPSESSID\|JSESSIONID\|ASP\\.NET_SessionId\|laravel_session)"` |
-| `httpOnlyExceptions` | `["XSRF-TOKEN","csrftoken","csrf_token","_csrf","CSRF-TOKEN"]`                                                                 |
+| Option               | Default                                                                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sessionNamePattern` | `"(sess\|sid\|auth\|token\|jwt\|login\|remember\|connect\\.sid\|PHPSESSID\|JSESSIONID\|ASP\\.NET_SessionId\|laravel_session)"`                                                                                                       |
+| `nonSessionNames`    | `["_ga","_ga_*","_gid","_gat*","_gcl_*","__utm*","_fbp","_fbc","_hj*","_clck","_clsk","ajs_*","mp_*","cf_clearance","__cf_bm","__cfruid","_cfuvid","OptanonConsent","OptanonAlertBoxClosed","CookieConsent","cookieconsent_status"]` |
+| `httpOnlyExceptions` | `["XSRF-TOKEN","csrftoken","csrf_token","_csrf","CSRF-TOKEN"]`                                                                                                                                                                       |
 
 ## Accept or switch off
 

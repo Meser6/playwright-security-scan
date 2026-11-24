@@ -83,6 +83,30 @@ function withReporter(config: PlaywrightTestConfig, path: string): ReporterDescr
   return list;
 }
 
+/**
+ * `--reporter` on the command line replaces the reporters of the config, so the package reporter
+ * would not run and a scan could never fail (pwexample pilot). Main process only.
+ */
+export function reporterFlagIssue(argv: readonly string[]): ConfigIssue | undefined {
+  const start = argv.indexOf('test');
+  const args = start < 0 ? [] : argv.slice(start + 1);
+  const values: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? '';
+    if (arg === '--reporter') values.push(args[i + 1] ?? '');
+    else if (arg.startsWith('--reporter=')) values.push(arg.slice('--reporter='.length));
+  }
+  if (values.length === 0) return undefined;
+  const names = values.flatMap((v) => v.split(','));
+  if (names.some((n) => n.includes('playwright-security-scan/reporter'))) return undefined;
+  return {
+    code: 'RUN_REPORTER_FLAG',
+    path: '--reporter',
+    message: `--reporter=${values.join(',')} replaces the reporters of the Playwright config, so the security reporter would not run and the scan could not fail`,
+    hint: `Add it to the flag: --reporter=${values.join(',')},playwright-security-scan/reporter (or drop --reporter).`,
+  };
+}
+
 /** Main process only (TEST_WORKER_INDEX unset): one run id and one salt for every worker. */
 function mainProcessSetup(): void {
   if (process.env.TEST_WORKER_INDEX !== undefined) return;
@@ -113,6 +137,10 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   const resolved = resolveConfig(input);
   if (!resolved.ok) throw new ConfigError(resolved.issues);
 
+  if (process.env.TEST_WORKER_INDEX === undefined) {
+    const flag = reporterFlagIssue(process.argv);
+    if (flag !== undefined) throw new ConfigError([flag]);
+  }
   mainProcessSetup();
   const { names, baseOrigins } = scannedProjects(config, resolved.config.scope.projects);
   const warnings: Diagnostic[] = [];

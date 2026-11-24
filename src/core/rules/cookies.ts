@@ -1,5 +1,6 @@
 // Set-Cookie parsing and the session cookie heuristic (06, chapter 4.2).
-import { looksLikeToken } from '../patterns/entropy.ts';
+import { NON_SESSION_COOKIES } from '../manifest/rules.ts';
+import { looksLikeJwt, looksLikeToken } from '../patterns/entropy.ts';
 
 export interface ParsedCookie {
   name: string;
@@ -53,13 +54,35 @@ export function isDeletion(cookie: ParsedCookie, now: number | undefined): boole
   return false;
 }
 
-/** Session cookie (06, chapter 4.2): the name matches the pattern or the value looks like a token. */
-export function isSessionCookie(name: string, value: string, pattern: string): boolean {
+/** Analytics, consent and CDN cookies (manifest default of the option nonSessionNames). */
+export const NON_SESSION_NAMES: readonly string[] = NON_SESSION_COOKIES;
+
+function matchesName(name: string, patterns: readonly string[]): boolean {
+  return patterns.some((p) =>
+    p.endsWith('*') ? name.startsWith(p.slice(0, -1)) : name.toLowerCase() === p.toLowerCase(),
+  );
+}
+
+/** An opaque token value: no dots or spaces, token characters only (06, chapter 4.2). */
+const OPAQUE = /^[A-Za-z0-9+/=_%-]+$/;
+
+/**
+ * Session cookie (06, chapter 4.2): not a known analytics or consent cookie, and the name matches
+ * the pattern or the value is a JWT or an opaque high-entropy token.
+ */
+export function isSessionCookie(
+  name: string,
+  value: string,
+  pattern: string,
+  nonSession: readonly string[] = NON_SESSION_NAMES,
+): boolean {
+  if (matchesName(name, nonSession)) return false;
   let re: RegExp;
   try {
     re = new RegExp(pattern, 'i');
   } catch {
     re = /(sess|sid|auth|token|jwt)/i;
   }
-  return re.test(name) || looksLikeToken(value);
+  if (re.test(name)) return true;
+  return looksLikeJwt(value) || (OPAQUE.test(value) && looksLikeToken(value));
 }
