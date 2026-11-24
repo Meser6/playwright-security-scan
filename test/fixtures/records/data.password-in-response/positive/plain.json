@@ -1,0 +1,20 @@
+{
+  "title": "a plain password value",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/users/1",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"email\":\"a@b.c\",\"password\":\"welcome01\"}"
+  },
+  "expect": [
+    {
+      "discriminator": "password"
+    }
+  ]
+}

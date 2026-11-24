@@ -200,3 +200,9 @@ so entries not seen in it were kept rather than removed as resolved. Run the ful
 
 The reporter failed in one step (e.g. writing a file); the result is marked `TOOL_ERROR`. Check
 file permissions of `report.dir` and `baseline.path`.
+
+### RUN_REPORTER_FLAG
+
+`--reporter` on the command line replaces the reporters of the Playwright config, so the security
+reporter would not run and the scan could never fail. Add it to the flag
+(`--reporter=dot,playwright-security-scan/reporter`) or drop `--reporter`.

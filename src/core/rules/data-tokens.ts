@@ -262,6 +262,19 @@ export const jwtSensitiveClaims = jwtRule(
 
 const PASSWORD = manifestOf('data.password-in-response');
 const PASSWORD_KEYS = new Set(['password', 'passwordhash', 'password_hash', 'hash', 'salt']);
+/** Password hash formats: bcrypt, argon2, scrypt, PBKDF2, crypt(3), long hex or base64. */
+const HASH =
+  /^(?:\$(?:2[abxy]?|argon2(?:id|i|d)|scrypt|pbkdf2[^$]*|[156])\$\S{8,}|[0-9a-f]{32,}|[A-Za-z0-9+/]{24,}={0,2})$/i;
+
+/**
+ * A value that can be a password or a hash, not a label: a hash format, or a single word of at
+ * least 6 characters with a digit or a symbol. Translation files ("password": "Password") are
+ * not reported (pwexample pilot).
+ */
+function secretLike(value: string): boolean {
+  if (HASH.test(value)) return true;
+  return value.length >= 6 && !/\s/.test(value) && /[^\p{L}]/u.test(value);
+}
 
 function findPasswordKeys(value: unknown, depth = 0, found = new Set<string>()): Set<string> {
   if (depth > 10 || value === null || typeof value !== 'object') return found;
@@ -270,7 +283,8 @@ function findPasswordKeys(value: unknown, depth = 0, found = new Set<string>()):
     return found;
   }
   for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-    if (PASSWORD_KEYS.has(key.toLowerCase()) && typeof v === 'string' && v !== '') found.add(key);
+    if (PASSWORD_KEYS.has(key.toLowerCase()) && typeof v === 'string' && secretLike(v))
+      found.add(key);
     findPasswordKeys(v, depth + 1, found);
   }
   return found;

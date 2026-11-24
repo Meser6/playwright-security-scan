@@ -140,7 +140,14 @@ function cookieRule(
 }
 
 const isSession = (c: CookieInput, ctx: RuleContext): boolean =>
-  isSessionCookie(c.name, c.value, sessionPattern(ctx));
+  isSessionCookie(
+    c.name,
+    c.value,
+    sessionPattern(ctx),
+    Array.isArray(ctx.options.nonSessionNames)
+      ? (ctx.options.nonSessionNames as string[])
+      : undefined,
+  );
 
 const cookieFix = (attributes: string, express: string, spring: string): string =>
   [
