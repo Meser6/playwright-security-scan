@@ -1,0 +1,499 @@
+{
+  "description": "Golden cases for endpoint key normalization (spec 07-normalization, 07-REQ-17; the spec lives in the private spec repository). Each case: 'config' is merged into the default 'keys' config section (03-REQ-06), 'context' replaces 'defaultContext'. Expected result is either {key} or {skip: <code>}.",
+  "defaultContext": {
+    "baseOrigins": ["https://app.example.com"]
+  },
+  "cases": [
+    {
+      "id": "N-01",
+      "title": "base origin gets empty label",
+      "input": { "method": "GET", "url": "https://app.example.com/api/tickets" },
+      "expected": { "key": "GET /api/tickets" }
+    },
+    {
+      "id": "N-02",
+      "title": "method is uppercased",
+      "input": { "method": "post", "url": "https://app.example.com/api/tickets" },
+      "expected": { "key": "POST /api/tickets" }
+    },
+    {
+      "id": "N-03",
+      "title": "root path",
+      "input": { "method": "GET", "url": "https://app.example.com" },
+      "expected": { "key": "GET /" }
+    },
+    {
+      "id": "N-04",
+      "title": "mapped origin gets its label, no leading slash",
+      "config": { "origins": { "https://api.example.com": "api" } },
+      "input": { "method": "GET", "url": "https://api.example.com/v1/users" },
+      "expected": { "key": "GET api/v1/users" }
+    },
+    {
+      "id": "N-05",
+      "title": "origins map wins over baseURL",
+      "config": { "origins": { "https://app.example.com": "web" } },
+      "input": { "method": "GET", "url": "https://app.example.com/api/x" },
+      "expected": { "key": "GET web/api/x" }
+    },
+    {
+      "id": "N-06",
+      "title": "unknown host is labeled with host",
+      "input": { "method": "GET", "url": "https://cdn.other.net/config" },
+      "expected": { "key": "GET cdn.other.net/config" }
+    },
+    {
+      "id": "N-07",
+      "title": "unknown host keeps non-default port",
+      "context": { "baseOrigins": [] },
+      "input": { "method": "GET", "url": "http://localhost:3000/api/health" },
+      "expected": { "key": "GET localhost:3000/api/health" }
+    },
+    {
+      "id": "N-08",
+      "title": "default port is dropped, host lowercased",
+      "input": { "method": "GET", "url": "https://APP.example.com:443/api/x" },
+      "expected": { "key": "GET /api/x" }
+    },
+    {
+      "id": "N-09",
+      "title": "http and https of the same unknown host share a label",
+      "input": { "method": "GET", "url": "http://legacy.example.org/x" },
+      "expected": { "key": "GET legacy.example.org/x" }
+    },
+    {
+      "id": "N-10",
+      "title": "IPv6 host",
+      "context": { "baseOrigins": [] },
+      "input": { "method": "GET", "url": "http://[::1]:8080/x" },
+      "expected": { "key": "GET [::1]:8080/x" }
+    },
+    {
+      "id": "N-11",
+      "title": "numeric segment",
+      "input": { "method": "GET", "url": "https://app.example.com/api/tickets/42" },
+      "expected": { "key": "GET /api/tickets/:id" }
+    },
+    {
+      "id": "N-12",
+      "title": "uuid segment, any case",
+      "input": {
+        "method": "DELETE",
+        "url": "https://app.example.com/api/users/3F2504E0-4F89-11D3-9A0C-0305E82C3301/roles"
+      },
+      "expected": { "key": "DELETE /api/users/:id/roles" }
+    },
+    {
+      "id": "N-13",
+      "title": "hex segment of 24 chars (e.g. ObjectId)",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/docs/507f1f77bcf86cd799439011"
+      },
+      "expected": { "key": "GET /api/docs/:id" }
+    },
+    {
+      "id": "N-14",
+      "title": "hex shorter than 16 stays",
+      "input": { "method": "GET", "url": "https://app.example.com/api/colors/ff00aa" },
+      "expected": { "key": "GET /api/colors/ff00aa" }
+    },
+    {
+      "id": "N-15",
+      "title": "token of 24+ chars with a digit",
+      "input": { "method": "GET", "url": "https://app.example.com/share/aB3dE5fG7hJ9kL1mN3pQ5rS7" },
+      "expected": { "key": "GET /share/:id" }
+    },
+    {
+      "id": "N-16",
+      "title": "long word without digit stays",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/internationalization-settings"
+      },
+      "expected": { "key": "GET /api/internationalization-settings" }
+    },
+    {
+      "id": "N-17",
+      "title": "partial ids, dates, versions and file names stay",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/v2/order-123/2026-11-18/report.json"
+      },
+      "expected": { "key": "GET /api/v2/order-123/2026-11-18/report.json" }
+    },
+    {
+      "id": "N-18",
+      "title": "built-in pattern can be disabled",
+      "config": { "idPatterns": { "number": false } },
+      "input": { "method": "GET", "url": "https://app.example.com/api/years/2026" },
+      "expected": { "key": "GET /api/years/2026" }
+    },
+    {
+      "id": "N-19",
+      "title": "extra pattern: literal string matches whole segment",
+      "config": { "extraIdPatterns": ["me"] },
+      "input": { "method": "GET", "url": "https://app.example.com/api/users/me" },
+      "expected": { "key": "GET /api/users/:id" }
+    },
+    {
+      "id": "N-20",
+      "title": "extra pattern: regex, g flag ignored",
+      "config": { "extraIdPatterns": [{ "regex": "^[A-Z]{2}-[0-9]{4,}$", "flags": "g" }] },
+      "input": { "method": "GET", "url": "https://app.example.com/api/tickets/PL-20391/comments" },
+      "expected": { "key": "GET /api/tickets/:id/comments" }
+    },
+    {
+      "id": "N-21",
+      "title": "trailing slash and empty segments are removed",
+      "input": { "method": "GET", "url": "https://app.example.com/api//tickets/" },
+      "expected": { "key": "GET /api/tickets" }
+    },
+    {
+      "id": "N-22",
+      "title": "dot segments resolved by the URL parser",
+      "input": { "method": "GET", "url": "https://app.example.com/api/a/../tickets/./list" },
+      "expected": { "key": "GET /api/tickets/list" }
+    },
+    {
+      "id": "N-23",
+      "title": "matrix parameters are removed",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/shop/items;jsessionid=A1B2C3/list"
+      },
+      "expected": { "key": "GET /shop/items/list" }
+    },
+    {
+      "id": "N-24",
+      "title": "fragment is ignored",
+      "input": { "method": "GET", "url": "https://app.example.com/api/tickets#top" },
+      "expected": { "key": "GET /api/tickets" }
+    },
+    {
+      "id": "N-25",
+      "title": "percent-decoding, case preserved, reserved chars re-encoded",
+      "input": { "method": "GET", "url": "https://app.example.com/api/Caf%C3%A9/a%2Fb/x%20y" },
+      "expected": { "key": "GET /api/Café/a%2Fb/x%20y" }
+    },
+    {
+      "id": "N-26",
+      "title": "encoded id is decoded before matching",
+      "input": { "method": "GET", "url": "https://app.example.com/api/items/%31%32%33" },
+      "expected": { "key": "GET /api/items/:id" }
+    },
+    {
+      "id": "N-27",
+      "title": "query: sorted unique names, values dropped",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/tickets?sort=asc&search=foo&page=2&search=bar"
+      },
+      "expected": { "key": "GET /api/tickets?page&search&sort" }
+    },
+    {
+      "id": "N-28",
+      "title": "query: bare id-like parameter (cache buster) is dropped",
+      "input": { "method": "GET", "url": "https://app.example.com/api/config?1763460000123" },
+      "expected": { "key": "GET /api/config" }
+    },
+    {
+      "id": "N-29",
+      "title": "query: dropQueryParams",
+      "config": { "dropQueryParams": ["_", "v"] },
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/config?_=1763460000123&v=3&lang=en"
+      },
+      "expected": { "key": "GET /api/config?lang" }
+    },
+    {
+      "id": "N-30",
+      "title": "query: keepQueryValues, multiple values sorted, id-like values masked",
+      "config": { "keepQueryValues": ["type"] },
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/tickets?type=open&type=closed&type=42&q=x"
+      },
+      "expected": { "key": "GET /api/tickets?q&type=:id,closed,open" }
+    },
+    {
+      "id": "N-31",
+      "title": "query: keepQueryValues escapes separators",
+      "config": { "keepQueryValues": ["filter"] },
+      "input": { "method": "GET", "url": "https://app.example.com/api/tickets?filter=a%2Cb%26c" },
+      "expected": { "key": "GET /api/tickets?filter=a%2Cb%26c" }
+    },
+    {
+      "id": "N-32",
+      "title": "query: indexed array parameters collapse to []",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/tickets?ids%5B0%5D=1&ids%5B1%5D=2&tags[]=a"
+      },
+      "expected": { "key": "GET /api/tickets?ids[]&tags[]" }
+    },
+    {
+      "id": "N-33",
+      "title": "query: empty name and empty query are dropped",
+      "input": { "method": "GET", "url": "https://app.example.com/api/tickets?=x&" },
+      "expected": { "key": "GET /api/tickets" }
+    },
+    {
+      "id": "N-34",
+      "title": "query: ignore mode",
+      "config": { "query": "ignore" },
+      "input": { "method": "GET", "url": "https://app.example.com/api/tickets?search=x&page=1" },
+      "expected": { "key": "GET /api/tickets" }
+    },
+    {
+      "id": "N-35",
+      "title": "GraphQL POST: one key per endpoint in MVP",
+      "input": { "method": "POST", "url": "https://app.example.com/graphql" },
+      "expected": { "key": "POST /graphql" }
+    },
+    {
+      "id": "N-36",
+      "title": "GraphQL GET with operationName kept",
+      "config": { "keepQueryValues": ["operationName"] },
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/graphql?query=%7Bme%7D&operationName=GetMe&variables=%7B%7D"
+      },
+      "expected": { "key": "GET /graphql?operationName=GetMe&query&variables" }
+    },
+    {
+      "id": "N-37",
+      "title": "non-http scheme is skipped",
+      "input": { "method": "GET", "url": "data:application/json,{}" },
+      "expected": { "skip": "NORMALIZE_UNSUPPORTED_URL" }
+    },
+    {
+      "id": "N-38",
+      "title": "unparsable URL is skipped",
+      "input": { "method": "GET", "url": "not a url" },
+      "expected": { "skip": "NORMALIZE_UNSUPPORTED_URL" }
+    },
+    {
+      "id": "N-39",
+      "title": "invalid percent-encoding is kept raw",
+      "input": { "method": "GET", "url": "https://app.example.com/api/%E0%A4%A/x" },
+      "expected": { "key": "GET /api/%E0%A4%A/x" }
+    },
+    {
+      "id": "N-40",
+      "title": "e-mail in path is replaced with :email",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/users/jan.kowalski%40example.com/orders"
+      },
+      "expected": { "key": "GET /api/users/:email/orders" }
+    },
+    {
+      "id": "N-41",
+      "title": "e-mail in a kept query value is replaced with :email",
+      "config": { "keepQueryValues": ["owner"] },
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/tickets?owner=qa%2Buser%40example.com"
+      },
+      "expected": { "key": "GET /api/tickets?owner=:email" }
+    },
+    {
+      "id": "N-42",
+      "title": "nanoid-like id (21 chars, mixed case, digit) is an id",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/links/V1StGXR8_Z5jdHi6B-myT"
+      },
+      "expected": { "key": "GET /api/links/:id" }
+    },
+    {
+      "id": "N-43",
+      "title": "prefixed id with mixed case and digit is an id",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/customers/cus_NffrFeUfNV2Hib"
+      },
+      "expected": { "key": "GET /api/customers/:id" }
+    },
+    {
+      "id": "N-44",
+      "title": "long kebab-case word with a digit stays",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/oauth2-authorization-callback"
+      },
+      "expected": { "key": "GET /api/oauth2-authorization-callback" }
+    },
+    {
+      "id": "N-45",
+      "title": "file name with a date and separators stays",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/files/annual-report-2026-11-18-final.pdf"
+      },
+      "expected": { "key": "GET /files/annual-report-2026-11-18-final.pdf" }
+    },
+    {
+      "id": "N-46",
+      "title": "JWT-like token with dots and mixed case is an id",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/verify/eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJl"
+      },
+      "expected": { "key": "GET /verify/:id" }
+    },
+    {
+      "id": "N-47",
+      "title": "21-character kebab-case word without a digit stays",
+      "input": { "method": "GET", "url": "https://app.example.com/api/notification-settings" },
+      "expected": { "key": "GET /api/notification-settings" }
+    },
+    {
+      "id": "N-48",
+      "title": "camelCase word without a digit stays",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/getUserPreferencesForAccount"
+      },
+      "expected": { "key": "GET /api/getUserPreferencesForAccount" }
+    },
+    {
+      "id": "N-49",
+      "title": "mixed pattern can be disabled",
+      "config": { "idPatterns": { "mixed": false } },
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/links/V1StGXR8_Z5jdHi6B-myT"
+      },
+      "expected": { "key": "GET /api/links/V1StGXR8_Z5jdHi6B-myT" }
+    },
+    {
+      "id": "N-50",
+      "title": "e-mail pattern can be disabled",
+      "config": { "idPatterns": { "email": false } },
+      "input": { "method": "GET", "url": "https://app.example.com/api/users/jan%40example.com" },
+      "expected": { "key": "GET /api/users/jan@example.com" }
+    },
+    {
+      "id": "N-51",
+      "title": "lowercase token of 24+ chars without separators is an id",
+      "input": { "method": "GET", "url": "https://app.example.com/s/k3j4h5g6f7d8s9a0q1w2e3r4" },
+      "expected": { "key": "GET /s/:id" }
+    },
+    {
+      "id": "N-52",
+      "title": "a host pattern labels an origin of a random CI host",
+      "config": { "origins": { "https://*.ci.example.com": "app" } },
+      "input": { "method": "GET", "url": "https://pr-4821.ci.example.com/api/x" },
+      "expected": { "key": "GET app/api/x" }
+    },
+    {
+      "id": "N-53",
+      "title": "* never spans a dot",
+      "config": { "origins": { "https://*.ci.example.com": "app" } },
+      "input": { "method": "GET", "url": "https://a.b.ci.example.com/api/x" },
+      "expected": { "key": "GET a.b.ci.example.com/api/x" }
+    },
+    {
+      "id": "N-54",
+      "title": "* needs at least one character",
+      "config": { "origins": { "https://*.ci.example.com": "app" } },
+      "input": { "method": "GET", "url": "https://ci.example.com/api/x" },
+      "expected": { "key": "GET ci.example.com/api/x" }
+    },
+    {
+      "id": "N-55",
+      "title": "a pattern with a port",
+      "config": { "origins": { "https://app-*.example.com:8443": "app" } },
+      "input": { "method": "GET", "url": "https://app-7.example.com:8443/x" },
+      "expected": { "key": "GET app/x" }
+    },
+    {
+      "id": "N-56",
+      "title": "another port does not match",
+      "config": { "origins": { "https://app-*.example.com:8443": "app" } },
+      "input": { "method": "GET", "url": "https://app-7.example.com/x" },
+      "expected": { "key": "GET app-7.example.com/x" }
+    },
+    {
+      "id": "N-57",
+      "title": "more literal characters win",
+      "config": {
+        "origins": { "https://*.ci.example.com": "ci", "https://api-*.ci.example.com": "api" }
+      },
+      "input": { "method": "GET", "url": "https://api-12.ci.example.com/x" },
+      "expected": { "key": "GET api/x" }
+    },
+    {
+      "id": "N-58",
+      "title": "an exact entry wins over a pattern",
+      "config": {
+        "origins": { "https://*.ci.example.com": "ci", "https://api-12.ci.example.com": "exact" }
+      },
+      "input": { "method": "GET", "url": "https://api-12.ci.example.com/x" },
+      "expected": { "key": "GET exact/x" }
+    },
+    {
+      "id": "N-59",
+      "title": "an empty pattern label makes the main origin",
+      "config": { "origins": { "https://*.ci.example.com": "" } },
+      "context": { "baseOrigins": [] },
+      "input": { "method": "GET", "url": "https://pr-1.ci.example.com/api/x" },
+      "expected": { "key": "GET /api/x" }
+    },
+    {
+      "id": "N-60",
+      "title": "hyphen-prefixed id is an id",
+      "input": { "method": "GET", "url": "https://app.example.com/api/orders/ORD-1000" },
+      "expected": { "key": "GET /api/orders/:id" }
+    },
+    {
+      "id": "N-61",
+      "title": "Stripe-style id with digits is an id",
+      "input": { "method": "POST", "url": "https://app.example.com/v1/invoices/inv_58/payments" },
+      "expected": { "key": "POST /v1/invoices/:id/payments" }
+    },
+    {
+      "id": "N-62",
+      "title": "Stripe-style id of 8 letters and digits is an id",
+      "input": { "method": "GET", "url": "https://app.example.com/v1/charges/txn_a1b2c3d4" },
+      "expected": { "key": "GET /v1/charges/:id" }
+    },
+    {
+      "id": "N-63",
+      "title": "too few digits or too short a prefix stays",
+      "input": { "method": "GET", "url": "https://app.example.com/api/ORD-12/UTF-8" },
+      "expected": { "key": "GET /api/ORD-12/UTF-8" }
+    },
+    {
+      "id": "N-64",
+      "title": "snake_case route names with one digit stay",
+      "input": { "method": "GET", "url": "https://app.example.com/api_v2/step_2fa/page_1" },
+      "expected": { "key": "GET /api_v2/step_2fa/page_1" }
+    },
+    {
+      "id": "N-65",
+      "title": "one character after the underscore stays",
+      "input": { "method": "GET", "url": "https://app.example.com/v1/customers/c_2" },
+      "expected": { "key": "GET /v1/customers/c_2" }
+    },
+    {
+      "id": "N-66",
+      "title": "snake_case words stay",
+      "input": {
+        "method": "GET",
+        "url": "https://app.example.com/api/oauth2_callback/user_settings"
+      },
+      "expected": { "key": "GET /api/oauth2_callback/user_settings" }
+    },
+    {
+      "id": "N-67",
+      "title": "prefixed pattern can be disabled",
+      "config": { "idPatterns": { "prefixed": false } },
+      "input": { "method": "GET", "url": "https://app.example.com/api/orders/ORD-1000" },
+      "expected": { "key": "GET /api/orders/ORD-1000" }
+    }
+  ]
+}

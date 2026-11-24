@@ -5,3 +5,7 @@ All notable changes to this project are documented in this file. The format is b
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- JSON Schemas of the file formats (`schemas/`, exported as `playwright-security-scan/schemas/*`): test attachment, baseline file, run report and outcome file.

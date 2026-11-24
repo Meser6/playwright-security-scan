@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pkg.invalid/schemas/outcome.schema.json",
+  "title": "Outcome file",
+  "description": "reports/pw-sec/outcome.json (02, chapter 7): the result code of the scan for CI, separate from the result of the functional tests (P-08).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "code",
+    "name",
+    "testsPassed",
+    "newBlocking",
+    "newNonBlocking",
+    "expired",
+    "resolved"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "code": { "description": "00, chapter 11.", "enum": [0, 1, 2, 3, 4] },
+    "name": { "enum": ["OK", "NEW_FINDINGS", "BASELINE_EXPIRED", "TOOL_ERROR", "NO_TRAFFIC"] },
+    "testsPassed": { "description": "True when the functional tests passed.", "type": "boolean" },
+    "newBlocking": { "$ref": "common.schema.json#/$defs/count" },
+    "newNonBlocking": { "$ref": "common.schema.json#/$defs/count" },
+    "expired": { "$ref": "common.schema.json#/$defs/count" },
+    "resolved": { "$ref": "common.schema.json#/$defs/count" }
+  }
+}

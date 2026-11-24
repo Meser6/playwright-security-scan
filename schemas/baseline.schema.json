@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pkg.invalid/schemas/baseline.schema.json",
+  "title": "Baseline file",
+  "description": "security-baseline.json, committed (02, chapter 5; 08). Only fingerprints, rule ids, subjects, names and notes; never evidence, URLs with values, tests or counters (02-REQ-04).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "findings"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "generatedBy": {
+      "description": "Package and version that last wrote the file.",
+      "type": "string"
+    },
+    "findings": {
+      "description": "Fingerprint to baseline entry, sorted by fingerprint (02-REQ-01).",
+      "type": "object",
+      "propertyNames": { "maxLength": 512 },
+      "additionalProperties": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "subject", "severity", "status", "addedAt"],
+      "properties": {
+        "ruleId": { "$ref": "common.schema.json#/$defs/ruleId" },
+        "subject": { "type": "string" },
+        "severity": { "$ref": "common.schema.json#/$defs/severity" },
+        "status": {
+          "description": "accepted: risk accepted; false-positive: not a problem, never expires; wontfix: knowingly not fixed, needs a note (02-REQ-02).",
+          "enum": ["accepted", "false-positive", "wontfix"]
+        },
+        "note": { "type": "string" },
+        "until": {
+          "description": "After this date the entry no longer protects the finding (02-REQ-03).",
+          "$ref": "common.schema.json#/$defs/isoDate"
+        },
+        "addedAt": { "$ref": "common.schema.json#/$defs/isoDate" }
+      },
+      "if": { "properties": { "status": { "const": "wontfix" } } },
+      "then": { "required": ["note"] }
+    }
+  }
+}

@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pkg.invalid/schemas/run-report.schema.json",
+  "title": "Run report",
+  "description": "reports/pw-sec/report.json (02, chapter 6): the full result of one run, redacted (P-07).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "startedAt",
+    "finishedAt",
+    "mode",
+    "pkgVersion",
+    "playwrightVersion",
+    "scope",
+    "coverage",
+    "findings",
+    "resolved",
+    "notCovered",
+    "testsWithoutTraffic",
+    "gate",
+    "diagnostics",
+    "outcome"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "type": "string"
+    },
+    "startedAt": {
+      "type": "string"
+    },
+    "finishedAt": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": ["scan", "baseline"]
+    },
+    "pkgVersion": {
+      "type": "string"
+    },
+    "playwrightVersion": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["origins"],
+      "properties": {
+        "origins": {
+          "description": "Scope origins and patterns.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "coverage": {
+      "$ref": "common.schema.json#/$defs/coverage"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/classifiedFinding"
+      }
+    },
+    "resolved": {
+      "description": "Baseline entries not seen although their scope was covered (08-REQ-05).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entryRef"
+      }
+    },
+    "notCovered": {
+      "description": "Baseline entries whose scope the run did not cover (08-REQ-05).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entryRef"
+      }
+    },
+    "testsWithoutTraffic": {
+      "description": "Tests with no in-scope response (05-REQ-02), at most 50.",
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "common.schema.json#/$defs/testContextRef"
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minSeverity", "minConfidence", "failed", "blocking"],
+      "properties": {
+        "minSeverity": {
+          "$ref": "common.schema.json#/$defs/severity"
+        },
+        "minConfidence": {
+          "$ref": "common.schema.json#/$defs/confidence"
+        },
+        "failed": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "description": "Fingerprints that fail the run.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/diagnostic"
+      }
+    },
+    "outcome": {
+      "$ref": "outcome.schema.json"
+    }
+  },
+  "$defs": {
+    "classifiedFinding": {
+      "title": "ClassifiedFinding",
+      "description": "A finding of the run with its classification against the baseline (08, chapter 3).",
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/findingFields"
+        },
+        {
+          "type": "object",
+          "required": ["classification", "blocking"],
+          "properties": {
+            "classification": {
+              "enum": ["new", "accepted", "false-positive", "wontfix", "expired"]
+            },
+            "blocking": {
+              "description": "The finding fails the run.",
+              "type": "boolean"
+            },
+            "baseline": {
+              "description": "The baseline entry of the finding, if any.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "addedAt"],
+              "properties": {
+                "status": {
+                  "enum": ["accepted", "false-positive", "wontfix"]
+                },
+                "note": {
+                  "type": "string"
+                },
+                "until": {
+                  "$ref": "common.schema.json#/$defs/isoDate"
+                },
+                "addedAt": {
+                  "$ref": "common.schema.json#/$defs/isoDate"
+                },
+                "expiresInDays": {
+                  "description": "Set when until is at most 14 days away (08-REQ-03).",
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false,
+      "type": "object"
+    },
+    "entryRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "ruleId", "subject"],
+      "properties": {
+        "fingerprint": {
+          "type": "string"
+        },
+        "ruleId": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
