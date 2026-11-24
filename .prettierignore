@@ -3,3 +3,5 @@ dist/
 coverage/
 # Exported from the spec repository by its own script; never edited by hand.
 spec-ids.json
+# Third-party files kept unchanged.
+test/contract/vendor/

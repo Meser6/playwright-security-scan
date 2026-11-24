@@ -40,7 +40,7 @@ import { readMode, RUN_ID_ENV } from '../mode/index.ts';
 import { getRegistered } from '../registry/index.ts';
 import { VERSION } from '../version.ts';
 import { isPartialRun } from './partial.ts';
-import { REPORT_WRITERS } from './writers.ts';
+import { REPORT_WRITERS } from './sarif-junit.ts';
 
 const MAX_TESTS_WITHOUT_TRAFFIC = 50;
 
@@ -351,7 +351,7 @@ export default class SecurityReporter implements Reporter {
       }
       writeFileSync(join(dir, 'outcome.json'), `${JSON.stringify(out, null, 2)}\n`);
       for (const writer of REPORT_WRITERS) {
-        const path = writer.write(report, sec, dir);
+        const path = writer.write(report, sec, { reportDir: dir, configDir: this.#configDir() });
         if (writer.name === 'html' && path !== null) written.html = shown(path);
       }
     } catch (error) {
