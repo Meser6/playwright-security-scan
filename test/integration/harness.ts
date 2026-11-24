@@ -17,7 +17,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { TestAttachment } from '../../src/core/types/index.ts';
+import type { OutcomeFile, RunReport, TestAttachment } from '../../src/core/types/index.ts';
+import { createAjv, validator } from '../contract/schemas.ts';
 import { startTestApp } from '../app/server.ts';
 import type { TestApp } from '../app/server.ts';
 
@@ -25,6 +26,17 @@ export const ROOT = join(import.meta.dirname, '../..');
 const PROJECTS = join(ROOT, 'test/projects');
 const RUNNER = join(ROOT, 'node_modules/@playwright/test/cli.js');
 export const RUN_TIMEOUT = 300_000;
+
+const ajv = createAjv();
+const validReport = validator(ajv, 'run-report.schema.json');
+const validOutcome = validator(ajv, 'outcome.schema.json');
+
+function readJson<T>(path: string, validate: ReturnType<typeof validator>): T | null {
+  if (!existsSync(path)) return null;
+  const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
+  if (!validate(value)) throw new Error(`${path} is invalid: ${JSON.stringify(validate.errors)}`);
+  return value as T;
+}
 
 export interface TestResult {
   project: string;
@@ -41,6 +53,12 @@ export interface ProjectRun {
   output: string;
   dir: string;
   results: TestResult[];
+  /** reports/pw-sec/report.json, validated against its schema; null when not written. */
+  report: RunReport | null;
+  /** reports/pw-sec/outcome.json, validated; null when not written. */
+  outcome: OutcomeFile | null;
+  /** security-baseline.json text, if any. */
+  baseline: string | null;
 }
 
 export interface Harness {
@@ -176,7 +194,16 @@ function runProject(
     child.on('error', reject);
     child.on('close', (status) => {
       try {
-        resolve({ status, output, dir, results: readResults(join(dir, 'results.json')) });
+        const baselineFile = join(dir, 'security-baseline.json');
+        resolve({
+          status,
+          output,
+          dir,
+          results: readResults(join(dir, 'results.json')),
+          report: readJson<RunReport>(join(dir, 'reports/pw-sec/report.json'), validReport),
+          outcome: readJson<OutcomeFile>(join(dir, 'reports/pw-sec/outcome.json'), validOutcome),
+          baseline: existsSync(baselineFile) ? readFileSync(baselineFile, 'utf8') : null,
+        });
       } catch (error) {
         reject(error instanceof Error ? error : new Error(String(error)));
       }

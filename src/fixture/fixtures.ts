@@ -1,7 +1,7 @@
 // withSecurityFixtures(), trackContext() (05, chapter 3). Outside scan mode only the `security`
 // fixture is added and nothing else changes (05-REQ-01, P-02).
 import { randomBytes } from 'node:crypto';
-import { relative } from 'node:path';
+import { dirname, relative } from 'node:path';
 import type { APIRequestContext, BrowserContext, Page, TestInfo, TestType } from '@playwright/test';
 import { resolveConfig } from '../core/config/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
@@ -90,7 +90,9 @@ function workerState(baseURL: string | undefined): WorkerState {
 
 /** TestContextRef of a test (02, chapter 2). */
 export function testRef(testInfo: TestInfo): TestContextRef {
-  const root = testInfo.config.rootDir;
+  // Relative to the directory of the Playwright config (02, chapter 2), like SARIF locations.
+  const configFile = testInfo.config.configFile;
+  const root = configFile === undefined ? testInfo.config.rootDir : dirname(configFile);
   return {
     testId: testInfo.testId,
     // titlePath starts with the file name; the reports show the file separately.

@@ -1,0 +1,5 @@
+{
+  "name": "no-base-project",
+  "private": true,
+  "type": "module"
+}
