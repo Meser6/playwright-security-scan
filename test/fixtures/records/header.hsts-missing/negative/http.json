@@ -1,0 +1,13 @@
+{
+  "title": "plain HTTP (transport.cleartext)",
+  "input": {
+    "url": "http://app.test/",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": []
+}

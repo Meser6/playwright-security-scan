@@ -1,0 +1,15 @@
+{
+  "title": "plain values",
+  "input": {
+    "kind": "storage",
+    "origin": "https://app.test",
+    "area": "session",
+    "entries": [
+      {
+        "key": "theme",
+        "value": "dark"
+      }
+    ]
+  },
+  "expect": []
+}

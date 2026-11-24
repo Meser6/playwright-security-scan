@@ -1,0 +1,17 @@
+{
+  "title": "http script in the HTML",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<script src=\"http://cdn.test/lib.4f3e2d1c.js\"></script>"
+  },
+  "expect": [
+    {
+      "subject": "http://cdn.test/lib.*.js"
+    }
+  ]
+}

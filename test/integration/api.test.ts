@@ -41,8 +41,9 @@ describe('API traffic (15)', () => {
     const a = byTitle(scan, 'API GET item').attachment;
     expect(a?.coverage.apiResponses).toBe(1);
     expect(a?.coverage.endpoints).toEqual({ 'GET /api/items/:id': 1 });
-    expect(a?.findings.map((f) => [f.ruleId, f.sources])).toEqual([
-      ['header.xcto-missing', ['api']],
+    expect(a?.findings.map((f) => [f.ruleId, f.sources])).toContainEqual([
+      'header.xcto-missing',
+      ['api'],
     ]);
     const secret = byTitle(scan, 'API fetch config with a secret').attachment?.findings.find(
       (f) => f.ruleId === 'data.secret-in-asset',

@@ -1,0 +1,22 @@
+{
+  "title": "GitHub token in an API response",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "url": "https://app.test/api/config",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"t\":\"ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789\"}"
+  },
+  "expect": [
+    {
+      "subject": "GET /api/config",
+      "discriminator": "github-token",
+      "scope": "endpoint"
+    }
+  ]
+}

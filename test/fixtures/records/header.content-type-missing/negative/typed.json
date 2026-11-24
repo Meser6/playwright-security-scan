@@ -1,0 +1,17 @@
+{
+  "title": "content-type present",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      },
+      {
+        "name": "content-length",
+        "value": "12"
+      }
+    ]
+  },
+  "expect": []
+}

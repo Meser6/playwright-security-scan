@@ -1,0 +1,18 @@
+{
+  "title": "preference cookie without Secure",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "theme=dark; SameSite=Lax"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "severity": "info",
+      "subject": "theme@app.test"
+    }
+  ]
+}

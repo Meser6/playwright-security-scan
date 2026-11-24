@@ -1,0 +1,13 @@
+{
+  "title": "SameSite=Lax",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Secure; HttpOnly; SameSite=Lax"
+      }
+    ]
+  },
+  "expect": []
+}

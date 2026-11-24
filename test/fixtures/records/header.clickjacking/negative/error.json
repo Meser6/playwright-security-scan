@@ -1,0 +1,13 @@
+{
+  "title": "4xx documents are not judged",
+  "input": {
+    "status": 404,
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": []
+}

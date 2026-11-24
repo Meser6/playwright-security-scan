@@ -1,0 +1,16 @@
+{
+  "title": "CSP header present",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy",
+        "value": "default-src 'self'; script-src 'self' 'nonce-abc'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      }
+    ]
+  },
+  "expect": []
+}

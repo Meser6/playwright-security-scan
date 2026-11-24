@@ -1,0 +1,12 @@
+{
+  "title": "document without nosniff",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [{}]
+}

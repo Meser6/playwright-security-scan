@@ -1,0 +1,20 @@
+{
+  "title": "http image requested by an https page",
+  "input": {
+    "resourceType": "image",
+    "url": "http://cdn.test/a.png",
+    "origin": "http://cdn.test",
+    "frameUrl": "https://app.test/",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "image/png"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "http://cdn.test/a.png"
+    }
+  ]
+}

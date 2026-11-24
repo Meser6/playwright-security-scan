@@ -1,0 +1,16 @@
+{
+  "title": "nosniff",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "x-content-type-options",
+        "value": "nosniff"
+      }
+    ]
+  },
+  "expect": []
+}

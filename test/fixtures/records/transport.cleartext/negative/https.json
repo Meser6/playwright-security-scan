@@ -1,0 +1,12 @@
+{
+  "title": "HTTPS",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": []
+}

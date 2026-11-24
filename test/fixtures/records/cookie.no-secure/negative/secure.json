@@ -1,0 +1,13 @@
+{
+  "title": "Secure set",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Path=/; Secure; HttpOnly"
+      }
+    ]
+  },
+  "expect": []
+}

@@ -1,0 +1,17 @@
+{
+  "title": "session without HttpOnly",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "connect.sid=s%3Aabc; Path=/; Secure"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "connect.sid@app.test"
+    }
+  ]
+}

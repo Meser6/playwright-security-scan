@@ -1,0 +1,20 @@
+{
+  "title": "wildcard in default-src",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy",
+        "value": "default-src *"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "*"
+    }
+  ]
+}

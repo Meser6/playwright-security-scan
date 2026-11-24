@@ -1,0 +1,19 @@
+{
+  "title": "below the option",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "strict-transport-security",
+        "value": "max-age=31536000"
+      }
+    ]
+  },
+  "options": {
+    "minMaxAge": 63072000
+  },
+  "expect": [{}]
+}

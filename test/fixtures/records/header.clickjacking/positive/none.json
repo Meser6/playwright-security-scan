@@ -1,0 +1,20 @@
+{
+  "title": "no frame-ancestors, no XFO",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy",
+        "value": "default-src 'self'"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "https://app.test"
+    }
+  ]
+}

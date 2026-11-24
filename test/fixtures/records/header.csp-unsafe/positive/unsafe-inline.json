@@ -1,0 +1,20 @@
+{
+  "title": "unsafe-inline without nonce",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy",
+        "value": "script-src 'self' 'unsafe-inline'; object-src 'none'"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "unsafe-inline"
+    }
+  ]
+}

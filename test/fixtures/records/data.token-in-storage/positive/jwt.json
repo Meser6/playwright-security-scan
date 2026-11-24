@@ -1,0 +1,20 @@
+{
+  "title": "JWT in localStorage",
+  "input": {
+    "kind": "storage",
+    "origin": "https://app.test",
+    "area": "local",
+    "entries": [
+      {
+        "key": "state",
+        "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJlLXZhbHVl"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "state@https://app.test",
+      "discriminator": "local"
+    }
+  ]
+}

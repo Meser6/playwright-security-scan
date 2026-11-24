@@ -1,0 +1,17 @@
+{
+  "title": "form action over HTTP",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<form method=post action=\"http://app.test/login\"></form>"
+  },
+  "expect": [
+    {
+      "subject": "GET /"
+    }
+  ]
+}

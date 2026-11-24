@@ -1,5 +1,6 @@
 // The rule interface (06, chapter 2). Rules are pure (06-REQ-01): no state between calls, no I/O.
 import type { Redactor } from '../fingerprint/index.ts';
+import { ruleManifest as ruleManifestById } from '../manifest/rules.ts';
 import type { RuleManifest } from '../manifest/rules.ts';
 import type {
   BrowserEvent,
@@ -31,8 +32,10 @@ export interface RuleAppliesTo {
   resourceTypes?: string[];
   /** Traffic sources; unset: both (15, chapter 5). */
   sources?: Source[];
-  /** Browser events the rule checks instead of records. */
+  /** Browser events the rule checks; then records only with `records: true`. */
   events?: BrowserEventKind[];
+  /** With `events`: the rule also checks records. */
+  records?: boolean;
   /** Also gets out-of-scope records, without body (05-REQ-05: mixed content). */
   outOfScope?: boolean;
 }
@@ -91,4 +94,16 @@ export function isJson(contentType: string | undefined): boolean {
   if (contentType === undefined) return false;
   const type = contentType.split(';')[0]?.trim().toLowerCase() ?? '';
   return type === 'application/json' || type.endsWith('+json');
+}
+
+/** The manifest entry of a built-in rule; throws for an unknown id (a programming error). */
+export function manifestOf(id: string): RuleManifest {
+  const found = ruleManifestById(id);
+  if (found === undefined) throw new Error(`no manifest entry for ${id}`);
+  return found;
+}
+
+/** Transport rules are advisory on local origins (05-REQ-06). */
+export function transportConfidence(ctx: RuleContext): Confidence {
+  return ctx.localDev ? 'low' : ctx.confidence;
 }

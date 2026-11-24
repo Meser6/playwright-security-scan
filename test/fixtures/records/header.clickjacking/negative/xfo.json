@@ -1,0 +1,16 @@
+{
+  "title": "X-Frame-Options DENY",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "x-frame-options",
+        "value": "DENY"
+      }
+    ]
+  },
+  "expect": []
+}

@@ -1,0 +1,16 @@
+{
+  "title": "strict-origin-when-cross-origin",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "referrer-policy",
+        "value": "no-referrer, strict-origin-when-cross-origin"
+      }
+    ]
+  },
+  "expect": []
+}

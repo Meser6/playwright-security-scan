@@ -1,0 +1,16 @@
+{
+  "title": "one year",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "strict-transport-security",
+        "value": "max-age=31536000; includeSubDomains"
+      }
+    ]
+  },
+  "expect": []
+}

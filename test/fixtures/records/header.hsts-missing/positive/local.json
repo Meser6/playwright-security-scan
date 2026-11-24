@@ -1,0 +1,19 @@
+{
+  "title": "local origin: low confidence",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "context": {
+    "localDev": true
+  },
+  "expect": [
+    {
+      "confidence": "low"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "title": "no secret",
+  "input": {
+    "resourceType": "script",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/javascript"
+      }
+    ],
+    "body": "var a = 1;"
+  },
+  "expect": []
+}

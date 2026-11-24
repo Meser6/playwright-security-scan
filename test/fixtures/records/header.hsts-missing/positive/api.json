@@ -1,0 +1,18 @@
+{
+  "title": "API JSON: low confidence",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "confidence": "low"
+    }
+  ]
+}

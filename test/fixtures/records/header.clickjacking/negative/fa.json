@@ -1,0 +1,16 @@
+{
+  "title": "frame-ancestors",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy",
+        "value": "frame-ancestors 'self'"
+      }
+    ]
+  },
+  "expect": []
+}

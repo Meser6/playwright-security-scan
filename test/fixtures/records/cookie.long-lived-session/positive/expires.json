@@ -1,0 +1,17 @@
+{
+  "title": "Expires a year after Date",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "date",
+        "value": "Tue, 24 Nov 2026 20:00:00 GMT"
+      },
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Secure; HttpOnly; Expires=Wed, 24 Nov 2027 20:00:00 GMT"
+      }
+    ]
+  },
+  "expect": [{}]
+}

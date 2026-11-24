@@ -1,0 +1,16 @@
+{
+  "title": "X-Frame-Options ALLOWALL",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "x-frame-options",
+        "value": "ALLOWALL"
+      }
+    ]
+  },
+  "expect": [{}]
+}

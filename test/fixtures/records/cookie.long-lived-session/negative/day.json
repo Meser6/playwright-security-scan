@@ -1,0 +1,13 @@
+{
+  "title": "one day",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=abc; Secure; HttpOnly; Max-Age=86400"
+      }
+    ]
+  },
+  "expect": []
+}

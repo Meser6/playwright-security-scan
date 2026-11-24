@@ -1,0 +1,20 @@
+{
+  "title": "report-only only",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy-report-only",
+        "value": "default-src 'self'; script-src 'self' 'nonce-abc'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "severity": "info"
+    }
+  ]
+}

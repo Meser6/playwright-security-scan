@@ -1,0 +1,15 @@
+{
+  "title": "TLSv1.1 (WebKit on Linux)",
+  "input": {
+    "tls": {
+      "protocol": "TLSv1.1"
+    },
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [{}]
+}

@@ -1,0 +1,17 @@
+{
+  "title": "token-like value",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "pref=Zq8xK2mP9vL4tR7wY1nB3c; Path=/; HttpOnly"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "pref@app.test"
+    }
+  ]
+}

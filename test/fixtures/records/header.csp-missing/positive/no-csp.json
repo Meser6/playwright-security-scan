@@ -1,0 +1,16 @@
+{
+  "title": "document without CSP",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "https://app.test"
+    }
+  ]
+}

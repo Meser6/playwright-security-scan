@@ -1,0 +1,27 @@
+{
+  "title": "foreign origin echoed with credentials",
+  "input": {
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "origin",
+        "value": "https://evil.test"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "access-control-allow-origin",
+        "value": "https://evil.test"
+      },
+      {
+        "name": "access-control-allow-credentials",
+        "value": "true"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "confidence": "medium"
+    }
+  ]
+}

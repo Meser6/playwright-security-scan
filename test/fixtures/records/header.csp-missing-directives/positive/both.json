@@ -1,0 +1,23 @@
+{
+  "title": "no object-src and base-uri",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy",
+        "value": "script-src 'self'"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "discriminator": "object-src"
+    },
+    {
+      "discriminator": "base-uri"
+    }
+  ]
+}

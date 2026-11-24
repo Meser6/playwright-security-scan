@@ -1,0 +1,16 @@
+{
+  "title": "unsafe-inline with a nonce is ignored by browsers",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "content-security-policy",
+        "value": "script-src 'nonce-r4nd' 'unsafe-inline' 'strict-dynamic'"
+      }
+    ]
+  },
+  "expect": []
+}

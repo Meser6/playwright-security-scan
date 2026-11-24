@@ -1,0 +1,21 @@
+{
+  "title": "AWS key in a bundle",
+  "input": {
+    "resourceType": "script",
+    "url": "https://app.test/main.1a2b3c4d.js",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/javascript"
+      }
+    ],
+    "body": "var k='AKIAZ7QW3EXAMPLEKEY9';"
+  },
+  "expect": [
+    {
+      "subject": "https://app.test/main.*.js",
+      "discriminator": "aws-access-key",
+      "scope": "asset"
+    }
+  ]
+}

@@ -76,12 +76,13 @@ export async function scanContext(
 ): Promise<void> {
   const scope = collector.options.scope;
   const work = async (): Promise<void> => {
-    const hosts = [
-      ...new Set(scope.listed.flatMap((o) => (o.includes('*') ? [] : [new URL(o).hostname]))),
-    ];
+    const origins = scope.listed.filter((o) => !o.includes('*'));
+    const originOf = (domain: string): string | undefined =>
+      origins.find((o) => domainMatches(new URL(o).hostname, domain));
     const cookies = (await context.cookies())
-      .filter((c) => hosts.some((h) => domainMatches(h, c.domain)))
+      .filter((c) => originOf(c.domain) !== undefined)
       .map((c): CookieView => ({
+        origin: originOf(c.domain) as string,
         name: c.name,
         value: c.value,
         domain: c.domain,

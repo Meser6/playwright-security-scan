@@ -1,0 +1,16 @@
+{
+  "title": "Permissions-Policy present",
+  "input": {
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      },
+      {
+        "name": "permissions-policy",
+        "value": "camera=()"
+      }
+    ]
+  },
+  "expect": []
+}

@@ -1,0 +1,14 @@
+{
+  "title": "API JSON without nosniff",
+  "input": {
+    "source": "api",
+    "resourceType": "api",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": [{}]
+}
