@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pkg.invalid/schemas/common.schema.json",
+  "title": "Common definitions",
+  "description": "Definitions shared by the file formats of playwright-security-scan (02).",
+  "$defs": {
+    "severity": {
+      "description": "Severity of a finding.",
+      "enum": ["info", "low", "medium", "high", "critical"]
+    },
+    "confidence": {
+      "description": "How sure a rule is that the finding is a real problem.",
+      "enum": ["low", "medium", "high"]
+    },
+    "findingScope": {
+      "description": "What the subject of a finding is (07, chapter 3).",
+      "enum": ["origin", "endpoint", "cookie", "storage-key", "asset"]
+    },
+    "source": {
+      "description": "Where the traffic came from: a browser context or an APIRequestContext (15).",
+      "enum": ["browser", "api"]
+    },
+    "ruleId": {
+      "description": "Stable rule id, '<group>.<name>'.",
+      "type": "string",
+      "pattern": "^[a-z]+\\.[a-z0-9-]+$"
+    },
+    "isoDate": {
+      "description": "Calendar date, YYYY-MM-DD.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "testContextRef": {
+      "description": "The test (and step) a record or finding comes from.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["testId", "titlePath", "file", "line", "project"],
+      "properties": {
+        "testId": {
+          "type": "string"
+        },
+        "titlePath": {
+          "description": "Titles from the outermost describe to the test.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "file": {
+          "description": "Test file path relative to the Playwright config directory, with forward slashes.",
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "step": {
+          "description": "Title of the innermost running test.step, best effort.",
+          "type": "string"
+        }
+      }
+    },
+    "evidence": {
+      "description": "One piece of evidence, already redacted (07, chapter 5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "snippet"],
+      "properties": {
+        "kind": {
+          "enum": ["header", "cookie", "body", "url", "storage", "event"]
+        },
+        "name": {
+          "description": "Header, cookie, parameter or storage key name.",
+          "type": "string"
+        },
+        "snippet": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["origin"],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "endpointKey": {
+          "type": "string"
+        },
+        "param": {
+          "type": "string"
+        },
+        "header": {
+          "type": "string"
+        }
+      }
+    },
+    "finding": {
+      "description": "A deduplicated finding (02, chapter 4).",
+      "$ref": "#/$defs/findingFields",
+      "unevaluatedProperties": false,
+      "title": "Finding",
+      "type": "object"
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "level", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "level": {
+          "enum": ["info", "warn", "error"]
+        },
+        "message": {
+          "type": "string"
+        },
+        "testId": {
+          "type": "string"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/count"
+      }
+    },
+    "coverage": {
+      "description": "What the scan saw (02, chapter 6; 09-REQ-04).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "responses",
+        "apiResponses",
+        "outOfScope",
+        "documents",
+        "bodiesAnalyzed",
+        "bodiesSkipped",
+        "endpoints",
+        "origins",
+        "assets",
+        "storageOrigins",
+        "rulesRun"
+      ],
+      "properties": {
+        "responses": {
+          "description": "Records in scope, both sources.",
+          "$ref": "#/$defs/count"
+        },
+        "apiResponses": {
+          "description": "Of these, records of the api source.",
+          "$ref": "#/$defs/count"
+        },
+        "outOfScope": {
+          "description": "Responses of origins outside the scope.",
+          "$ref": "#/$defs/count"
+        },
+        "documents": {
+          "description": "In-scope responses of resource type document.",
+          "$ref": "#/$defs/count"
+        },
+        "bodiesAnalyzed": {
+          "$ref": "#/$defs/count"
+        },
+        "bodiesSkipped": {
+          "description": "Bodies not read, by reason.",
+          "$ref": "#/$defs/counts"
+        },
+        "endpoints": {
+          "description": "Endpoint key to number of responses.",
+          "$ref": "#/$defs/counts"
+        },
+        "origins": {
+          "description": "Origin in scope to its numbers of responses and documents.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["responses", "documents"],
+            "properties": {
+              "responses": {
+                "$ref": "#/$defs/count"
+              },
+              "documents": {
+                "$ref": "#/$defs/count"
+              }
+            }
+          }
+        },
+        "assets": {
+          "description": "Normalized URLs of in-scope scripts and stylesheets, sorted.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "storageOrigins": {
+          "description": "Origins whose Web Storage was scanned, sorted.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rulesRun": {
+          "description": "Rule id to number of evaluations.",
+          "$ref": "#/$defs/counts"
+        }
+      }
+    },
+    "findingFields": {
+      "description": "A deduplicated finding (02, chapter 4).",
+      "type": "object",
+      "required": [
+        "ruleId",
+        "severity",
+        "confidence",
+        "scope",
+        "subject",
+        "location",
+        "evidence",
+        "message",
+        "fingerprint",
+        "occurrences",
+        "firstSeen",
+        "tests",
+        "sources"
+      ],
+      "properties": {
+        "ruleId": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "severity": {
+          "$ref": "#/$defs/severity"
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "scope": {
+          "$ref": "#/$defs/findingScope"
+        },
+        "subject": {
+          "description": "Origin, endpoint key, name@domain, storage key or normalized asset URL.",
+          "type": "string"
+        },
+        "discriminator": {
+          "description": "Tells apart findings of one rule on one subject (07-REQ-06); never a value.",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/location"
+        },
+        "evidence": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "message": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "occurrences": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "firstSeen": {
+          "$ref": "#/$defs/testContextRef"
+        },
+        "tests": {
+          "description": "testId of every test the finding occurred in, at most 50.",
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "string"
+          }
+        },
+        "sources": {
+          "description": "Traffic sources the finding was seen in (15-REQ-09).",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        }
+      },
+      "title": "FindingFields"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pkg.invalid/schemas/attachment.schema.json",
+  "title": "Test attachment",
+  "description": "Attachment 'pw-sec-findings' of one test (02-REQ-05): findings deduplicated within the test, its coverage and diagnostics. At most 256 KB.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "findings", "coverage", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "findings": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/finding" } },
+    "coverage": { "$ref": "common.schema.json#/$defs/coverage" },
+    "diagnostics": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/diagnostic" } }
+  }
+}
