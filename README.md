@@ -53,8 +53,17 @@ export { expect } from '@playwright/test';
 export const test = withSecurityFixtures(base);
 ```
 
-If your specs import `test` from `@playwright/test` directly, create `fixtures.ts` as above and
-change those imports to `./fixtures`. Without `PW_SEC_MODE` both wrappers change nothing.
+If your specs import `test` from `@playwright/test` directly and you have no fixture module,
+change those imports to the ready one instead:
+
+```ts
+// before: import { test, expect } from '@playwright/test';
+import { test, expect } from 'playwright-security-scan/test';
+```
+
+It is `withSecurityFixtures()` applied to the `test` of `@playwright/test`. With
+`playwright-performance-regression` too, combine both with `mergeTests` in one fixture module.
+Without `PW_SEC_MODE` the wrappers change nothing.
 
 The scope is the origin of `use.baseURL` of each project. If your API runs on another origin, add
 it in a config file (see [Configuration](#configuration)).

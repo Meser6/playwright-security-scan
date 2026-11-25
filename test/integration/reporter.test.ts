@@ -263,4 +263,25 @@ describe('reporter (04, 08, 09)', () => {
     },
     RUN_TIMEOUT * 4,
   );
+  test(
+    '01-AC-04 tests importing playwright-security-scan/test are scanned, and run as usual without a mode',
+    async () => {
+      const dir = harness.copy('direct');
+      const s = await shop(['cookie.no-httponly']);
+      const plain = await harness.run(dir, { env: { APP_URL: s.url } });
+      expect(plain.status, plain.output).toBe(0);
+      expect(plain.results.every((r) => r.status === 'passed')).toBe(true);
+      expect(existsSync(join(dir, 'reports'))).toBe(false);
+
+      const scan = await harness.run(dir, { env: env(s, 'scan') });
+      expect(
+        scan.results.every((r) => r.status === 'passed'),
+        scan.output,
+      ).toBe(true);
+      expect(scan.report?.coverage.responses).toBeGreaterThan(0);
+      expect(scan.report?.coverage.apiResponses).toBeGreaterThan(0);
+      expect(scan.report?.findings.map((f) => f.ruleId)).toContain('cookie.no-httponly');
+    },
+    RUN_TIMEOUT * 2,
+  );
 });

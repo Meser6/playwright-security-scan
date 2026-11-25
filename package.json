@@ -39,6 +39,10 @@
       "import": "./dist/rules.js",
       "require": "./dist/rules.cjs"
     },
+    "./test": {
+      "import": "./dist/test.js",
+      "require": "./dist/test.cjs"
+    },
     "./schemas/*": "./schemas/*",
     "./package.json": "./package.json"
   },
