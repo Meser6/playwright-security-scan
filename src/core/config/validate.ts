@@ -218,7 +218,7 @@ function rules(c: Collector, value: unknown): void {
         suggestion === undefined
           ? 'unknown rule id'
           : `unknown rule id. Did you mean "${suggestion}"?`,
-        'Rule ids are listed in the README (rules table) and in docs/rules/.',
+        'Rule ids are listed in docs/rules/README.md of the package.',
       );
       continue;
     }
