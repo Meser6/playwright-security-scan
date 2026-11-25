@@ -22,6 +22,9 @@
   "bugs": "https://github.com/Meser6/playwright-security-scan/issues",
   "type": "module",
   "sideEffects": false,
+  "bin": {
+    "pw-sec": "./dist/cli.js"
+  },
   "exports": {
     "./config": {
       "import": "./dist/config.js",
