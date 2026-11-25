@@ -1,0 +1,7 @@
+{
+  "name": "init-imports",
+  "private": true,
+  "scripts": {
+    "e2e": "playwright test"
+  }
+}

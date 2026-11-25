@@ -19,6 +19,10 @@ export interface ProjectInfo {
   filesWithExtend: string[];
   /** Scripts of package.json: name → command (perf 04-REQ-55). */
   scriptTexts: Record<string, string>;
+  /** Origin of a `baseURL: '<literal>'` in playwright.config (11, step 4), or null. */
+  baseOrigin: string | null;
+  /** Other http(s) origins written in the sources, most frequent first, at most 10 (11, step 4). */
+  foundOrigins: string[];
   /** Source files with request.newContext( and no trackRequestContext (perf 04-REQ-74). */
   untrackedContextFiles: string[];
   existing: {
@@ -78,6 +82,39 @@ const WRAPPED_TEST = new RegExp(
   String.raw`\bwithSecurityFixtures\s*\(|(['"])${PACKAGE_NAME}/test\1`,
   'u',
 );
+
+/** Hosts of analytics, fonts and CDNs: never proposed as origins of the app (11, step 4). */
+const THIRD_PARTY =
+  /(?:^|\.)(?:google-analytics\.com|googletagmanager\.com|googleapis\.com|gstatic\.com|doubleclick\.net|facebook\.(?:com|net)|jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com|sentry\.io|hotjar\.com|segment\.(?:com|io)|w3\.org|example\.(?:com|org|net)|playwright\.dev|github\.com|npmjs\.(?:com|org))$/u;
+const URL_LITERAL = /['"`](https?:\/\/[a-z0-9.-]+(?::\d+)?)(?=[/'"`?#])/giu;
+const MAX_ORIGINS = 10;
+
+/** `https://Host:443` → `https://host`; the default port is dropped. */
+export function originOf(url: string): string | null {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Origins written in `texts`, without `base` and third parties, most frequent first. */
+function originsIn(texts: readonly string[], base: string | null): string[] {
+  const counts = new Map<string, number>();
+  for (const text of texts) {
+    for (const m of text.matchAll(URL_LITERAL)) {
+      const origin = originOf(m[1] as string);
+      if (origin === null || origin === base || THIRD_PARTY.test(new URL(origin).hostname))
+        continue;
+      counts.set(origin, (counts.get(origin) ?? 0) + 1);
+    }
+  }
+  return [...counts]
+    .sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1))
+    .slice(0, MAX_ORIGINS)
+    .map(([origin]) => origin);
+}
 
 /** testDir values written as string literals in playwright.config ("." when there is none). */
 export function testDirsOf(configText: string): string[] {
@@ -173,6 +210,8 @@ export function detectProject(files: ReadonlyMap<string, string>): ProjectInfo {
           : 'cjs';
 
   const packageModule: 'esm' | 'cjs' = pkg?.['type'] === 'module' ? 'esm' : 'cjs';
+  const baseLiteral = /\bbaseURL\s*:\s*(['"`])(https?:\/\/[^'"`\s]+)\1/u.exec(configText);
+  const baseOrigin = baseLiteral === null ? null : originOf(baseLiteral[2] as string);
   const scripts = pkg?.['scripts'];
   return {
     playwrightConfig: configPath === null ? null : { path: configPath, text: configText },
@@ -194,6 +233,8 @@ export function detectProject(files: ReadonlyMap<string, string>): ProjectInfo {
             Object.entries(scripts).filter((e): e is [string, string] => typeof e[1] === 'string'),
           )
         : {},
+    baseOrigin,
+    foundOrigins: originsIn([configText, ...sources.map(text)], baseOrigin),
     untrackedContextFiles: sources.filter(
       (p) => NEW_REQUEST_CONTEXT.test(text(p)) && !text(p).includes('trackRequestContext'),
     ),
