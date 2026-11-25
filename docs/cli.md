@@ -1,6 +1,7 @@
 # Running the scan
 
-The package has no command of its own. You run your usual Playwright test command with
+The scan has no command of its own (the only binary, `npx pw-sec`, starts the
+[guided setup](init.md)). You run your usual Playwright test command with
 `PW_SEC_MODE` set:
 
 | Goal                     | Command                                         |
