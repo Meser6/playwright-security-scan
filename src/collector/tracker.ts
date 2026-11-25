@@ -138,7 +138,7 @@ export class ResponseTracker {
     const collector = this.#collector;
     const opts = collector.options;
     const inScope = opts.scope.has(origin);
-    if (!inScope) collector.outOfScope();
+    if (!inScope) collector.outOfScope(origin);
     const resourceType = request.resourceType();
     const key = this.#keys({ method: request.method(), url, resourceType });
     if (!key.ok) return;

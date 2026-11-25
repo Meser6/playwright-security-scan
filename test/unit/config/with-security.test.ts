@@ -11,6 +11,7 @@ const ENV = [
   'PW_SEC_MODE',
   'PW_SEC_CONFIG',
   'PW_SEC_ENV',
+  'PW_SEC_MAX_TESTS',
   'PW_SEC_RUN_ID',
   'PW_SEC_RUN_SALT',
   'TEST_WORKER_INDEX',
@@ -76,6 +77,21 @@ describe('withSecurity() (01, chapter 7; 04)', () => {
       ['CONFIG_INVALID_VALUE', 'run.env'],
     ]);
     expect((thrown as Error).message).toMatch(/lowercase letters, digits and "-"/);
+  });
+
+  test('04-AC-08 an invalid PW_SEC_MAX_TESTS fails a check before tests start', () => {
+    process.env.PW_SEC_MODE = 'check';
+    for (const value of ['0', 'abc', '1001', '2.5']) {
+      process.env.PW_SEC_MAX_TESTS = value;
+      expect(() => withSecurity(base)).toThrow(/MAX_TESTS|from 1 to 1000/);
+    }
+    process.env.PW_SEC_MAX_TESTS = '20';
+    expect(() => withSecurity(base)).not.toThrow();
+    expect(getRegistered()?.mode).toBe('check');
+    // Outside a check the variable is ignored.
+    process.env.PW_SEC_MODE = 'scan';
+    process.env.PW_SEC_MAX_TESTS = 'abc';
+    expect(() => withSecurity(base)).not.toThrow();
   });
 
   test('08-REQ-13 PW_SEC_ENV overrides run.env; an empty variable does not', () => {

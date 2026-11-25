@@ -16,7 +16,15 @@ import { Scope } from '../collector/scope.ts';
 import { AnalysisCache, ATTACHMENT_NAME, TestCollector } from '../collector/test-collector.ts';
 import { ResponseTracker } from '../collector/tracker.ts';
 import type { KeyBuilder } from '../collector/tracker.ts';
-import { SALT_ENV, scanModeOn } from '../mode/index.ts';
+import {
+  CHECK_SKIP_REASON,
+  readMaxTests,
+  readMode,
+  RUN_ID_ENV,
+  SALT_ENV,
+  scanModeOn,
+} from '../mode/index.ts';
+import { checkRunsTest } from '../collector/check-skip.ts';
 import {
   activeCollector,
   getRegistered,
@@ -221,6 +229,21 @@ const scanFixtures = {
       use: (buffer: SecBuffer) => Promise<void>,
       testInfo: TestInfo,
     ): Promise<void> => {
+      // Check (04-REQ-10): only the first test of each file of a scanned project runs.
+      const mode = readMode(process.env);
+      const runId = process.env[RUN_ID_ENV] ?? '';
+      if (mode.ok && mode.mode === 'check' && runId !== '') {
+        const state = workerState(baseURL);
+        const scanned =
+          state.scannedProjects === 'all' || state.scannedProjects.includes(testInfo.project.name);
+        const max = readMaxTests(process.env);
+        if (
+          scanned &&
+          !checkRunsTest(runId, max.ok ? max.maxTests : 10, testInfo.project.name, testInfo.file)
+        ) {
+          testInfo.skip(true, CHECK_SKIP_REASON);
+        }
+      }
       const buffer = openBuffer(baseURL, testInfo);
       const scan = buffer.scan;
       if (scan !== null) {

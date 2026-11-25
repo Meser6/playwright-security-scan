@@ -31,7 +31,7 @@ export interface TerminalOptions {
 }
 
 export interface BannerInput {
-  mode: 'scan' | 'baseline';
+  mode: 'scan' | 'baseline' | 'check';
   /** Environment label (08-REQ-16); the row is left out without one. */
   env?: string | null;
   scope: string[];
@@ -86,13 +86,15 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
       'Gate',
       b.mode === 'baseline'
         ? 'off (baseline run)'
-        : `new findings ≥ ${b.minSeverity} (confidence ≥ ${b.minConfidence})`,
+        : b.mode === 'check'
+          ? 'off (check)'
+          : `new findings ≥ ${b.minSeverity} (confidence ≥ ${b.minConfidence})`,
     ],
     [
       'Baseline',
       `${b.baselinePath} (${b.baselineEntries === null ? 'not found' : plural(b.baselineEntries, 'entry', 'entries')})`,
     ],
-    ['Report', b.reportPath],
+    ['Report', b.mode === 'check' ? 'nothing is written (check)' : b.reportPath],
   ];
   const icon = opts.ascii ? '' : '🔒 ';
   const lines = table(
@@ -101,7 +103,12 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
       { header: '', flex: true, minWidth: 10 },
     ],
     rows.map((cells) => ({ cells })),
-    { ...opts, border: 'cyan', header: false, title: `${icon}${PACKAGE_NAME} · ${b.mode} run` },
+    {
+      ...opts,
+      border: 'cyan',
+      header: false,
+      title: `${icon}${PACKAGE_NAME} · ${b.mode === 'check' ? 'check (dry run)' : `${b.mode} run`}`,
+    },
   );
   const paint = painter(opts.color);
   return [

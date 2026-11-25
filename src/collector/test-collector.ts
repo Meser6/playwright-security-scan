@@ -94,8 +94,11 @@ export class TestCollector {
     this.coverage.bodiesSkipped[reason] = (this.coverage.bodiesSkipped[reason] ?? 0) + 1;
   }
 
-  outOfScope(): void {
+  outOfScope(origin: string): void {
     this.coverage.outOfScope += 1;
+    // Origins of the traffic outside the scope, for the check (04-REQ-13).
+    const origins = (this.coverage.outOfScopeOrigins ??= {});
+    origins[origin] = (origins[origin] ?? 0) + 1;
   }
 
   #context(rule: BuiltInRule, origin: string, isHttps: boolean): RuleContext {

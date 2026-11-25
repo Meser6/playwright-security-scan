@@ -10,8 +10,11 @@ export const ENV_ENV = 'PW_SEC_ENV';
 export const RUN_ID_ENV = 'PW_SEC_RUN_ID';
 export const SALT_ENV = 'PW_SEC_RUN_SALT';
 
-export type ScanMode = 'scan' | 'baseline';
-const MODES = ['scan', 'baseline'] as const;
+export type ScanMode = 'scan' | 'baseline' | 'check';
+const MODES = ['scan', 'baseline', 'check'] as const;
+/** Tests of a check (04-REQ-10). */
+export const MAX_TESTS_ENV = 'PW_SEC_MAX_TESTS';
+export const DEFAULT_MAX_TESTS = 10;
 
 export type ModeResult = { ok: true; mode: ScanMode | null } | { ok: false; issues: ConfigIssue[] };
 
@@ -81,3 +84,27 @@ export function readEnvLabel(env: Readonly<Record<string, string | undefined>>):
     ],
   };
 }
+
+export type MaxTestsResult = { ok: true; maxTests: number } | { ok: false; issues: ConfigIssue[] };
+
+/** PW_SEC_MAX_TESTS for a check (04-REQ-10): 1 to 1000, default 10; anything else is an error. */
+export function readMaxTests(env: Readonly<Record<string, string | undefined>>): MaxTestsResult {
+  const raw = (env[MAX_TESTS_ENV] ?? '').trim();
+  if (raw === '') return { ok: true, maxTests: DEFAULT_MAX_TESTS };
+  const value = Number(raw);
+  if (/^\d+$/.test(raw) && value >= 1 && value <= 1000) return { ok: true, maxTests: value };
+  return {
+    ok: false,
+    issues: [
+      {
+        code: 'MAX_TESTS_INVALID',
+        path: MAX_TESTS_ENV,
+        message: `${MAX_TESTS_ENV}=${JSON.stringify(raw)} is not a number of tests`,
+        hint: `Use a whole number from 1 to 1000 (default ${DEFAULT_MAX_TESTS}).`,
+      },
+    ],
+  };
+}
+
+/** The check skips a test with this reason (04-REQ-10). */
+export const CHECK_SKIP_REASON = 'pw-sec check: only the first test of each file runs';

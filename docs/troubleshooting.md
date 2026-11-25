@@ -63,6 +63,11 @@ only.
 with a letter or a digit (e.g. `qa`, `staging-eu`). An invalid `run.env` in the config is reported
 as `CONFIG_INVALID_VALUE`.
 
+### MAX_TESTS_INVALID
+
+`PW_SEC_MAX_TESTS` in a check (`PW_SEC_MODE=check`) is not a whole number from 1 to 1000. Outside a
+check the variable is ignored.
+
 ### CONFIG_UNKNOWN_OPTION
 
 An option name of the package config is unknown; the message names the closest valid one and the

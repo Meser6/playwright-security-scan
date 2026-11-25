@@ -45,7 +45,11 @@ import type {
   TestContextRef,
 } from '../core/types/index.ts';
 import { ATTACHMENT_NAME } from '../collector/test-collector.ts';
-import { readMode, RUN_ID_ENV } from '../mode/index.ts';
+import { CHECK_SKIP_REASON, readMaxTests, readMode, RUN_ID_ENV } from '../mode/index.ts';
+import type { ScanMode } from '../mode/index.ts';
+import { removeCheckState } from '../collector/check-skip.ts';
+import { formatCheck } from '../core/report/check.ts';
+import type { CheckOrigin } from '../core/report/check.ts';
 import { getRegistered } from '../registry/index.ts';
 import { VERSION } from '../version.ts';
 import { isPartialRun } from './partial.ts';
@@ -75,6 +79,9 @@ export default class SecurityReporter implements Reporter {
   readonly #diagnostics = new Map<string, Diagnostic>();
   readonly #withoutTraffic = new Map<string, TestContextRef>();
   readonly #withTraffic = new Set<string>();
+  /** Check (04-REQ-12): the last result of each test and the tests with API traffic. */
+  readonly #results = new Map<string, { status: TestResult['status']; byCheck: boolean }>();
+  readonly #withApi = new Set<string>();
 
   constructor(options: ReporterOptions = {}) {
     this.#write = options.write ?? ((line) => process.stdout.write(`${line}\n`));
@@ -107,7 +114,7 @@ export default class SecurityReporter implements Reporter {
     });
   }
 
-  #settings(): { config: ResolvedSecurityConfig; mode: 'scan' | 'baseline'; scope: string[] } {
+  #settings(): { config: ResolvedSecurityConfig; mode: ScanMode; scope: string[] } {
     const state = getRegistered();
     if (state !== undefined) {
       const scope = [
@@ -215,6 +222,11 @@ export default class SecurityReporter implements Reporter {
 
   onTestEnd(test: TestCase, result: TestResult): void {
     try {
+      const annotations = [...test.annotations, ...(result.annotations ?? [])];
+      this.#results.set(test.id, {
+        status: result.status,
+        byCheck: annotations.some((a) => a.description === CHECK_SKIP_REASON),
+      });
       for (const a of result.attachments) {
         if (a.name !== ATTACHMENT_NAME) continue;
         const text =
@@ -238,6 +250,7 @@ export default class SecurityReporter implements Reporter {
         // Every attempt counts, also one that a retry later passed (01-REQ-07).
         this.#findings.push(...doc.findings);
         addCoverage(this.#coverage, doc.coverage);
+        if (doc.coverage.apiResponses > 0) this.#withApi.add(test.id);
         for (const d of doc.diagnostics) this.#diag(d);
         if (doc.coverage.responses > 0) {
           this.#withTraffic.add(test.id);
@@ -262,8 +275,95 @@ export default class SecurityReporter implements Reporter {
     }
   }
 
+  /** A check (04, chapter 4c): no file is written and the exit code stays Playwright's. */
+  #finishCheck(sec: ResolvedSecurityConfig, scope: string[]): void {
+    const state = getRegistered();
+    const runId = process.env[RUN_ID_ENV] ?? state?.runId ?? '';
+    if (runId !== '') removeCheckState(runId);
+    const coverage = sortCoverage(this.#coverage);
+    const findings = dedupeRun(this.#findings);
+    const enabled = new Set(
+      Object.entries(sec.rules)
+        .filter(([, r]) => r.enabled)
+        .map(([id]) => id),
+    );
+    const baselineName = baselineFileFor(sec.baseline.path, sec.run.env);
+    const baselinePath = this.#path(baselineName);
+    let baseline: BaselineFile | undefined;
+    let baselineState = `${baselineName} (not found)`;
+    if (existsSync(baselinePath)) {
+      const parsed = parseBaseline(
+        readFileSync(baselinePath, 'utf8'),
+        baselineName,
+        new Set(RULE_IDS),
+        enabled,
+      );
+      for (const d of parsed.diagnostics) this.#diag(d);
+      if (parsed.ok) {
+        baseline = parsed.file;
+        const n = Object.keys(parsed.file.findings).length;
+        baselineState = `${baselineName} (${n} ${n === 1 ? 'entry' : 'entries'})`;
+      } else {
+        baselineState = `${baselineName} (invalid: ${parsed.diagnostics[0]?.code ?? 'BASELINE_INVALID'})`;
+      }
+    }
+    const classified = classify(findings, baseline, sec.gate, today(), true);
+    const projects = state?.scannedProjects ?? [];
+    const scanned = (test: TestCase): boolean =>
+      sec.scope.projects === 'all' || projects.includes(test.parent.project()?.name ?? '');
+    const tests = (this.#suite?.allTests() ?? []).filter(scanned);
+    let ran = 0;
+    let passed = 0;
+    let failed = 0;
+    let skipped = 0;
+    for (const test of tests) {
+      const r = this.#results.get(test.id);
+      if (r === undefined) continue;
+      if (r.byCheck) skipped += 1;
+      else if (r.status !== 'skipped') {
+        ran += 1;
+        if (r.status === 'passed') passed += 1;
+        else failed += 1;
+      }
+    }
+    const baseOrigins = new Set(sec.scope.includeBaseURL ? (state?.baseOrigins ?? []) : []);
+    const origins: CheckOrigin[] = scope.map((origin) => ({
+      origin,
+      source: baseOrigins.has(origin) ? 'baseURL' : 'scope.origins',
+      responses: coverage.origins[origin]?.responses ?? 0,
+      documents: coverage.origins[origin]?.documents ?? 0,
+    }));
+    const max = readMaxTests(process.env);
+    const lines = formatCheck(
+      {
+        env: sec.run.env,
+        tests: { ran, selected: tests.length, passed, failed, skipped },
+        maxTests: max.ok ? max.maxTests : 10,
+        origins,
+        outOfScope: coverage.outOfScopeOrigins ?? {},
+        responses: coverage.responses,
+        apiResponses: coverage.apiResponses,
+        testsWithApi: this.#withApi.size,
+        projects,
+        enabledRules: enabledRuleCount(sec),
+        preset: sec.preset,
+        baseline: baselineState,
+        findings: findings.length,
+        newAboveGate: classified.filter((f) => f.classification === 'new' && f.blocking).length,
+        minSeverity: sec.gate.minSeverity,
+        diagnostics: [...this.#diagnostics.values()].filter((d) => d.code !== 'SCOPE_EMPTY'),
+      },
+      this.#terminal,
+    );
+    for (const line of lines) this.#write(line);
+  }
+
   #finish(result: FullResult): { status?: FullResult['status'] } | undefined {
     const { config: sec, mode, scope } = this.#settings();
+    if (mode === 'check') {
+      this.#finishCheck(sec, scope);
+      return undefined;
+    }
     const enabled = new Set(
       Object.entries(sec.rules)
         .filter(([, r]) => r.enabled)
