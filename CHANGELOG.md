@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- One baseline per environment: `PW_SEC_ENV=qa` (or `run.env` in the config) uses `security-baseline.qa.json`. The label is checked before the run (`ENV_INVALID`), never falls back to the file without a label (`BASELINE_ENV_MISSING`), is written to the baseline file (`BASELINE_ENV_MISMATCH` when it differs) and appears in the console, `report.json`, `outcome.json` (`env`), the HTML report, SARIF (category `pw-sec/<env>`) and JUnit.
+
 ### Changed
 
 - The console output looks like the one of `playwright-performance-regression`: colors in a terminal (`NO_COLOR`, `FORCE_COLOR` and `TERM=dumb` are respected), the start banner as a table, errors and warnings in framed boxes, the counters and the blocking findings in tables, the verdict in a box (`✅ PASSED`, `⚠ PASSED WITH WARNINGS`, `❌ FAILED`, `❌ ERROR`) with the result name and code, and one `Report:` line with the absolute path of the HTML report. The text is the same without colors and still fits in 30 lines.

@@ -8,7 +8,7 @@ import { ConfigError, resolveConfig } from '../core/config/index.ts';
 import type { ConfigIssue, SecurityConfigInput } from '../core/config/index.ts';
 import { canonicalOrigin } from '../core/normalize/index.ts';
 import type { Diagnostic } from '../core/types/index.ts';
-import { CONFIG_ENV, readMode, RUN_ID_ENV, SALT_ENV } from '../mode/index.ts';
+import { CONFIG_ENV, readEnvLabel, readMode, RUN_ID_ENV, SALT_ENV } from '../mode/index.ts';
 import { setRegistered } from '../registry/index.ts';
 import { VERSION } from '../version.ts';
 import { reporterEntryPath } from './reporter-path.ts';
@@ -135,7 +135,11 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   const fromEnv = (process.env[CONFIG_ENV] ?? '').trim();
   const input = fromEnv === '' ? securityConfig : (loadConfigFile(fromEnv) as SecurityConfigInput);
   const resolved = resolveConfig(input);
-  if (!resolved.ok) throw new ConfigError(resolved.issues);
+  const label = readEnvLabel(process.env);
+  const issues = [...(resolved.ok ? [] : resolved.issues), ...(label.ok ? [] : label.issues)];
+  if (!resolved.ok || !label.ok) throw new ConfigError(issues);
+  // PW_SEC_ENV overrides run.env of the config (08-REQ-13).
+  if (label.env !== undefined) resolved.config.run.env = label.env;
 
   if (process.env.TEST_WORKER_INDEX === undefined) {
     const flag = reporterFlagIssue(process.argv);

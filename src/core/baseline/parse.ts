@@ -116,5 +116,6 @@ export function parseBaseline(
   if (problems.length > 0) return { ok: false, diagnostics: problems };
   const file: BaselineFile = { schemaVersion: 1, findings: entries };
   if (typeof doc.generatedBy === 'string') file.generatedBy = doc.generatedBy;
+  if (typeof doc.env === 'string') file.env = doc.env;
   return { ok: true, file, diagnostics: notes };
 }

@@ -13,6 +13,11 @@
       "description": "Package and version that last wrote the file.",
       "type": "string"
     },
+    "env": {
+      "description": "Environment label of the run that wrote the file (08-REQ-15).",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+    },
     "findings": {
       "description": "Fingerprint to baseline entry, sorted by fingerprint (02-REQ-01).",
       "type": "object",
