@@ -26,7 +26,15 @@ import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { addCoverage, emptyCoverage, sortCoverage } from '../core/coverage.ts';
 import { compareTests, dedupeRun } from '../core/fingerprint/index.ts';
 import { RULE_IDS } from '../core/manifest/rules.ts';
-import { formatBaselineDiff, formatBanner, formatSummary } from '../core/report/console.ts';
+import {
+  asciiTerminal,
+  colorEnabled,
+  DEFAULT_WIDTH,
+  formatBaselineDiff,
+  formatBanner,
+  formatSummary,
+} from '../core/report/console.ts';
+import type { TerminalOptions } from '../core/report/console.ts';
 import type {
   BaselineFile,
   Diagnostic,
@@ -49,10 +57,15 @@ const today = (): string => new Date().toISOString().slice(0, 10);
 export interface ReporterOptions {
   /** Where the console output goes; tests pass a collector. */
   write?: (line: string) => void;
+  /** The output stream for the color and width decision (04-REQ-05); process.stdout. */
+  stdout?: { isTTY?: boolean | undefined; columns?: number | undefined };
+  /** Environment for NO_COLOR, FORCE_COLOR and TERM; process.env. */
+  env?: Readonly<Record<string, string | undefined>>;
 }
 
 export default class SecurityReporter implements Reporter {
   readonly #write: (line: string) => void;
+  readonly #terminal: TerminalOptions;
   #config: FullConfig | undefined;
   #suite: Suite | undefined;
   #startedAt = new Date();
@@ -64,6 +77,16 @@ export default class SecurityReporter implements Reporter {
 
   constructor(options: ReporterOptions = {}) {
     this.#write = options.write ?? ((line) => process.stdout.write(`${line}\n`));
+    const out = options.stdout ?? process.stdout;
+    const env = options.env ?? process.env;
+    this.#terminal = {
+      width:
+        out.isTTY === true && out.columns !== undefined && out.columns > 0
+          ? out.columns
+          : DEFAULT_WIDTH,
+      color: colorEnabled(out, env),
+      ascii: asciiTerminal(env),
+    };
   }
 
   printsToStdio(): boolean {
@@ -154,18 +177,21 @@ export default class SecurityReporter implements Reporter {
         }
       }
       const reportFile = sec.report.html ? 'report.html' : 'report.json';
-      const banner = formatBanner({
-        mode,
-        scope,
-        enabledRules: enabledRuleCount(sec),
-        preset: sec.preset,
-        minSeverity: sec.gate.minSeverity,
-        minConfidence: sec.gate.minConfidence,
-        baselinePath: sec.baseline.path,
-        baselineEntries: entries,
-        reportPath: `${sec.report.dir.replace(/[\\/]+$/, '')}/${reportFile}`,
-        notes,
-      });
+      const banner = formatBanner(
+        {
+          mode,
+          scope,
+          enabledRules: enabledRuleCount(sec),
+          preset: sec.preset,
+          minSeverity: sec.gate.minSeverity,
+          minConfidence: sec.gate.minConfidence,
+          baselinePath: sec.baseline.path,
+          baselineEntries: entries,
+          reportPath: `${sec.report.dir.replace(/[\\/]+$/, '')}/${reportFile}`,
+          notes,
+        },
+        this.#terminal,
+      );
       for (const line of banner) this.#write(line);
     } catch (error) {
       this.#toolError('the start of the run', error);
@@ -341,18 +367,17 @@ export default class SecurityReporter implements Reporter {
 
     // Reports are written also when tests failed or the tool failed (09-REQ-02).
     const dir = this.#path(sec.report.dir);
-    const shown = (path: string): string => relative(process.cwd(), path) || path;
     const written: { html: string | null; json: string | null } = { html: null, json: null };
     try {
       mkdirSync(dir, { recursive: true });
       if (sec.report.json) {
         writeFileSync(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
-        written.json = shown(join(dir, 'report.json'));
+        written.json = join(dir, 'report.json');
       }
       writeFileSync(join(dir, 'outcome.json'), `${JSON.stringify(out, null, 2)}\n`);
       for (const writer of REPORT_WRITERS) {
         const path = writer.write(report, sec, { reportDir: dir, configDir: this.#configDir() });
-        if (writer.name === 'html' && path !== null) written.html = shown(path);
+        if (writer.name === 'html' && path !== null) written.html = resolve(path);
       }
     } catch (error) {
       this.#write(
@@ -361,9 +386,12 @@ export default class SecurityReporter implements Reporter {
     }
 
     if (diff !== undefined) {
-      for (const line of formatBaselineDiff(sec.baseline.path, diff, partial)) this.#write(line);
+      for (const line of formatBaselineDiff(sec.baseline.path, diff, partial, this.#terminal))
+        this.#write(line);
     }
-    for (const line of formatSummary(report, written)) this.#write(line);
+    // Absolute path: terminals show it as a link whatever the current directory (04-REQ-07).
+    const reportPath = written.html ?? written.json;
+    for (const line of formatSummary(report, reportPath, this.#terminal)) this.#write(line);
     return out.code === 0 ? undefined : { status: 'failed' };
   }
 }

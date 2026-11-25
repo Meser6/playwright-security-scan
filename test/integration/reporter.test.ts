@@ -40,7 +40,8 @@ describe('reporter (04, 08, 09)', () => {
       expect(run.outcome?.name).toBe('NO_TRAFFIC');
       expect(run.status).toBe(1);
       expect(run.output).toContain('set `use.baseURL` or `scope.origins`');
-      expect(run.output).toContain('pw-sec · mode: scan · passive only');
+      expect(run.output).toContain('playwright-security-scan · scan run');
+      expect(run.output).toMatch(/│ Mode\s+│ scan · passive only/);
     },
     RUN_TIMEOUT,
   );
@@ -94,12 +95,13 @@ describe('reporter (04, 08, 09)', () => {
         `cookie.no-httponly|cookie|sid@localhost`,
       ]);
       expect(blocking[0]?.firstSeen.file).toMatch(/^tests\/(api|e2e)\.spec\.ts$/);
-      expect(fail.output).toMatch(/✘ cookie\.no-httponly\s+medium\/(high|low)\s+sid@localhost/);
-      expect(fail.output).toContain('first seen: tests/');
-      expect(fail.output).toContain('→ accept: PW_SEC_MODE=baseline npx playwright test');
-      const summary = fail.output.slice(
-        fail.output.indexOf('pw-sec · ') === -1 ? 0 : fail.output.lastIndexOf('pw-sec · '),
+      expect(fail.output).toMatch(
+        /❌ │ cookie\.no-httponly\s+│ medium\/(high|low)\s+│ sid@localhost\s+│ tests\//,
       );
+      expect(fail.output).toContain('Next: PW_SEC_MODE=baseline npx playwright test');
+      expect(fail.output).toContain('FAILED  NEW_FINDINGS (code 1)');
+      expect(fail.output).toContain(`Report: ${join(dir, 'reports/pw-sec/report.html')}`);
+      const summary = fail.output.slice(fail.output.lastIndexOf('─'.repeat(40)));
       expect(summary.trim().split('\n').length).toBeLessThanOrEqual(30);
     },
     RUN_TIMEOUT * 3,
