@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
+  baselineFileFor,
   classify,
   missingNotes,
   outcome,
@@ -173,6 +174,7 @@ describe('result codes (00, chapter 11; 08-REQ-02)', () => {
       schemaVersion: 1,
       code: 0,
       name: 'OK',
+      env: null,
       testsPassed: true,
       newBlocking: 0,
       newNonBlocking: 0,
@@ -405,5 +407,33 @@ describe('reading the baseline (08-REQ-11)', () => {
       },
     });
     expect(missingNotes(base)).toMatchObject([{ code: 'BASELINE_NOTE_REQUIRED', level: 'error' }]);
+  });
+});
+
+describe('baseline per environment (08, chapter 4a)', () => {
+  test('08-REQ-14 the label goes before .json, or is appended', () => {
+    expect(baselineFileFor('security-baseline.json', null)).toBe('security-baseline.json');
+    expect(baselineFileFor('security-baseline.json', 'qa')).toBe('security-baseline.qa.json');
+    expect(baselineFileFor('sec/base.JSON', 'staging-eu')).toBe('sec/base.staging-eu.JSON');
+    expect(baselineFileFor('sec/baseline', 'qa')).toBe('sec/baseline.qa');
+  });
+
+  test('08-REQ-15 the label is written to the file and read back', () => {
+    const { file } = updateBaseline(undefined, [], [], {
+      today: '2026-11-25',
+      generatedBy: 'x@1',
+      prune: true,
+      env: 'qa',
+    });
+    const text = serializeBaseline(file);
+    expect(text).toContain('"env": "qa"');
+    const parsed = parseBaseline(text, 'b.json', new Set(RULE_IDS), new Set(RULE_IDS));
+    expect(parsed.ok && parsed.file.env).toBe('qa');
+    const plain = updateBaseline(undefined, [], [], {
+      today: '2026-11-25',
+      generatedBy: 'x@1',
+      prune: true,
+    });
+    expect(serializeBaseline(plain.file)).not.toContain('"env"');
   });
 });

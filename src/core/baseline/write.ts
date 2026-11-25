@@ -17,7 +17,7 @@ export function updateBaseline(
   existing: BaselineFile | undefined,
   findings: readonly Finding[],
   resolved: readonly EntryRef[],
-  options: { today: string; generatedBy: string; prune: boolean },
+  options: { today: string; generatedBy: string; prune: boolean; env?: string | null },
 ): { file: BaselineFile; diff: BaselineDiff } {
   const entries: Record<string, BaselineEntry> = {};
   for (const [print, entry] of Object.entries(existing?.findings ?? {}))
@@ -54,7 +54,12 @@ export function updateBaseline(
   }
   const total = Object.keys(entries).length;
   return {
-    file: { schemaVersion: 1, generatedBy: options.generatedBy, findings: entries },
+    file: {
+      schemaVersion: 1,
+      generatedBy: options.generatedBy,
+      ...(options.env == null ? {} : { env: options.env }),
+      findings: entries,
+    },
     diff: {
       added: added.sort((a, b) => (a.fingerprint < b.fingerprint ? -1 : 1)),
       removed,
@@ -85,6 +90,16 @@ export function serializeBaseline(file: BaselineFile): string {
   }
   const doc: Record<string, unknown> = { schemaVersion: 1 };
   if (file.generatedBy !== undefined) doc.generatedBy = file.generatedBy;
+  if (file.env !== undefined) doc.env = file.env;
   doc.findings = findings;
   return `${JSON.stringify(doc, null, 2)}\n`;
+}
+
+/**
+ * The baseline file of an environment (08-REQ-14): the label before ".json"
+ * (security-baseline.json → security-baseline.qa.json), or appended without that extension.
+ */
+export function baselineFileFor(path: string, env: string | null): string {
+  if (env === null) return path;
+  return /\.json$/i.test(path) ? `${path.slice(0, -5)}.${env}${path.slice(-5)}` : `${path}.${env}`;
 }

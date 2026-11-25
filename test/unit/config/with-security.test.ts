@@ -10,6 +10,7 @@ import { getRegistered, resetRegistryForTests } from '../../../src/registry/inde
 const ENV = [
   'PW_SEC_MODE',
   'PW_SEC_CONFIG',
+  'PW_SEC_ENV',
   'PW_SEC_RUN_ID',
   'PW_SEC_RUN_SALT',
   'TEST_WORKER_INDEX',
@@ -52,6 +53,41 @@ describe('withSecurity() (01, chapter 7; 04)', () => {
     process.env.PW_SEC_MODE = 'active';
     expect(() => withSecurity(base)).toThrow(ConfigError);
     expect(() => withSecurity(base)).toThrow(/MODE|not available/);
+  });
+
+  test('08-AC-05 an invalid environment label fails before tests start', () => {
+    process.env.PW_SEC_MODE = 'scan';
+    process.env.PW_SEC_ENV = 'QA_1';
+    expect(() => withSecurity(base)).toThrow(ConfigError);
+    expect(() => withSecurity(base)).toThrow(/ENV|lowercase letters, digits and "-"/);
+    try {
+      withSecurity(base);
+    } catch (error) {
+      expect((error as ConfigError).issues.map((i) => i.code)).toEqual(['ENV_INVALID']);
+    }
+    Reflect.deleteProperty(process.env, 'PW_SEC_ENV');
+    let thrown: unknown;
+    try {
+      withSecurity(base, { run: { env: 'x'.repeat(33) } });
+    } catch (error) {
+      thrown = error;
+    }
+    expect((thrown as ConfigError).issues.map((i) => [i.code, i.path])).toEqual([
+      ['CONFIG_INVALID_VALUE', 'run.env'],
+    ]);
+    expect((thrown as Error).message).toMatch(/lowercase letters, digits and "-"/);
+  });
+
+  test('08-REQ-13 PW_SEC_ENV overrides run.env; an empty variable does not', () => {
+    process.env.PW_SEC_MODE = 'scan';
+    withSecurity(base, { run: { env: 'staging' } });
+    expect(getRegistered()?.config.run.env).toBe('staging');
+    process.env.PW_SEC_ENV = 'qa';
+    withSecurity(base, { run: { env: 'staging' } });
+    expect(getRegistered()?.config.run.env).toBe('qa');
+    process.env.PW_SEC_ENV = '';
+    withSecurity(base);
+    expect(getRegistered()?.config.run.env).toBeNull();
   });
 
   test('04-REQ-01 unknown modes list the values; values are case-insensitive', () => {

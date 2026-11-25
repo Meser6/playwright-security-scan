@@ -143,6 +143,22 @@ or a word, so the text is the same without colors.
 - The file holds no evidence, no URLs with values and no test names, so diffs stay small. Merge
   conflicts: keep both sides and run `PW_SEC_MODE=baseline` again.
 
+### One baseline per environment
+
+Headers, cookies and origins differ between environments, so each one can have its own baseline.
+Set an environment label with `PW_SEC_ENV` (or `run.env` in the config; the variable wins):
+
+```sh
+PW_SEC_MODE=baseline PW_SEC_ENV=qa npx playwright test   # writes security-baseline.qa.json
+PW_SEC_MODE=scan PW_SEC_ENV=qa npx playwright test       # reads security-baseline.qa.json
+```
+
+A label is 1 to 32 lowercase letters, digits and `-`; any other value stops the run before the
+tests (`ENV_INVALID`). A labelled run never falls back to the file without a label
+(`BASELINE_ENV_MISSING` warns when only that one exists). The label is shown in the console and
+written to every report; in SARIF it is part of the category (`pw-sec/<env>/…`), so GitHub code
+scanning keeps the alerts of each environment apart.
+
 ## Configuration
 
 Everything is optional. Pass a config as the second argument of `withSecurity()`, or point
@@ -166,28 +182,29 @@ export default defineSecurityConfig({
 });
 ```
 
-| Option                                                        | Default                    | What it does                                                      |
-| ------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
-| `scope.origins`                                               | `[]`                       | Origins to scan besides `use.baseURL` (`*` allowed in subdomains) |
-| `scope.includeBaseURL`                                        | `true`                     | Scan the origin of `use.baseURL`                                  |
-| `scope.exclude`                                               | `[]`                       | Origins never scanned                                             |
-| `scope.projects`                                              | `'all'`                    | Playwright projects to scan (setup projects included)             |
-| `scope.api`                                                   | `true`                     | Scan `APIRequestContext` calls                                    |
-| `rules.preset`                                                | `'recommended'`            | `minimal` (high-confidence rules), `recommended`, `strict`        |
-| `rules['<id>']`                                               | on                         | `'off'`, `'on'` or `{ severity, confidence, options }`            |
-| `limits.maxBodyBytes`                                         | `1048576`                  | Longer bodies are cut before analysis                             |
-| `limits.bodyContentTypes`                                     | HTML, JSON, JS, text, XML  | Content types whose bodies are read                               |
-| `limits.maxFindingsPerRule`                                   | `200`                      | Per test                                                          |
-| `browser.cspEvents` / `browser.storageScan`                   | `true`                     | CSP violation listener / Web Storage scan at the end of a test    |
-| `gate.minSeverity` / `gate.minConfidence`                     | `'medium'` / `'medium'`    | The lowest new finding that fails the scan                        |
-| `gate.failOnExpired` / `gate.failOnNoTraffic`                 | `true` / `true`            | Codes 2 and 4 fail the run                                        |
-| `baseline.path`                                               | `'security-baseline.json'` | Relative to the Playwright config                                 |
-| `baseline.pruneResolved` / `baseline.requireNote`             | `true` / `false`           | Remove resolved entries / require a note on accepted entries      |
-| `report.dir`                                                  | `'reports/pw-sec'`         | Where reports go                                                  |
-| `report.html` / `json` / `sarif` / `junit`                    | `true`                     | Which reports to write                                            |
-| `report.junitPath`                                            | `<report.dir>/junit.xml`   | For CI artifact patterns                                          |
-| `report.junitIncludeAccepted` / `report.sarifIncludeAccepted` | `true` / `false`           | Baseline entries in JUnit (skipped) and SARIF (suppressed)        |
-| `normalization`                                               | as the perf package        | How URLs become endpoint keys (`GET /api/items/:id`)              |
+| Option                                                        | Default                    | What it does                                                         |
+| ------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| `scope.origins`                                               | `[]`                       | Origins to scan besides `use.baseURL` (`*` allowed in subdomains)    |
+| `scope.includeBaseURL`                                        | `true`                     | Scan the origin of `use.baseURL`                                     |
+| `scope.exclude`                                               | `[]`                       | Origins never scanned                                                |
+| `scope.projects`                                              | `'all'`                    | Playwright projects to scan (setup projects included)                |
+| `scope.api`                                                   | `true`                     | Scan `APIRequestContext` calls                                       |
+| `rules.preset`                                                | `'recommended'`            | `minimal` (high-confidence rules), `recommended`, `strict`           |
+| `rules['<id>']`                                               | on                         | `'off'`, `'on'` or `{ severity, confidence, options }`               |
+| `limits.maxBodyBytes`                                         | `1048576`                  | Longer bodies are cut before analysis                                |
+| `limits.bodyContentTypes`                                     | HTML, JSON, JS, text, XML  | Content types whose bodies are read                                  |
+| `limits.maxFindingsPerRule`                                   | `200`                      | Per test                                                             |
+| `browser.cspEvents` / `browser.storageScan`                   | `true`                     | CSP violation listener / Web Storage scan at the end of a test       |
+| `gate.minSeverity` / `gate.minConfidence`                     | `'medium'` / `'medium'`    | The lowest new finding that fails the scan                           |
+| `gate.failOnExpired` / `gate.failOnNoTraffic`                 | `true` / `true`            | Codes 2 and 4 fail the run                                           |
+| `baseline.path`                                               | `'security-baseline.json'` | Relative to the Playwright config                                    |
+| `run.env`                                                     | none                       | Environment label: `security-baseline.<env>.json`; `PW_SEC_ENV` wins |
+| `baseline.pruneResolved` / `baseline.requireNote`             | `true` / `false`           | Remove resolved entries / require a note on accepted entries         |
+| `report.dir`                                                  | `'reports/pw-sec'`         | Where reports go                                                     |
+| `report.html` / `json` / `sarif` / `junit`                    | `true`                     | Which reports to write                                               |
+| `report.junitPath`                                            | `<report.dir>/junit.xml`   | For CI artifact patterns                                             |
+| `report.junitIncludeAccepted` / `report.sarifIncludeAccepted` | `true` / `false`           | Baseline entries in JUnit (skipped) and SARIF (suppressed)           |
+| `normalization`                                               | as the perf package        | How URLs become endpoint keys (`GET /api/items/:id`)                 |
 
 Mistyped options and rule ids fail at once with the closest valid name.
 

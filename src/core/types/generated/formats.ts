@@ -193,6 +193,10 @@ export interface BaselineFile {
    */
   generatedBy?: string;
   /**
+   * Environment label of the run that wrote the file (08-REQ-15).
+   */
+  env?: string;
+  /**
    * Fingerprint to baseline entry, sorted by fingerprint (02-REQ-01).
    */
   findings: {
@@ -232,6 +236,10 @@ export interface RunReport {
   startedAt: string;
   finishedAt: string;
   mode: 'scan' | 'baseline';
+  /**
+   * Environment label of the run, or null (08-REQ-16).
+   */
+  env: null | string;
   pkgVersion: string;
   playwrightVersion: string;
   scope: {
@@ -341,6 +349,10 @@ export interface OutcomeFile {
    */
   code: 0 | 1 | 2 | 3 | 4;
   name: 'OK' | 'NEW_FINDINGS' | 'BASELINE_EXPIRED' | 'TOOL_ERROR' | 'NO_TRAFFIC';
+  /**
+   * Environment label of the run, or null (08-REQ-16).
+   */
+  env: null | string;
   /**
    * True when the functional tests passed.
    */
