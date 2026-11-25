@@ -63,12 +63,16 @@ function matchesName(name: string, patterns: readonly string[]): boolean {
   );
 }
 
+/** Plain words: letters with "_", "-", "." or spaces, no digits (06, chapter 4.12). */
+const WORDS = /^[A-Za-z]+(?:[ _.-]+[A-Za-z]+)*$/;
+
 /** An opaque token value: no dots or spaces, token characters only (06, chapter 4.2). */
 const OPAQUE = /^[A-Za-z0-9+/=_%-]+$/;
 
 /**
- * Session cookie (06, chapter 4.2): not a known analytics or consent cookie, and the name matches
- * the pattern or the value is a JWT or an opaque high-entropy token.
+ * Session cookie (06, chapters 4.2, 4.11, 4.12): not a known analytics or consent cookie, and the
+ * value is a JWT or an opaque high-entropy token, or the name matches the pattern and the value
+ * is not plain words.
  */
 export function isSessionCookie(
   name: string,
@@ -83,6 +87,9 @@ export function isSessionCookie(
   } catch {
     re = /(sess|sid|auth|token|jwt)/i;
   }
-  if (re.test(name)) return true;
-  return looksLikeJwt(value) || (OPAQUE.test(value) && looksLikeToken(value));
+  if (looksLikeJwt(value) || (OPAQUE.test(value) && looksLikeToken(value))) return true;
+  // A name like a session but a value of plain words is not an identifier (06, chapter 4.12):
+  // letters only with a separator, or shorter than a random identifier.
+  const words = WORDS.test(value) && (/[ _.-]/.test(value) || value.length < 16);
+  return re.test(name) && !words;
 }

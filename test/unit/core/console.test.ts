@@ -169,6 +169,13 @@ describe('console (04, chapter 4b)', () => {
     expect(text({ ...report([], 0), mode: 'baseline' })).toContain(
       'baseline written (informational, gate disabled)',
     );
+    const written = formatSummary(
+      { ...report([finding(1, { blocking: false })], 0), mode: 'baseline' },
+      REPORT,
+      PLAIN,
+    ).join('\n');
+    expect(written).toContain('✅  PASSED');
+    expect(written).not.toContain('new non-blocking');
   });
 
   test('04-REQ-09 the baseline diff keeps its text with colors', () => {

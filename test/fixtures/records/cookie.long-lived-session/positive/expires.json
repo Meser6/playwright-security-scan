@@ -9,7 +9,7 @@
       },
       {
         "name": "set-cookie",
-        "value": "sid=abc; Secure; HttpOnly; Expires=Wed, 24 Nov 2027 20:00:00 GMT"
+        "value": "sid=8f3a2c91d0e4b7a6; Secure; HttpOnly; Expires=Wed, 24 Nov 2027 20:00:00 GMT"
       }
     ]
   },
