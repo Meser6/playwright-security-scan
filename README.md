@@ -99,6 +99,23 @@ keeps the entries it could not confirm as resolved. Avoid `test.only` in a basel
 Any code other than 0 makes the Playwright command exit with 1. See
 [docs/troubleshooting.md](docs/troubleshooting.md) for every code.
 
+### Console output
+
+The run starts with a banner (mode, scope, rules, gate, baseline, report) and ends with a summary
+of at most 30 lines: errors and warnings in boxes, the counters and the blocking findings in
+tables, the verdict in a box (`✅ PASSED`, `⚠ PASSED WITH WARNINGS`, `❌ FAILED`, `❌ ERROR`) with
+the result name and code, and one `Report:` line with the absolute path of the HTML report.
+
+Colors are used in a terminal whose `TERM` is not `dumb`. Every colored item also has an emoji
+or a word, so the text is the same without colors.
+
+| Variable        | Effect                                                       |
+| --------------- | ------------------------------------------------------------ |
+| `NO_COLOR=1`    | No colors, also in a terminal and with `FORCE_COLOR`.        |
+| `FORCE_COLOR=1` | Colors also without a terminal (for example in CI logs).     |
+| `FORCE_COLOR=0` | No colors.                                                   |
+| `TERM=dumb`     | No colors, ASCII frames (`+`, `-`, `\|`), `✔ ! ✖` for emoji. |
+
 ## The baseline
 
 `security-baseline.json` lists the findings you have decided about, one entry per fingerprint:

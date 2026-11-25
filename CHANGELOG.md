@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- The console output looks like the one of `playwright-performance-regression`: colors in a terminal (`NO_COLOR`, `FORCE_COLOR` and `TERM=dumb` are respected), the start banner as a table, errors and warnings in framed boxes, the counters and the blocking findings in tables, the verdict in a box (`✅ PASSED`, `⚠ PASSED WITH WARNINGS`, `❌ FAILED`, `❌ ERROR`) with the result name and code, and one `Report:` line with the absolute path of the HTML report. The text is the same without colors and still fits in 30 lines.
+
 ## [0.1.0-beta.0] - 2026-11-25
 
 First test release, published under the `next` dist-tag (`npm i -D playwright-security-scan@next`).
