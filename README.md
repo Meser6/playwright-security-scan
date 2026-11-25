@@ -311,6 +311,10 @@ export default withSecurity(withPerf(defineConfig({/* … */})));
 export const test = withSecurityFixtures(withPerfFixtures(base));
 ```
 
+In the reverse order (`withPerf(withSecurity(...))`) perf mode removes the security reporter:
+nothing is scanned and the run still passes. Check that the console shows the `pw-sec · mode: …` header
+after the first run.
+
 Run the two scans in separate CI jobs: body analysis adds load that can distort step timings.
 
 ## Limitations
