@@ -1,6 +1,6 @@
 // The init wizard, WP-26 part (11, chapters 3 and 4): variables, texts, the tutorial question,
 // the language, a project without playwright.config and a too old Playwright.
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, test } from 'vitest';
@@ -136,5 +136,80 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
       peerDependencies: Record<string, string>;
     };
     expect(pkg.peerDependencies['@playwright/test']).toBe(`>=${MIN_PLAYWRIGHT_VERSION}`);
+  });
+  test('11-AC-03 steps 2 to 7 write the answers; a second run changes nothing', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'pw-sec init-'));
+    dirs.push(dir);
+    cpSync(join(import.meta.dirname, '../../projects/init-ts-fixtures'), dir, { recursive: true });
+    // tutorial, language, Enter after step 1, preset, gate, origins, environments, command,
+    // then "yes" to every change.
+    const first = fakeCliHost({
+      cwd: dir,
+      prompt: answers(
+        'y',
+        'en',
+        '',
+        'strict',
+        'high',
+        'https://api.example.test',
+        'n',
+        'skip',
+        'y',
+        'y',
+        'y',
+        'y',
+      ),
+    });
+    expect(await main([], first.host)).toBe(0);
+    const text = out(first.stdout);
+    expect(text).toContain('[7/9] Changes');
+    expect(text).toContain('Setup finished.');
+    const config = readFileSync(join(dir, 'pw-sec.config.ts'), 'utf8');
+    expect(config).toContain("preset: 'strict',");
+    expect(config).toContain("minSeverity: 'high',");
+    expect(config).toContain("origins: ['https://api.example.test'],");
+    expect(readFileSync(join(dir, 'playwright.config.ts'), 'utf8')).toContain(
+      'withSecurity(defineConfig(',
+    );
+    expect(readFileSync(join(dir, 'tests/fixtures.ts'), 'utf8')).toContain(
+      'withSecurityFixtures(base.extend',
+    );
+    expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toContain('reports/pw-sec/');
+
+    const second = fakeCliHost({
+      cwd: dir,
+      prompt: answers('y', 'en', '', '', '', '', 'n', 'skip'),
+    });
+    expect(await main([], second.host)).toBe(0);
+    expect(out(second.stdout)).toContain('Nothing to change: the project is already set up.');
+    expect(second.written).toEqual([]);
+  });
+
+  test('11-REQ-08 an invalid origin or environment label is asked again', async () => {
+    const dir = project({ 'playwright.config.ts': CONFIG });
+    const fake = fakeCliHost({
+      cwd: dir,
+      prompt: answers(
+        'y',
+        'en',
+        '',
+        '',
+        '',
+        'api.example.test',
+        'https://api.example.test',
+        'y',
+        'QA',
+        'qa, staging',
+        'skip',
+        'n',
+        'n',
+        'n',
+      ),
+    });
+    expect(await main([], fake.host)).toBe(0);
+    const text = out(fake.stdout);
+    expect(text).toContain('"api.example.test" is not an origin');
+    expect(text).toContain('"QA" is not a label');
+    expect(fake.written).toEqual([]);
   });
 });

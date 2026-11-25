@@ -1,0 +1,5 @@
+{
+  "name": "init-esm-js",
+  "private": true,
+  "type": "module"
+}
