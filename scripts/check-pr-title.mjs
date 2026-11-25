@@ -5,6 +5,7 @@
 //
 // Rules: `<type>[(<scope>)][!]: <subject>` with a known type and scope, at most 72 characters
 // in total, a subject that starts with a lowercase letter or a digit and has no trailing period.
+// Exception: Dependabot titles in the deps scope may start with "Bump ".
 //
 // Usage: node scripts/check-pr-title.mjs "<title>"   (or PR_TITLE in the environment)
 // No dependencies; Node built-ins only.
@@ -75,7 +76,9 @@ export function checkPrTitle(title) {
     if (subject !== subject.trim()) {
       problems.push('has leading or trailing whitespace in the subject');
     }
-    if (!/^[a-z0-9`]/.test(subject)) {
+    // Dependabot always writes "Bump ..." with a capital letter and has no option to change it.
+    const dependabot = scope === 'deps' && subject.startsWith('Bump ');
+    if (!dependabot && !/^[a-z0-9`]/.test(subject)) {
       problems.push('subject must start with a lowercase letter after the colon');
     }
     if (subject.trimEnd().endsWith('.')) {
