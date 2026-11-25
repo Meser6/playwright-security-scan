@@ -9,6 +9,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The release workflow runs the same checks on the tagged commit (13-REQ-10).
+  workflow_call:
   workflow_dispatch:
 
 permissions:
