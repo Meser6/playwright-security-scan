@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.1.0-beta.0] - 2026-11-25
+
+First test release, published under the `next` dist-tag (`npm i -D playwright-security-scan@next`).
+
 ### Fixed
 
 - Google Analytics, consent and CDN cookies (e.g. `_ga_*`, `cf_clearance`) are no longer taken for session cookies; the session heuristic is configurable with `nonSessionNames`.
@@ -27,3 +31,6 @@ All notable changes to this project are documented in this file. The format is b
 - `withSecurity()` and `defineSecurityConfig()` (`playwright-security-scan/config`): `PW_SEC_MODE=scan|baseline` turns the scan on, the package reporter is appended, and the package config is validated with suggestions for mistyped options and rule ids. Without `PW_SEC_MODE` the Playwright config is returned unchanged. `PW_SEC_CONFIG` points to another config file.
 - Rule presets `recommended` (default), `strict` and `minimal`.
 - JSON Schemas of the file formats (`schemas/`, exported as `playwright-security-scan/schemas/*`): test attachment, baseline file, run report and outcome file.
+
+[Unreleased]: https://github.com/Meser6/playwright-security-scan/compare/v0.1.0-beta.0...HEAD
+[0.1.0-beta.0]: https://github.com/Meser6/playwright-security-scan/releases/tag/v0.1.0-beta.0
