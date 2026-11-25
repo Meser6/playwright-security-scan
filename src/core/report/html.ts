@@ -118,7 +118,7 @@ export function renderHtml(
 <header><div class="card" id="head"></div></header>
 <main>
 <noscript><div class="card">This report needs JavaScript; the same data is in report.json.</div></noscript>
-<div class="card box"><b>What this scan does not cover.</b> It is passive: it only looks at the traffic of your tests. It does not send attacks (no injection or authorization tests), does not see endpoints your tests never call, WebSockets or Server-Sent Events, and does not judge business logic. It does not replace a penetration test. Active checks are planned for later versions (see the README roadmap).</div>
+<div class="card box"><b>What this scan does not cover.</b> It is passive: it only looks at the traffic of your tests. It does not send attacks (no injection or authorization tests), does not see endpoints your tests never call, WebSockets or Server-Sent Events, and does not judge business logic. It does not replace a penetration test. Active checks are planned for later versions.</div>
 <h2>Findings <span class="meta" id="shown"></span></h2>
 <div class="card filters">
 <label>classification <select id="f-class"></select></label>
