@@ -8,7 +8,14 @@ import { ConfigError, resolveConfig } from '../core/config/index.ts';
 import type { ConfigIssue, SecurityConfigInput } from '../core/config/index.ts';
 import { canonicalOrigin } from '../core/normalize/index.ts';
 import type { Diagnostic } from '../core/types/index.ts';
-import { CONFIG_ENV, readEnvLabel, readMode, RUN_ID_ENV, SALT_ENV } from '../mode/index.ts';
+import {
+  CONFIG_ENV,
+  readEnvLabel,
+  readMaxTests,
+  readMode,
+  RUN_ID_ENV,
+  SALT_ENV,
+} from '../mode/index.ts';
 import { setRegistered } from '../registry/index.ts';
 import { VERSION } from '../version.ts';
 import { reporterEntryPath } from './reporter-path.ts';
@@ -136,8 +143,13 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   const input = fromEnv === '' ? securityConfig : (loadConfigFile(fromEnv) as SecurityConfigInput);
   const resolved = resolveConfig(input);
   const label = readEnvLabel(process.env);
-  const issues = [...(resolved.ok ? [] : resolved.issues), ...(label.ok ? [] : label.issues)];
-  if (!resolved.ok || !label.ok) throw new ConfigError(issues);
+  const maxTests = mode.mode === 'check' ? readMaxTests(process.env) : undefined;
+  const issues = [
+    ...(resolved.ok ? [] : resolved.issues),
+    ...(label.ok ? [] : label.issues),
+    ...(maxTests === undefined || maxTests.ok ? [] : maxTests.issues),
+  ];
+  if (!resolved.ok || !label.ok || issues.length > 0) throw new ConfigError(issues);
   // PW_SEC_ENV overrides run.env of the config (08-REQ-13).
   if (label.env !== undefined) resolved.config.run.env = label.env;
 

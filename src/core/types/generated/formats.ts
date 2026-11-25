@@ -150,6 +150,12 @@ export interface Coverage {
   responses: number;
   apiResponses: number;
   outOfScope: number;
+  /**
+   * Origin outside the scope to its number of responses (04-REQ-13).
+   */
+  outOfScopeOrigins?: {
+    [k: string]: number;
+  };
   documents: number;
   bodiesAnalyzed: number;
   bodiesSkipped: Counts;

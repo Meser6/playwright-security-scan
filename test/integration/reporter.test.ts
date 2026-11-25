@@ -226,4 +226,41 @@ describe('reporter (04, 08, 09)', () => {
     },
     RUN_TIMEOUT * 5,
   );
+  test(
+    '04-AC-06 and 04-AC-07 a check runs the first test of each file up to PW_SEC_MAX_TESTS and writes nothing',
+    async () => {
+      const dir = harness.copy('shop');
+      const s = await shop(['header.csp-unsafe']);
+      const check = await harness.run(dir, { env: env(s, 'check') });
+      expect(check.status, check.output).toBe(0);
+      const ran = check.results.filter((r) => r.status !== 'skipped');
+      expect(ran.map((r) => r.title).sort()).toEqual([
+        'API login and profile',
+        'home page and navigation',
+      ]);
+      expect(existsSync(join(dir, 'reports')), check.output).toBe(false);
+      expect(check.baseline).toBeNull();
+      expect(check.outcome).toBeNull();
+      expect(check.output).toContain('playwright-security-scan · check (dry run)');
+      expect(check.output).toMatch(
+        /· check · 2 of \d+ tests run \(2 passed\) · \d+ skipped by check/,
+      );
+      expect(check.output).toMatch(
+        new RegExp(
+          `✅ │ ${new URL(s.url).origin.replace(/[.]/g, '\\.')}\\s+│ baseURL\\s+│\\s+[1-9]`,
+        ),
+      );
+      expect(check.output).toContain('READY');
+      expect(check.output).toContain('Next: PW_SEC_MODE=baseline npx playwright test');
+
+      const one = await harness.run(dir, { env: { ...env(s, 'check'), PW_SEC_MAX_TESTS: '1' } });
+      expect(one.results.filter((r) => r.status !== 'skipped')).toHaveLength(1);
+
+      const none = await harness.run(harness.copy('no-base'), { env: { PW_SEC_MODE: 'check' } });
+      expect(none.status, none.output).toBe(0);
+      expect(none.output).toContain('NOT READY');
+      expect(none.output).toContain('NO_TRAFFIC');
+    },
+    RUN_TIMEOUT * 4,
+  );
 });

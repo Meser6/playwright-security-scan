@@ -168,6 +168,11 @@
           "description": "Responses of origins outside the scope.",
           "$ref": "#/$defs/count"
         },
+        "outOfScopeOrigins": {
+          "description": "Origin outside the scope to its number of responses (04-REQ-13).",
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/count" }
+        },
         "documents": {
           "description": "In-scope responses of resource type document.",
           "$ref": "#/$defs/count"

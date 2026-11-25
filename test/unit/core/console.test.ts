@@ -9,6 +9,8 @@ import {
   stripAnsi,
 } from '../../../src/core/report/console.ts';
 import type { TerminalOptions } from '../../../src/core/report/console.ts';
+import { formatCheck } from '../../../src/core/report/check.ts';
+import type { CheckInput } from '../../../src/core/report/check.ts';
 import type { ClassifiedFinding, Diagnostic, RunReport } from '../../../src/core/types/index.ts';
 
 const ref = {
@@ -187,5 +189,61 @@ describe('console (04, chapter 4b)', () => {
     expect(formatBaselineDiff('security-baseline.json', diff, true, COLOR).map(stripAnsi)).toEqual(
       plain,
     );
+  });
+});
+
+describe('check output (04, chapter 4c)', () => {
+  const input = (over: Partial<CheckInput> = {}): CheckInput => ({
+    env: null,
+    tests: { ran: 2, selected: 9, passed: 2, failed: 0, skipped: 7 },
+    maxTests: 10,
+    origins: [
+      { origin: 'https://shop.test', source: 'baseURL', responses: 14, documents: 2 },
+      { origin: 'https://api.shop.test', source: 'scope.origins', responses: 0, documents: 0 },
+    ],
+    outOfScope: {
+      'https://cdn.test': 3,
+      'https://a.test': 1,
+      'https://b.test': 1,
+      'https://c.test': 1,
+      'https://d.test': 1,
+      'https://e.test': 1,
+    },
+    responses: 14,
+    apiResponses: 4,
+    testsWithApi: 1,
+    projects: ['chromium'],
+    enabledRules: 44,
+    preset: 'recommended',
+    baseline: 'security-baseline.json (not found)',
+    findings: 3,
+    newAboveGate: 1,
+    minSeverity: 'medium',
+    diagnostics: [],
+    ...over,
+  });
+
+  test('04-REQ-12 scope, outside traffic with the hint, facts, verdict and Next', () => {
+    const text = formatCheck(input(), PLAIN).join('\n');
+    expect(text).toContain('· check · 2 of 9 tests run (2 passed) · 7 skipped by check');
+    expect(text).toMatch(/⚠\s+│ https:\/\/api\.shop\.test\s+│ scope\.origins\s+│\s+0/);
+    expect(text).toMatch(/│ https:\/\/cdn\.test\s+│\s+3 │/);
+    expect(text).toContain('… and 1 more origin');
+    expect(text).toContain('Add an origin to scope.origins');
+    expect(text).toContain('3 in this check; 1 new ≥ medium against the baseline');
+    expect(text).toContain('READY WITH WARNINGS');
+    expect(text).toContain('check: nothing was written');
+    expect(text).toContain('Next: PW_SEC_MODE=baseline npx playwright test');
+    expect(stripAnsi(formatCheck(input(), COLOR).join('\n'))).toBe(text);
+  });
+
+  test('04-REQ-12 the verdict: READY, NOT READY without traffic, Next with the env label', () => {
+    const ready = input({ origins: input().origins.slice(0, 1), env: 'qa' });
+    const text = formatCheck(ready, PLAIN).join('\n');
+    expect(text).toMatch(/✅ {2}READY {2}the scan sees 14 responses/);
+    expect(text).toContain('PW_SEC_MODE=baseline PW_SEC_ENV=qa npx playwright test');
+    const none = formatCheck(input({ responses: 0 }), PLAIN).join('\n');
+    expect(none).toContain('NOT READY');
+    expect(none).toContain('NO_TRAFFIC');
   });
 });

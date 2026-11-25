@@ -34,6 +34,10 @@ export function addCoverage(into: Coverage, from: Coverage): void {
   into.responses += from.responses;
   into.apiResponses += from.apiResponses;
   into.outOfScope += from.outOfScope;
+  if (from.outOfScopeOrigins !== undefined) {
+    into.outOfScopeOrigins ??= {};
+    addCounts(into.outOfScopeOrigins, from.outOfScopeOrigins);
+  }
   into.documents += from.documents;
   into.bodiesAnalyzed += from.bodiesAnalyzed;
   addCounts(into.bodiesSkipped, from.bodiesSkipped);
@@ -55,6 +59,9 @@ export function sortCoverage(coverage: Coverage): Coverage {
     bodiesSkipped: sortKeys(coverage.bodiesSkipped),
     endpoints: sortKeys(coverage.endpoints),
     rulesRun: sortKeys(coverage.rulesRun),
+    ...(coverage.outOfScopeOrigins === undefined
+      ? {}
+      : { outOfScopeOrigins: sortKeys(coverage.outOfScopeOrigins) }),
     origins: sortKeys(coverage.origins),
     assets: [...coverage.assets].sort(),
     storageOrigins: [...coverage.storageOrigins].sort(),

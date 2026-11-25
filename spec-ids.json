@@ -1,5 +1,5 @@
 {
-  "specCommit": "npm-spec@319b324",
+  "specCommit": "npm-spec@0b06d1d",
   "ids": [
     {"id":"01-AC-01","kind":"AC"},
     {"id":"01-AC-02","kind":"AC"},
@@ -33,6 +33,9 @@
     {"id":"04-AC-03","kind":"AC"},
     {"id":"04-AC-04","kind":"AC"},
     {"id":"04-AC-05","kind":"AC"},
+    {"id":"04-AC-06","kind":"AC"},
+    {"id":"04-AC-07","kind":"AC"},
+    {"id":"04-AC-08","kind":"AC"},
     {"id":"04-REQ-01","kind":"REQ"},
     {"id":"04-REQ-02","kind":"REQ"},
     {"id":"04-REQ-03","kind":"REQ"},
@@ -42,6 +45,11 @@
     {"id":"04-REQ-07","kind":"REQ"},
     {"id":"04-REQ-08","kind":"REQ"},
     {"id":"04-REQ-09","kind":"REQ"},
+    {"id":"04-REQ-10","kind":"REQ"},
+    {"id":"04-REQ-11","kind":"REQ"},
+    {"id":"04-REQ-12","kind":"REQ"},
+    {"id":"04-REQ-13","kind":"REQ"},
+    {"id":"04-REQ-14","kind":"REQ"},
     {"id":"05-AC-01","kind":"AC"},
     {"id":"05-AC-02","kind":"AC"},
     {"id":"05-AC-03","kind":"AC"},
