@@ -10,6 +10,21 @@ const entries = {
 };
 
 export default defineConfig([
+  // The wizard binary (11-REQ-01): ESM only, it uses top-level await.
+  {
+    entry: { cli: 'src/entries/cli.ts' },
+    format: ['esm'],
+    dts: false,
+    target: 'node22',
+    platform: 'node',
+    clean: false,
+    sourcemap: false,
+    splitting: false,
+    treeshake: true,
+    esbuildOptions(options) {
+      options.charset = 'utf8';
+    },
+  },
   {
     entry: entries,
     format: ['esm'],

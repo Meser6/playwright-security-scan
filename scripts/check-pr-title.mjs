@@ -38,6 +38,7 @@ export const SCOPES = [
   'sarif',
   'junit',
   'schemas',
+  'init',
   'app',
   'prototype',
   'deps',
