@@ -2,7 +2,7 @@
 // findings of the run, compares them with the baseline, writes the reports and the baseline, and
 // prints the start banner and the summary. Never throws: a failure becomes TOOL_ERROR (P-08).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type {
   FullConfig,
   FullResult,
@@ -139,6 +139,15 @@ export default class SecurityReporter implements Reporter {
     return config?.rootDir ?? process.cwd();
   }
 
+  /**
+   * The baseline file: `name` relative to the config, or in PW_SEC_BASELINE_DIR, the temporary
+   * directory of the wizard's check (11-REQ-10), which is never the project's baseline.
+   */
+  #baselineFile(name: string): string {
+    const dir = process.env.PW_SEC_BASELINE_DIR ?? '';
+    return isAbsolute(dir) ? join(dir, basename(name)) : this.#path(name);
+  }
+
   #path(path: string): string {
     return isAbsolute(path) ? path : resolve(this.#configDir(), path);
   }
@@ -176,7 +185,7 @@ export default class SecurityReporter implements Reporter {
       }
       let entries: number | null = null;
       const baselineName = baselineFileFor(sec.baseline.path, sec.run.env);
-      const file = this.#path(baselineName);
+      const file = this.#baselineFile(baselineName);
       if (existsSync(file)) {
         try {
           const parsed = JSON.parse(readFileSync(file, 'utf8')) as { findings?: object };
@@ -288,7 +297,7 @@ export default class SecurityReporter implements Reporter {
         .map(([id]) => id),
     );
     const baselineName = baselineFileFor(sec.baseline.path, sec.run.env);
-    const baselinePath = this.#path(baselineName);
+    const baselinePath = this.#baselineFile(baselineName);
     let baseline: BaselineFile | undefined;
     let baselineState = `${baselineName} (not found)`;
     if (existsSync(baselinePath)) {
@@ -376,7 +385,7 @@ export default class SecurityReporter implements Reporter {
     // Baseline file (08), per environment label (08-REQ-14).
     const env = sec.run.env;
     const baselineName = baselineFileFor(sec.baseline.path, env);
-    const baselinePath = this.#path(baselineName);
+    const baselinePath = this.#baselineFile(baselineName);
     let baseline: BaselineFile | undefined;
     let baselineOk = true;
     if (existsSync(baselinePath)) {
@@ -396,7 +405,7 @@ export default class SecurityReporter implements Reporter {
           message: `${baselineName} was written for the environment "${parsed.file.env}", but this run ${env === null ? 'has no environment label' : `is "${env}"`}; check PW_SEC_ENV and run.env`,
         });
       }
-    } else if (env !== null && existsSync(this.#path(sec.baseline.path))) {
+    } else if (env !== null && existsSync(this.#baselineFile(sec.baseline.path))) {
       this.#diag({
         code: 'BASELINE_ENV_MISSING',
         level: 'warn',
