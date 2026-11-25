@@ -1,0 +1,31 @@
+{
+  "title": "Session-like name with a plain-word value, set by JavaScript (SauceDemo, corpus v2)",
+  "input": {
+    "kind": "cookie-jar",
+    "cookies": [
+      {
+        "name": "session-username",
+        "value": "standard_user",
+        "domain": "www.app.test",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "sameSite": "Lax",
+        "expires": -1,
+        "origin": "https://www.app.test"
+      },
+      {
+        "name": "auth",
+        "value": "true",
+        "domain": "www.app.test",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "sameSite": "Lax",
+        "expires": -1,
+        "origin": "https://www.app.test"
+      }
+    ]
+  },
+  "expect": []
+}

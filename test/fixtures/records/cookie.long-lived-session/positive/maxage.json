@@ -5,7 +5,7 @@
     "responseHeaders": [
       {
         "name": "set-cookie",
-        "value": "sid=abc; Secure; HttpOnly; Max-Age=7776000"
+        "value": "sid=8f3a2c91d0e4b7a6; Secure; HttpOnly; Max-Age=7776000"
       }
     ]
   },

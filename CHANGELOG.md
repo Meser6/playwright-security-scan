@@ -6,6 +6,11 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Fixed
+
+- A cookie whose name looks like a session (`session-username`, `auth`) but whose value is plain words (`standard_user`, `true`) is no longer taken for a session cookie (false positive of `cookie.no-httponly` and `cookie.no-secure` on SauceDemo).
+- A baseline run no longer reports its new findings as warnings in the verdict: they were just written to the baseline.
+
 ### Added
 
 - `docs/init.md` describes the guided setup; the README starts with `npm init playwright-security-scan`.
