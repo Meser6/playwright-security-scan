@@ -1,0 +1,80 @@
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,1 @@
++reports/pw-sec/
+--- a/playwright.config.js
++++ b/playwright.config.js
+@@ -1,3 +1,4 @@
+ const { defineConfig } = require('@playwright/test');
++const { withSecurity } = require('playwright-security-scan/config');
+ 
+-module.exports = defineConfig({ testDir: './tests' });
++module.exports = withSecurity(defineConfig({ testDir: './tests' }), require('./pw-sec.config'));
+--- /dev/null
++++ b/pw-sec.config.js
+@@ -0,0 +1,51 @@
++// @ts-check
++// Config of playwright-security-scan. Every option: https://github.com/Meser6/playwright-security-scan/blob/main/docs/configuration.md
++// Objects are merged with the defaults; an array you set replaces the default one.
++// One baseline per environment: set PW_SEC_ENV=<label> (or run.env here).
++const { defineSecurityConfig } = require('playwright-security-scan/config');
++
++module.exports = defineSecurityConfig({
++  // Which traffic is scanned.
++  scope: {
++    // Origins scanned besides the use.baseURL origins, e.g. your API.
++    origins: [],
++    // Origins never scanned, even when they match.
++    exclude: [],
++    // Playwright projects whose tests are scanned: 'all' or a list of names.
++    projects: 'all',
++    // Scan the calls of the request fixture (API tests).
++    api: true,
++  },
++
++  // The passive rules; turn one off with rules: { "<rule id>": "off" }.
++  rules: {
++    // 'recommended', 'strict' (every rule, higher severities) or 'minimal'.
++    preset: 'recommended',
++  },
++
++  // Which new findings fail the scan; findings in the baseline never do.
++  gate: {
++    // Lowest severity of a new finding that fails the scan.
++    minSeverity: 'medium',
++    // Lowest confidence of a new finding that fails the scan.
++    minConfidence: 'medium',
++    // Fail when no response was in scope (a wrong scope scans nothing).
++    failOnNoTraffic: true,
++  },
++
++  // The baseline file you commit.
++  baseline: {
++    // Relative to the Playwright config; with PW_SEC_ENV=qa it becomes
++    // security-baseline.qa.json.
++    path: 'security-baseline.json',
++    // Require a note on every accepted entry.
++    requireNote: false,
++  },
++
++  // Reports of a run.
++  report: {
++    // Directory of report.html, report.json, results.sarif and junit.xml (do not commit it),
++    // relative to the Playwright config.
++    dir: 'reports/pw-sec',
++  },
++});
+--- a/tests/fixtures.js
++++ b/tests/fixtures.js
+@@ -1,8 +1,9 @@
+ const base = require('@playwright/test');
++const { withSecurityFixtures } = require('playwright-security-scan/fixture');
+ 
+-exports.test = base.test.extend({
++exports.test = withSecurityFixtures(base.test.extend({
+   user: async ({}, use) => {
+     await use('alice');
+   },
+-});
++}));
+ exports.expect = base.expect;

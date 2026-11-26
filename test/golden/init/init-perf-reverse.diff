@@ -1,0 +1,8 @@
+--- a/playwright.config.ts
++++ b/playwright.config.ts
+@@ -3,4 +3,4 @@
+ import { withSecurity } from 'playwright-security-scan/config';
+ import perfConfig from './pw-perf.config';
+ 
+-export default withPerf(withSecurity(defineConfig({ testDir: './tests' })), perfConfig);
++export default withSecurity(withPerf(defineConfig({ testDir: './tests' }), perfConfig));

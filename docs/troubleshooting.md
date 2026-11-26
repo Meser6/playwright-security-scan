@@ -253,6 +253,26 @@ command to run there (`cd e2e && npx pw-sec`).
 The project's `@playwright/test` is older than the lowest version the package supports (1.57).
 Update it, then run the wizard again.
 
+### INIT_MANUAL_STEP
+
+**Warning.** The wizard left a change to you because it did not recognise the layout: a
+`playwright.config` whose export is not a plain `defineConfig({...})`, `withPerf(...)` or object
+(e.g. another wrapper), an existing `pw-sec.config.*` it does not rewrite, test files that still
+import `test` from `@playwright/test`, or contexts from `request.newContext()` that are not
+tracked. The message shows the code to paste.
+
+### INIT_TEST_OBJECT_MANUAL
+
+**Warning (red box).** The wizard could not wrap your test object or switch the imports of your test
+files, so nothing would be scanned yet. Wrap the `test` of your fixtures module with
+`withSecurityFixtures()`, or import `test` from `playwright-security-scan/test` in your test files;
+see [Adoption](adoption.md).
+
+### INIT_WRITE_FAILED
+
+A file could not be written (permissions, a read-only folder). Files written before it stay. Fix
+the permissions and run the wizard again: it only proposes what is still missing.
+
 ### CLI_UNKNOWN_COMMAND
 
 `pw-sec` was given arguments. It has no commands or options: without arguments it starts the
