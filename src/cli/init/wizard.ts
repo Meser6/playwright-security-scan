@@ -17,7 +17,17 @@ import type { CliIssue } from '../constants.ts';
 import type { CliHost, Prompt } from '../host.ts';
 import { formatIssues, infoLine } from '../output.ts';
 import type { OutputStyle } from '../output.ts';
-import { chainsCommands, commandProblem, defaultTestCommand, scriptHints } from './commands.ts';
+import {
+  chainsCommands,
+  checkRuns,
+  commandProblem,
+  commandSpawn,
+  defaultTestCommand,
+  runCommands,
+  scriptHints,
+} from './commands.ts';
+import type { CheckRun, RunCommands } from './commands.ts';
+import { importantBox } from './next-steps.ts';
 import { detectProject, originOf } from './detect.ts';
 import type { ProjectInfo } from './detect.ts';
 import { unifiedDiff } from './diff.ts';
@@ -487,6 +497,116 @@ async function applyChanges(
   return written;
 }
 
+/** Exit code of one run of the wizard's check, with the cause it translates (11-REQ-11). */
+interface CheckResult {
+  mode: CheckRun['mode'];
+  code: number;
+  cause: string | null;
+}
+
+/**
+ * The cause of a failed baseline or scan run of the check, from report.json of that run (11-REQ-11):
+ * no traffic, the first error, or new findings right after the baseline.
+ */
+async function checkCause(
+  dialog: Dialog,
+  host: CliHost,
+  run: CheckRun,
+  since: string,
+  configFile: string,
+): Promise<string | null> {
+  if (run.mode === 'check') return null;
+  const text = await host.readText(host.paths.join(host.cwd, `${REPORT_DIR}/report.json`));
+  if (text === null) return null;
+  try {
+    const report = JSON.parse(text) as {
+      startedAt?: string;
+      outcome?: { code?: number };
+      diagnostics?: { code: string; level: string; message: string }[];
+    };
+    if ((report.startedAt ?? '') < since) return null;
+    const diags = report.diagnostics ?? [];
+    const code = report.outcome?.code;
+    if (code === 4 || diags.some((d) => d.code === 'NO_TRAFFIC' || d.code === 'SCOPE_EMPTY'))
+      return dialog.t('checkNoTraffic', { configFile });
+    const error = diags.find((d) => d.level === 'error');
+    if (error !== undefined) return `${error.code}: ${error.message}`;
+    if (code === 1 && run.mode === 'scan') return dialog.t('checkUnstable');
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Step 8 (11-REQ-10): the test command three times as a child process with the terminal: check,
+ * then baseline and scan with the baseline in a temporary directory removed afterwards. The scan
+ * does not start after a failed baseline run; Ctrl+C (130) stops the check.
+ */
+async function runCheck(
+  dialog: Dialog,
+  host: CliHost,
+  info: ProjectInfo,
+  commands: RunCommands,
+): Promise<CheckResult[]> {
+  const spec = commandSpawn({
+    command: commands.base,
+    nodePath: host.execPath,
+    playwrightCli: host.resolvePlaywright(host.cwd)?.cliPath ?? null,
+    packageManager: info.packageManager,
+    platform: host.platform,
+    shell: host.env.SHELL,
+  });
+  if (!spec.ok) {
+    dialog.line(dialog.t('checkManual', { command: commands.check }), 'yellow');
+    return [];
+  }
+  const inherited: Record<string, string> = {};
+  for (const [name, value] of Object.entries(host.env))
+    if (value !== undefined && !name.startsWith('PW_SEC_')) inherited[name] = value;
+  const results: CheckResult[] = [];
+  const dir = await host.makeTempDir('pw-sec-init-');
+  // Ctrl+C goes to the whole process group: the run stops and the wizard reports 130.
+  const stop = host.onSignal('SIGINT', () => undefined);
+  try {
+    for (const run of checkRuns(commands.base, host.platform, dir)) {
+      dialog.line(`$ ${run.shown}`, 'dim');
+      const since = new Date().toISOString();
+      const child = host.spawnProcess(spec.value.file, spec.value.args, {
+        cwd: host.cwd,
+        env: { ...inherited, ...run.env },
+        stdio: 'inherit',
+        shell: spec.value.shell,
+      });
+      const code = await new Promise<number>((resolve) => {
+        child.once('exit', (exit, signal) => resolve(signal === 'SIGINT' ? 130 : (exit ?? 1)));
+        child.once('error', () => resolve(1));
+      });
+      if (code === 130) {
+        results.push({ mode: run.mode, code, cause: null });
+        break;
+      }
+      const cause =
+        code === 0 ? null : await checkCause(dialog, host, run, since, configFileName(info));
+      results.push({ mode: run.mode, code, cause });
+      dialog.line(dialog.t('checkExit', { mode: run.mode, code }), code === 0 ? 'green' : 'yellow');
+      if (cause !== null) dialog.line(dialog.t('checkCause', { cause }), 'yellow');
+      if (run.mode === 'baseline' && code !== 0) break;
+    }
+  } finally {
+    stop();
+    await host.removeDir(dir);
+  }
+  return results;
+}
+
+/** Baseline files to review and commit: one per environment label, else the default one. */
+function baselineFiles(answers: InitAnswers): string[] {
+  return answers.envs.length === 0
+    ? ['security-baseline.json']
+    : answers.envs.map((env) => `security-baseline.${env}.json`);
+}
+
 export async function runInit(
   cmd: InitCommand,
   host: CliHost,
@@ -553,6 +673,7 @@ export async function runInit(
 
     const answers = await askAnswers(dialog, info);
     const plan = planInitChanges(info, answers, lang);
+    const commands = runCommands(answers.command, host.platform, answers.envs);
 
     dialog.stepOf(
       7,
@@ -584,7 +705,28 @@ export async function runInit(
     const redBox = testObject === null ? null : testObjectBox(dialog, host, testObject);
     if (redBox !== null) host.stdout.write(`\n${redBox}`);
 
-    // Step 8 (the check) follows in WP-28.
+    // Step 8: only when something was written (or the project is set up), playwright.config has
+    // withSecurity() and step 6 was not skipped (11, chapter 4).
+    const configPath = info.playwrightConfig.path;
+    const wrapped = info.existing.wrappedConfig || written.includes(configPath);
+    const setUp = written.length > 0 || plan.changes.length === 0;
+    let checkResults: CheckResult[] | null = null;
+    dialog.stepOf(8, 'stepCheck', 'checkLesson');
+    if (answers.runCheck && write && setUp && wrapped && testObject === null) {
+      if (await dialog.confirm(t('checkQuestion'), true)) {
+        prompt?.close();
+        checkResults = await runCheck(dialog, host, info, commands);
+        if (checkResults.some((r) => r.code === 130)) {
+          host.stderr.write(infoLine(t('interrupted')));
+          return 130;
+        }
+        if (checkResults.length === 3 && checkResults.every((r) => r.code === 0))
+          dialog.line(`✔ ${t('checkPassed')}`, 'green');
+      }
+    } else {
+      dialog.line(t('skipped'), 'dim');
+    }
+
     dialog.step(9, t('stepSummary'));
     if (written.length > 0) {
       dialog.say(
@@ -601,9 +743,40 @@ export async function runInit(
     if (plan.manualSteps.length > 0)
       dialog.line(`⚠ ${t('manualSteps', { count: plan.manualSteps.length })}`, 'yellow');
     if (redBox !== null) host.stdout.write(redBox);
+    for (const r of checkResults ?? []) {
+      if (r.code !== 0) dialog.say(`  ${t('checkExit', { mode: r.mode, code: r.code })}`);
+      if (r.code !== 0 && r.cause !== null) dialog.say(`  ${t('checkCause', { cause: r.cause })}`);
+    }
+    // After a write the IMPORTANT box has the commands; without one the Run line (11-REQ-13).
+    const done = write && setUp;
+    if (!done) {
+      dialog.say('', `  ${paint(t('runLine', { command: commands.check }), 'bold')}`);
+      dialog.line(t('runLesson'), 'dim');
+      if (host.platform === 'win32') dialog.line(t('windowsNote'), 'dim');
+      dialog.say(`  ${paint(t('nextSteps'), 'bold')}`, `    1. ${t('nextApply')}`);
+    } else if (checkResults === null || checkResults.length === 0) {
+      dialog.say('', `  ${t('tryCheck', { command: paint(commands.check, 'cyan') })}`);
+    }
+    if (commands.base.includes('&&') || commands.base.includes(';'))
+      dialog.line(`⚠ ${t('commandChain')}`, 'yellow');
     const links = [`${DOCS_URL}/adoption.md`, `${DOCS_URL}/cli.md`, `${DOCS_URL}/ci.md`];
     dialog.line(t('docs', { links: links.join(' · ') }), 'dim');
     if (write) dialog.line(`✔ ${t('finished')}`, 'green');
+    if (done) {
+      const important = importantBox(
+        {
+          t,
+          commands,
+          files: baselineFiles(answers),
+          reportDir: REPORT_DIR,
+          fixFirst: redBox !== null,
+          windows: host.platform === 'win32',
+          ciUrl: `${DOCS_URL}/ci.md`,
+        },
+        { columns: host.stdout.columns, color: dialog.colors, ascii: dialog.ascii },
+      );
+      host.stdout.write(`\n${important}`);
+    }
     return 0;
   } catch (error) {
     if (error instanceof PromptAborted) {

@@ -156,6 +156,34 @@ const en = {
   manualSteps: 'Manual steps: {count} (see the warnings above).',
   docs: 'Docs: {links}',
   finished: 'Setup finished.',
+  stepCheck: 'Check',
+  checkLesson:
+    "The check runs your test command three times, like real runs: a dry run (PW_SEC_MODE=check), then baseline and scan with the baseline in a temporary folder that is removed afterwards. Your project's baseline is not touched; reports go to the usual folder.",
+  checkQuestion: 'Run a check now?',
+  checkManual: 'The check cannot start the command here; run it yourself: {command}',
+  checkExit: '{mode} run: exit code {code}',
+  checkCause: 'Most likely cause: {cause}',
+  checkNoTraffic:
+    "no response was in scope: set use.baseURL or add your app's origin to scope.origins in {configFile}.",
+  checkUnstable:
+    'the scan found new findings right after the baseline: some traffic differs between runs (see the report).',
+  checkPassed: 'The check passed: the scan sees your traffic and the baseline works.',
+  runLine: 'Run: {command}',
+  runLesson: 'A scan is your usual test command with PW_SEC_MODE set.',
+  windowsNote: 'PowerShell and cmd forms of the commands: docs/cli.md (Windows).',
+  nextSteps: 'Next steps:',
+  nextApply: 'Apply the changes above (run the setup again in a terminal).',
+  tryCheck: 'Try it first: {command} shows what the scan sees.',
+  importantTitle: 'IMPORTANT',
+  importantIntro: 'What to do next, in this order:',
+  importantFixFirst:
+    'First add the security fixture (red box above): until then nothing is scanned.',
+  importantBaseline: 'Accept the current state into the baseline:',
+  importantReview:
+    'Review {files} and {report}: fix what is cheap to fix, add a note to each entry you accept, mark false positives as false-positive.',
+  importantCommit: 'Commit {files}.',
+  importantScan: 'From then on run the scan, locally and in CI; it fails only on new findings:',
+  importantResults: 'Result and exit code details: {outcome}. CI recipes: {url}',
 };
 
 export type MessageKey = keyof typeof en;
@@ -298,6 +326,35 @@ const pl: Messages = {
   manualSteps: 'Kroki ręczne: {count} (zobacz ostrzeżenia wyżej).',
   docs: 'Dokumentacja: {links}',
   finished: 'Konfiguracja zakończona.',
+  stepCheck: 'Sprawdzenie',
+  checkLesson:
+    'Sprawdzenie uruchamia polecenie testów trzy razy, jak prawdziwe runy: próbny przebieg (PW_SEC_MODE=check), potem baseline i scan z bazą w katalogu tymczasowym, usuwanym na końcu. Baza projektu nie jest ruszana; raporty trafiają do zwykłego katalogu.',
+  checkQuestion: 'Uruchomić teraz sprawdzenie?',
+  checkManual: 'Sprawdzenie nie może tu uruchomić polecenia; uruchom je sam: {command}',
+  checkExit: 'run {mode}: kod wyjścia {code}',
+  checkCause: 'Najbardziej prawdopodobna przyczyna: {cause}',
+  checkNoTraffic:
+    'żadna odpowiedź nie była w zakresie: ustaw use.baseURL albo dodaj origin aplikacji do scope.origins w {configFile}.',
+  checkUnstable:
+    'skan znalazł nowe znaleziska zaraz po bazie: część ruchu różni się między runami (zobacz raport).',
+  checkPassed: 'Sprawdzenie przeszło: skan widzi Twój ruch, a baza działa.',
+  runLine: 'Uruchom: {command}',
+  runLesson: 'Skan to Twoje zwykłe polecenie testów z ustawionym PW_SEC_MODE.',
+  windowsNote: 'Postacie poleceń dla PowerShell i cmd: docs/cli.md (Windows).',
+  nextSteps: 'Następne kroki:',
+  nextApply: 'Zastosuj zmiany powyżej (uruchom konfigurację ponownie w terminalu).',
+  tryCheck: 'Najpierw spróbuj: {command} pokazuje, co widzi skan.',
+  importantTitle: 'WAŻNE',
+  importantIntro: 'Co dalej, w tej kolejności:',
+  importantFixFirst:
+    'Najpierw dodaj fixture paczki (czerwona ramka wyżej): do tego czasu nic nie jest skanowane.',
+  importantBaseline: 'Przyjmij obecny stan do bazy:',
+  importantReview:
+    'Przejrzyj {files} i {report}: napraw to, co tanie, dodaj notatkę do każdego przyjętego wpisu, oznacz fałszywe alarmy jako false-positive.',
+  importantCommit: 'Zacommituj {files}.',
+  importantScan:
+    'Od tej chwili uruchamiaj skan lokalnie i w CI; kończy się błędem tylko przy nowych znaleziskach:',
+  importantResults: 'Wynik i szczegóły kodu wyjścia: {outcome}. Przepisy CI: {url}',
 };
 
 const es: Messages = {
@@ -443,6 +500,35 @@ const es: Messages = {
   manualSteps: 'Pasos manuales: {count} (ver los avisos de arriba).',
   docs: 'Documentación: {links}',
   finished: 'Configuración terminada.',
+  stepCheck: 'Comprobación',
+  checkLesson:
+    'La comprobación ejecuta tu comando de tests tres veces, como ejecuciones reales: una prueba en seco (PW_SEC_MODE=check), luego baseline y scan con la línea base en una carpeta temporal que se borra al final. La línea base del proyecto no se toca; los informes van a la carpeta habitual.',
+  checkQuestion: '¿Ejecutar ahora la comprobación?',
+  checkManual: 'La comprobación no puede ejecutar el comando aquí; ejecútalo tú: {command}',
+  checkExit: 'ejecución {mode}: código de salida {code}',
+  checkCause: 'Causa más probable: {cause}',
+  checkNoTraffic:
+    'ninguna respuesta estaba en el alcance: define use.baseURL o añade el origen de tu aplicación a scope.origins en {configFile}.',
+  checkUnstable:
+    'el escaneo encontró hallazgos nuevos justo después de la línea base: parte del tráfico cambia entre ejecuciones (ver el informe).',
+  checkPassed: 'La comprobación pasó: el escaneo ve tu tráfico y la línea base funciona.',
+  runLine: 'Ejecuta: {command}',
+  runLesson: 'Un escaneo es tu comando de tests habitual con PW_SEC_MODE definido.',
+  windowsNote: 'Formas de los comandos para PowerShell y cmd: docs/cli.md (Windows).',
+  nextSteps: 'Siguientes pasos:',
+  nextApply: 'Aplica los cambios de arriba (vuelve a ejecutar la configuración en un terminal).',
+  tryCheck: 'Pruébalo primero: {command} muestra lo que ve el escaneo.',
+  importantTitle: 'IMPORTANTE',
+  importantIntro: 'Qué hacer ahora, en este orden:',
+  importantFixFirst:
+    'Primero añade el fixture del paquete (recuadro rojo de arriba): hasta entonces no se escanea nada.',
+  importantBaseline: 'Acepta el estado actual en la línea base:',
+  importantReview:
+    'Revisa {files} y {report}: corrige lo que sea barato, añade una nota a cada entrada aceptada, marca los falsos positivos como false-positive.',
+  importantCommit: 'Haz commit de {files}.',
+  importantScan:
+    'Desde entonces ejecuta el escaneo en local y en CI; solo falla con hallazgos nuevos:',
+  importantResults: 'Resultado y detalles del código de salida: {outcome}. Recetas de CI: {url}',
 };
 
 const fr: Messages = {
@@ -588,6 +674,36 @@ const fr: Messages = {
   manualSteps: 'Étapes manuelles : {count} (voir les avertissements ci-dessus).',
   docs: 'Documentation : {links}',
   finished: 'Configuration terminée.',
+  stepCheck: 'Vérification',
+  checkLesson:
+    'La vérification lance votre commande de tests trois fois, comme de vraies exécutions : un essai à blanc (PW_SEC_MODE=check), puis baseline et scan avec la référence dans un dossier temporaire supprimé à la fin. La référence du projet n’est pas touchée ; les rapports vont dans le dossier habituel.',
+  checkQuestion: 'Lancer la vérification maintenant ?',
+  checkManual:
+    'La vérification ne peut pas lancer la commande ici ; lancez-la vous-même : {command}',
+  checkExit: 'exécution {mode} : code de sortie {code}',
+  checkCause: 'Cause la plus probable : {cause}',
+  checkNoTraffic:
+    'aucune réponse n’était dans le périmètre : définissez use.baseURL ou ajoutez l’origine de votre application à scope.origins dans {configFile}.',
+  checkUnstable:
+    'le scan a trouvé de nouveaux résultats juste après la référence : une partie du trafic change d’une exécution à l’autre (voir le rapport).',
+  checkPassed: 'La vérification a réussi : le scan voit votre trafic et la référence fonctionne.',
+  runLine: 'Lancez : {command}',
+  runLesson: 'Un scan, c’est votre commande de tests habituelle avec PW_SEC_MODE défini.',
+  windowsNote: 'Formes des commandes pour PowerShell et cmd : docs/cli.md (Windows).',
+  nextSteps: 'Étapes suivantes :',
+  nextApply: 'Appliquez les modifications ci-dessus (relancez la configuration dans un terminal).',
+  tryCheck: 'Essayez d’abord : {command} montre ce que voit le scan.',
+  importantTitle: 'IMPORTANT',
+  importantIntro: 'Que faire ensuite, dans cet ordre :',
+  importantFixFirst:
+    'Ajoutez d’abord la fixture du paquet (cadre rouge ci-dessus) : d’ici là, rien n’est scanné.',
+  importantBaseline: 'Acceptez l’état actuel dans la référence :',
+  importantReview:
+    'Relisez {files} et {report} : corrigez ce qui est peu coûteux, ajoutez une note à chaque entrée acceptée, marquez les faux positifs comme false-positive.',
+  importantCommit: 'Commitez {files}.',
+  importantScan:
+    'Ensuite, lancez le scan en local et en CI ; il échoue seulement sur de nouveaux résultats :',
+  importantResults: 'Résultat et détails du code de sortie : {outcome}. Recettes CI : {url}',
 };
 
 const it: Messages = {
@@ -731,6 +847,35 @@ const it: Messages = {
   manualSteps: 'Passi manuali: {count} (vedi gli avvisi sopra).',
   docs: 'Documentazione: {links}',
   finished: 'Configurazione completata.',
+  stepCheck: 'Verifica',
+  checkLesson:
+    'La verifica esegue il comando dei test tre volte, come esecuzioni vere: una prova a secco (PW_SEC_MODE=check), poi baseline e scan con la baseline in una cartella temporanea cancellata alla fine. La baseline del progetto non viene toccata; i report vanno nella cartella solita.',
+  checkQuestion: 'Eseguire ora la verifica?',
+  checkManual: 'La verifica non può avviare il comando qui; eseguilo tu: {command}',
+  checkExit: 'esecuzione {mode}: codice di uscita {code}',
+  checkCause: 'Causa più probabile: {cause}',
+  checkNoTraffic:
+    'nessuna risposta era nel perimetro: imposta use.baseURL o aggiungi l’origine dell’applicazione a scope.origins in {configFile}.',
+  checkUnstable:
+    'la scansione ha trovato risultati nuovi subito dopo la baseline: parte del traffico cambia tra un’esecuzione e l’altra (vedi il report).',
+  checkPassed: 'La verifica è passata: la scansione vede il tuo traffico e la baseline funziona.',
+  runLine: 'Esegui: {command}',
+  runLesson: 'Una scansione è il tuo solito comando di test con PW_SEC_MODE impostato.',
+  windowsNote: 'Forme dei comandi per PowerShell e cmd: docs/cli.md (Windows).',
+  nextSteps: 'Prossimi passi:',
+  nextApply: 'Applica le modifiche sopra (riesegui la configurazione in un terminale).',
+  tryCheck: 'Provalo prima: {command} mostra cosa vede la scansione.',
+  importantTitle: 'IMPORTANTE',
+  importantIntro: 'Cosa fare ora, in quest’ordine:',
+  importantFixFirst:
+    'Prima aggiungi la fixture del pacchetto (riquadro rosso sopra): fino ad allora non si scansiona nulla.',
+  importantBaseline: 'Accetta lo stato attuale nella baseline:',
+  importantReview:
+    'Rivedi {files} e {report}: correggi ciò che costa poco, aggiungi una nota a ogni voce accettata, segna i falsi positivi come false-positive.',
+  importantCommit: 'Fai commit di {files}.',
+  importantScan:
+    'Da allora esegui la scansione in locale e in CI; fallisce solo con risultati nuovi:',
+  importantResults: 'Risultato e dettagli del codice di uscita: {outcome}. Ricette CI: {url}',
 };
 
 const uk: Messages = {
@@ -869,6 +1014,35 @@ const uk: Messages = {
   manualSteps: 'Ручні кроки: {count} (див. попередження вище).',
   docs: 'Документація: {links}',
   finished: 'Налаштування завершено.',
+  stepCheck: 'Перевірка',
+  checkLesson:
+    'Перевірка запускає вашу команду тестів тричі, як справжні запуски: пробний запуск (PW_SEC_MODE=check), потім baseline і scan з базою в тимчасовому каталозі, який видаляється наприкінці. Базу проєкту не змінено; звіти потрапляють у звичайний каталог.',
+  checkQuestion: 'Запустити перевірку зараз?',
+  checkManual: 'Перевірка не може запустити команду тут; запустіть її самі: {command}',
+  checkExit: 'запуск {mode}: код виходу {code}',
+  checkCause: 'Найімовірніша причина: {cause}',
+  checkNoTraffic:
+    'жодна відповідь не була в межах: задайте use.baseURL або додайте origin застосунку до scope.origins у {configFile}.',
+  checkUnstable:
+    'сканування знайшло нові знахідки одразу після бази: частина трафіку різниться між запусками (див. звіт).',
+  checkPassed: 'Перевірку пройдено: сканування бачить ваш трафік, а база працює.',
+  runLine: 'Запуск: {command}',
+  runLesson: 'Сканування — це ваша звичайна команда тестів із заданим PW_SEC_MODE.',
+  windowsNote: 'Форми команд для PowerShell і cmd: docs/cli.md (Windows).',
+  nextSteps: 'Наступні кроки:',
+  nextApply: 'Застосуйте зміни вище (запустіть налаштування знову в терміналі).',
+  tryCheck: 'Спершу спробуйте: {command} показує, що бачить сканування.',
+  importantTitle: 'ВАЖЛИВО',
+  importantIntro: 'Що робити далі, у такому порядку:',
+  importantFixFirst:
+    'Спершу додайте фікстуру пакета (червона рамка вище): доти нічого не сканується.',
+  importantBaseline: 'Прийміть поточний стан у базу:',
+  importantReview:
+    'Перегляньте {files} і {report}: виправте те, що дешево, додайте нотатку до кожного прийнятого запису, позначте хибні спрацювання як false-positive.',
+  importantCommit: 'Закомітьте {files}.',
+  importantScan:
+    'Відтоді запускайте сканування локально й у CI; воно падає лише на нових знахідках:',
+  importantResults: 'Результат і деталі коду виходу: {outcome}. Рецепти CI: {url}',
 };
 
 const ru: Messages = {
@@ -1009,6 +1183,35 @@ const ru: Messages = {
   manualSteps: 'Ручные шаги: {count} (см. предупреждения выше).',
   docs: 'Документация: {links}',
   finished: 'Настройка завершена.',
+  stepCheck: 'Проверка',
+  checkLesson:
+    'Проверка запускает вашу команду тестов три раза, как настоящие запуски: пробный запуск (PW_SEC_MODE=check), затем baseline и scan с базой во временном каталоге, который удаляется в конце. База проекта не затрагивается; отчёты попадают в обычный каталог.',
+  checkQuestion: 'Запустить проверку сейчас?',
+  checkManual: 'Проверка не может запустить команду здесь; запустите её сами: {command}',
+  checkExit: 'запуск {mode}: код выхода {code}',
+  checkCause: 'Наиболее вероятная причина: {cause}',
+  checkNoTraffic:
+    'ни один ответ не был в области: задайте use.baseURL или добавьте origin приложения в scope.origins в {configFile}.',
+  checkUnstable:
+    'сканирование нашло новые находки сразу после базы: часть трафика различается между запусками (см. отчёт).',
+  checkPassed: 'Проверка пройдена: сканирование видит ваш трафик, а база работает.',
+  runLine: 'Запуск: {command}',
+  runLesson: 'Сканирование — это ваша обычная команда тестов с заданным PW_SEC_MODE.',
+  windowsNote: 'Формы команд для PowerShell и cmd: docs/cli.md (Windows).',
+  nextSteps: 'Следующие шаги:',
+  nextApply: 'Примените изменения выше (снова запустите настройку в терминале).',
+  tryCheck: 'Сначала попробуйте: {command} показывает, что видит сканирование.',
+  importantTitle: 'ВАЖНО',
+  importantIntro: 'Что делать дальше, в таком порядке:',
+  importantFixFirst:
+    'Сначала добавьте фикстуру пакета (красная рамка выше): до этого ничего не сканируется.',
+  importantBaseline: 'Примите текущее состояние в базу:',
+  importantReview:
+    'Просмотрите {files} и {report}: исправьте то, что дёшево, добавьте заметку к каждой принятой записи, отметьте ложные срабатывания как false-positive.',
+  importantCommit: 'Закоммитьте {files}.',
+  importantScan:
+    'С этого момента запускайте сканирование локально и в CI; оно падает только на новых находках:',
+  importantResults: 'Результат и детали кода выхода: {outcome}. Рецепты CI: {url}',
 };
 
 export const MESSAGES: Record<WizardLanguage, Messages> = { en, es, fr, pl, it, uk, ru };
