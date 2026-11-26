@@ -6,6 +6,7 @@ const entries = {
   fixture: 'src/entries/fixture.ts',
   reporter: 'src/entries/reporter.ts',
   rules: 'src/entries/rules.ts',
+  test: 'src/entries/test.ts',
 };
 
 export default defineConfig([
