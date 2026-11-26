@@ -150,6 +150,8 @@ export function outcome(input: {
   testsPassed: boolean;
   responses: number;
   gate: Gate;
+  /** Environment label of the run (08-REQ-16). */
+  env?: string | null;
 }): OutcomeFile {
   const newBlocking = input.findings.filter((f) => f.classification === 'new' && f.blocking).length;
   const newNonBlocking = input.findings.filter(
@@ -168,6 +170,7 @@ export function outcome(input: {
     schemaVersion: 1,
     code,
     name: NAMES[code],
+    env: input.env ?? null,
     testsPassed: input.testsPassed,
     newBlocking,
     newNonBlocking,

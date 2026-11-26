@@ -53,6 +53,7 @@ function report(
     startedAt: '2026-11-25T10:00:00.000Z',
     finishedAt: '2026-11-25T10:01:00.000Z',
     mode: 'scan',
+    env: null,
     pkgVersion: '0.1.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test'] },
@@ -66,6 +67,7 @@ function report(
     outcome: {
       schemaVersion: 1,
       code,
+      env: null,
       name: NAMES[code],
       testsPassed: true,
       newBlocking: findings.filter((f) => f.classification === 'new' && f.blocking).length,

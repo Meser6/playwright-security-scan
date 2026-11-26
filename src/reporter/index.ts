@@ -12,6 +12,7 @@ import type {
   TestResult,
 } from '@playwright/test/reporter';
 import {
+  baselineFileFor,
   classify,
   missingNotes,
   outcome as computeOutcome,
@@ -167,7 +168,8 @@ export default class SecurityReporter implements Reporter {
         notes.push(w);
       }
       let entries: number | null = null;
-      const file = this.#path(sec.baseline.path);
+      const baselineName = baselineFileFor(sec.baseline.path, sec.run.env);
+      const file = this.#path(baselineName);
       if (existsSync(file)) {
         try {
           const parsed = JSON.parse(readFileSync(file, 'utf8')) as { findings?: object };
@@ -180,12 +182,13 @@ export default class SecurityReporter implements Reporter {
       const banner = formatBanner(
         {
           mode,
+          env: sec.run.env,
           scope,
           enabledRules: enabledRuleCount(sec),
           preset: sec.preset,
           minSeverity: sec.gate.minSeverity,
           minConfidence: sec.gate.minConfidence,
-          baselinePath: sec.baseline.path,
+          baselinePath: baselineName,
           baselineEntries: entries,
           reportPath: `${sec.report.dir.replace(/[\\/]+$/, '')}/${reportFile}`,
           notes,
@@ -270,20 +273,35 @@ export default class SecurityReporter implements Reporter {
     const coverage = sortCoverage(this.#coverage);
     const date = today();
 
-    // Baseline file (08).
-    const baselinePath = this.#path(sec.baseline.path);
+    // Baseline file (08), per environment label (08-REQ-14).
+    const env = sec.run.env;
+    const baselineName = baselineFileFor(sec.baseline.path, env);
+    const baselinePath = this.#path(baselineName);
     let baseline: BaselineFile | undefined;
     let baselineOk = true;
     if (existsSync(baselinePath)) {
       const parsed = parseBaseline(
         readFileSync(baselinePath, 'utf8'),
-        sec.baseline.path,
+        baselineName,
         new Set(RULE_IDS),
         enabled,
       );
       for (const d of parsed.diagnostics) this.#diag(d);
       if (parsed.ok) baseline = parsed.file;
       else baselineOk = false;
+      if (parsed.ok && parsed.file.env !== undefined && parsed.file.env !== env) {
+        this.#diag({
+          code: 'BASELINE_ENV_MISMATCH',
+          level: 'warn',
+          message: `${baselineName} was written for the environment "${parsed.file.env}", but this run ${env === null ? 'has no environment label' : `is "${env}"`}; check PW_SEC_ENV and run.env`,
+        });
+      }
+    } else if (env !== null && existsSync(this.#path(sec.baseline.path))) {
+      this.#diag({
+        code: 'BASELINE_ENV_MISSING',
+        level: 'warn',
+        message: `${baselineName} does not exist, so ${sec.baseline.path} (without a label) is not used for "${env}"; run PW_SEC_MODE=baseline with PW_SEC_ENV=${env}, or copy the file`,
+      });
     }
     if (mode === 'scan' && sec.baseline.requireNote) {
       for (const d of missingNotes(baseline)) this.#diag(d);
@@ -320,13 +338,14 @@ export default class SecurityReporter implements Reporter {
         today: date,
         generatedBy: `playwright-security-scan@${VERSION}`,
         prune: sec.baseline.pruneResolved && !partial,
+        env,
       });
       try {
         mkdirSync(dirname(baselinePath), { recursive: true });
         writeFileSync(baselinePath, serializeBaseline(update.file));
         diff = update.diff;
       } catch (error) {
-        this.#toolError(`writing ${sec.baseline.path}`, error);
+        this.#toolError(`writing ${baselineName}`, error);
       }
     }
 
@@ -338,6 +357,7 @@ export default class SecurityReporter implements Reporter {
       testsPassed: result.status === 'passed',
       responses: coverage.responses,
       gate,
+      env,
     });
     const report: RunReport = {
       schemaVersion: 1,
@@ -345,6 +365,7 @@ export default class SecurityReporter implements Reporter {
       startedAt: this.#startedAt.toISOString(),
       finishedAt: new Date().toISOString(),
       mode,
+      env,
       pkgVersion: VERSION,
       playwrightVersion: this.#config?.version ?? '',
       scope: { origins: scope },
@@ -386,7 +407,7 @@ export default class SecurityReporter implements Reporter {
     }
 
     if (diff !== undefined) {
-      for (const line of formatBaselineDiff(sec.baseline.path, diff, partial, this.#terminal))
+      for (const line of formatBaselineDiff(baselineName, diff, partial, this.#terminal))
         this.#write(line);
     }
     // Absolute path: terminals show it as a link whatever the current directory (04-REQ-07).

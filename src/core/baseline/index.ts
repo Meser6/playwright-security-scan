@@ -11,5 +11,5 @@ export {
 export type { Gate } from './evaluate.ts';
 export { parseBaseline } from './parse.ts';
 export type { BaselineParse } from './parse.ts';
-export { serializeBaseline, updateBaseline } from './write.ts';
+export { baselineFileFor, serializeBaseline, updateBaseline } from './write.ts';
 export type { BaselineDiff } from './write.ts';
