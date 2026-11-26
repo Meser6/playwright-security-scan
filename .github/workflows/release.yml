@@ -1,0 +1,122 @@
+name: Release
+
+# Release of both packages (13-REQ-10, 13-REQ-11), started by pushing a tag vX.Y.Z or
+# vX.Y.Z-<next|beta|rc>.N on main (RELEASING.md). Order: preconditions (tag on main, tag ==
+# version of both package.json files, CHANGELOG section, no "private": true) -> the full CI ->
+# stage both packages on npm with provenance through trusted publishing (OIDC, no npm token;
+# the owner approves the staged versions with 2FA) -> GitHub Release from the CHANGELOG section.
+# A re-run for the same tag skips what is already published. After the pattern of the perf package.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Release preconditions
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      dist-tag: ${{ steps.check.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Require the tag to be on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tag $GITHUB_REF_NAME does not point to a commit on main."
+            exit 1
+          fi
+      - name: Check the tag, both versions and the CHANGELOG section
+        id: check
+        run: |
+          if ! dist_tag="$(node scripts/check-release.mjs "$GITHUB_REF_NAME")"; then
+            echo "::error::Release preconditions failed for $GITHUB_REF_NAME (see the log above and RELEASING.md)."
+            exit 1
+          fi
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "dist-tag=$dist_tag" >> "$GITHUB_OUTPUT"
+
+  ci:
+    name: CI
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish to npm
+    needs: [prepare, ci]
+    runs-on: ubuntu-24.04
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing and provenance
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      DIST_TAG: ${{ needs.prepare.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+      # `npm stage` needs a newer npm than the one bundled with Node 24.
+      - run: npm install --global npm@11.21.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # The main package first: the create package installs it (11-REQ-02). The versions become
+      # public only after the owner approves them with 2FA (RELEASING.md).
+      - name: Stage playwright-security-scan and create-playwright-security-scan
+        run: |
+          for dir in . create; do
+            name="$(node -p "require('./$dir/package.json').name")"
+            if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+              echo "$name@$VERSION is already on npm; skipped."
+              continue
+            fi
+            (cd "$dir" && npm stage publish --provenance --access public --tag "$DIST_TAG")
+          done
+          {
+            echo "## Approve the staged versions"
+            echo
+            echo "Both packages are staged as \`$VERSION\` (dist-tag \`$DIST_TAG\`). Approve them with 2FA:"
+            echo "npmjs.com → package → Staged versions, or \`npm stage list <package>\` and \`npm stage approve <stage-id>\`."
+            echo "Approve \`playwright-security-scan\` first."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  github-release:
+    name: GitHub Release
+    needs: [prepare, publish]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRERELEASE: ${{ needs.prepare.outputs.dist-tag == 'next' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Create or update the release
+        run: |
+          node scripts/check-release.mjs "$GITHUB_REF_NAME" --notes "$RUNNER_TEMP/notes.md"
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); else flags+=(--latest); fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}"
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}"
+          fi
