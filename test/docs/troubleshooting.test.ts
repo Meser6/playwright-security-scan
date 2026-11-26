@@ -15,7 +15,7 @@ function sources(dir: string): string[] {
 const codes = new Set<string>();
 for (const file of sources(join(ROOT, 'src'))) {
   for (const m of readFileSync(file, 'utf8').matchAll(/'([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)'/g)) {
-    // Environment variable names are documented in the README.
+    // Environment variable names are documented in docs/cli.md.
     if (!(m[1] ?? '').startsWith('PW_')) codes.add(m[1] ?? '');
   }
 }

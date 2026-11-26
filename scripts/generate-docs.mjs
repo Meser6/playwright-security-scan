@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // @ts-check
-// Generates docs/rules/<ruleId>.md, docs/rules/README.md and the rules table of README.md (between
+// Generates docs/rules/<ruleId>.md, docs/rules/README.md and, when README.md has the markers, its rules table (between
 // the markers) from the rule catalog and its manifest (13-REQ-07, 13-REQ-08). The output is
 // committed. Uses Node's TypeScript type stripping (Node >= 22.18).
 //

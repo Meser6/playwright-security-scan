@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- Documentation like the perf package: `docs/cli.md`, `docs/configuration.md`, `docs/baseline.md`, `docs/reports.md`, `docs/ci.md` (GitHub Actions, GitLab, Azure DevOps, Jenkins, environments, schedule), `docs/adoption.md`, `docs/faq.md` and `docs/upgrading.md`; the README is now a short introduction with links, and the rules table lives in `docs/rules/README.md`.
 - `playwright-security-scan/test`: a ready `test` and `expect` for specs that import them from `@playwright/test`, so set-up needs no fixture module (one import change per spec file).
 - Dry run: `PW_SEC_MODE=check` runs the first test of each file (at most `PW_SEC_MAX_TESTS`, default 10) and prints the origins in scope with their responses, the traffic outside the scope, the scanned projects, the rules, the baseline state, how many findings would be new and a `READY` / `NOT READY` verdict. Nothing is written. `report.json` coverage now lists the origins outside the scope (`outOfScopeOrigins`).
 - One baseline per environment: `PW_SEC_ENV=qa` (or `run.env` in the config) uses `security-baseline.qa.json`. The label is checked before the run (`ENV_INVALID`), never falls back to the file without a label (`BASELINE_ENV_MISSING`), is written to the baseline file (`BASELINE_ENV_MISMATCH` when it differs) and appears in the console, `report.json`, `outcome.json` (`env`), the HTML report, SARIF (category `pw-sec/<env>`) and JUnit.
