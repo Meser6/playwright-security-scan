@@ -80,9 +80,26 @@ On Windows use `cross-env PW_SEC_MODE=scan npx playwright test` or, in PowerShel
 | (unset)       | Nothing: the package adds no listener, no script and no reporter.                            |
 | `scan`        | Analyses the traffic, compares with the baseline, writes the reports, fails on new findings. |
 | `baseline`    | The same analysis without failing; writes `security-baseline.json` and prints the diff.      |
+| `check`       | A dry run: a few tests, what the scan would see, nothing written (see below).                |
 
 A `baseline` run filtered with `--grep`, `--project`, `--shard`, file arguments or `--only-changed`
 keeps the entries it could not confirm as resolved. Avoid `test.only` in a baseline run.
+
+### Dry run (check)
+
+```sh
+PW_SEC_MODE=check npx playwright test
+PW_SEC_MODE=check PW_SEC_MAX_TESTS=20 npx playwright test
+```
+
+Before the first baseline, a check runs the first test of each file of the scanned projects, up
+to `PW_SEC_MAX_TESTS` tests (1 to 1000, default 10; other projects such as `setup` run in full),
+and prints what the scan would see: the origins in scope with their responses, the traffic
+outside the scope (add your API to `scope.origins`), the scanned projects, the tests with API
+traffic, the rules, the state of the baseline, how many findings would be new, and a verdict
+(`READY`, `READY WITH WARNINGS`, `NOT READY` when no response is in scope). The skipped tests are
+skipped by the package fixture before their body. Nothing is written and the exit code is
+Playwright's.
 
 ### Result codes
 

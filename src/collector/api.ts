@@ -97,7 +97,7 @@ async function analyze(
   const origin = canonicalOrigin(url);
   if (origin === null) return;
   if (!collector.options.scope.has(origin)) {
-    collector.outOfScope();
+    collector.outOfScope(origin);
     if (!sink.reportedOrigins.has(origin)) {
       sink.reportedOrigins.add(origin);
       collector.diagnostic(
