@@ -1,6 +1,6 @@
 {
   "name": "create-playwright-security-scan",
-  "version": "0.1.0-beta.0",
+  "version": "0.2.0-beta.0",
   "description": "Set up playwright-security-scan in a Playwright project: npm init playwright-security-scan",
   "keywords": [
     "playwright",

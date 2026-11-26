@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.2.0-beta.0] - 2026-11-26
+
 ### Fixed
 
 - A cookie whose name looks like a session (`session-username`, `auth`) but whose value is plain words (`standard_user`, `true`) is no longer taken for a session cookie (false positive of `cookie.no-httponly` and `cookie.no-secure` on SauceDemo).
@@ -50,5 +52,6 @@ First test release, published under the `next` dist-tag (`npm i -D playwright-se
 - Rule presets `recommended` (default), `strict` and `minimal`.
 - JSON Schemas of the file formats (`schemas/`, exported as `playwright-security-scan/schemas/*`): test attachment, baseline file, run report and outcome file.
 
-[Unreleased]: https://github.com/Meser6/playwright-security-scan/compare/v0.1.0-beta.0...HEAD
+[Unreleased]: https://github.com/Meser6/playwright-security-scan/compare/v0.2.0-beta.0...HEAD
+[0.2.0-beta.0]: https://github.com/Meser6/playwright-security-scan/compare/v0.1.0-beta.0...v0.2.0-beta.0
 [0.1.0-beta.0]: https://github.com/Meser6/playwright-security-scan/releases/tag/v0.1.0-beta.0
