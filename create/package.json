@@ -1,0 +1,33 @@
+{
+  "name": "create-playwright-security-scan",
+  "version": "0.1.0-beta.0",
+  "description": "Set up playwright-security-scan in a Playwright project: npm init playwright-security-scan",
+  "keywords": [
+    "playwright",
+    "security",
+    "dast",
+    "create",
+    "init"
+  ],
+  "homepage": "https://github.com/Meser6/playwright-security-scan#readme",
+  "bugs": {
+    "url": "https://github.com/Meser6/playwright-security-scan/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Meser6/playwright-security-scan.git",
+    "directory": "create"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-playwright-security-scan": "index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

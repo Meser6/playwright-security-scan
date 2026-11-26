@@ -231,3 +231,34 @@ file permissions of `report.dir` and `baseline.path`.
 `--reporter` on the command line replaces the reporters of the Playwright config, so the security
 reporter would not run and the scan could never fail. Add it to the flag
 (`--reporter=dot,playwright-security-scan/reporter`) or drop `--reporter`.
+
+## Setup wizard
+
+Codes of `npm init playwright-security-scan` and `npx pw-sec`. Errors end the wizard with exit
+code 3 before anything is written.
+
+### INIT_INVALID_VALUE
+
+`PW_SEC_LANG` is not one of `en`, `es`, `fr`, `pl`, `it`, `uk`, `ru`, or `PW_SEC_DRY_RUN` /
+`PW_SEC_NO_TUTORIAL` is set to something other than `1`. Fix or unset the variable.
+
+### INIT_NO_PLAYWRIGHT_CONFIG
+
+There is no `playwright.config.*` in the current directory. Run the wizard in the directory of your
+Playwright config; when configs are found in subdirectories, the message lists them with the
+command to run there (`cd e2e && npx pw-sec`).
+
+### INIT_PLAYWRIGHT_TOO_OLD
+
+The project's `@playwright/test` is older than the lowest version the package supports (1.57).
+Update it, then run the wizard again.
+
+### CLI_UNKNOWN_COMMAND
+
+`pw-sec` was given arguments. It has no commands or options: without arguments it starts the
+setup wizard, and the scan itself runs with `PW_SEC_MODE` in front of your test command.
+
+### CLI_INTERNAL_ERROR
+
+An unexpected error in the wizard. This is a bug in the package: please report it with the message
+and the stack trace.
