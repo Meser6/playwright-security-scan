@@ -5,7 +5,7 @@
     "responseHeaders": [
       {
         "name": "set-cookie",
-        "value": "sid=abc; Path=/; HttpOnly; SameSite=Lax"
+        "value": "sid=8f3a2c91d0e4b7a6; Path=/; HttpOnly; SameSite=Lax"
       }
     ]
   },

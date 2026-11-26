@@ -172,7 +172,9 @@ export function verdict(report: RunReport, m: Marks): Verdict {
     }
     default: {
       const warnings: string[] = [];
-      if (o.newNonBlocking > 0) warnings.push(plural(o.newNonBlocking, 'new non-blocking finding'));
+      // In a baseline run the new findings were just written to the baseline (04-REQ-08).
+      if (o.newNonBlocking > 0 && report.mode !== 'baseline')
+        warnings.push(plural(o.newNonBlocking, 'new non-blocking finding'));
       const expiring = report.findings.filter(isExpiring).length;
       if (expiring > 0) {
         warnings.push(
