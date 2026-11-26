@@ -1,6 +1,6 @@
 {
   "name": "playwright-security-scan",
-  "version": "0.1.0-beta.0",
+  "version": "0.2.0-beta.0",
   "description": "Passive security scan (DAST) of the HTTP traffic of your existing Playwright e2e and API tests, with a committed baseline that fails the run only on new findings.",
   "keywords": [
     "playwright",
