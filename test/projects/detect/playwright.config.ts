@@ -1,6 +1,9 @@
 import { defineConfig } from '@playwright/test';
 import { withSecurity } from 'playwright-security-scan/config';
 
+// TEST_BROWSER: firefox or webkit in the informational browser cells of CI (10-AC-01).
+const browser = (process.env.TEST_BROWSER ?? 'chromium') as 'chromium' | 'firefox' | 'webkit';
+
 // One project per app instance (10-REQ-04, 10-REQ-05): APP_INSTANCES is a JSON list of
 // { name, url, partner }; "secure" is the app without switches, the others have one switch each.
 const instances = JSON.parse(process.env.APP_INSTANCES ?? '[]') as {
@@ -15,7 +18,7 @@ export default withSecurity(
     fullyParallel: true,
     workers: 4,
     reporter: [['json', { outputFile: 'results.json' }]],
-    use: { ignoreHTTPSErrors: true, browserName: 'chromium' },
+    use: { ignoreHTTPSErrors: true, browserName: browser },
     projects: instances.map((i) => ({
       name: i.name,
       use: { baseURL: i.url },
