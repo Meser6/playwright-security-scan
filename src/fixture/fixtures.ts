@@ -7,7 +7,7 @@ import { resolveConfig } from '../core/config/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { Redactor } from '../core/fingerprint/index.ts';
 import { canonicalOrigin, createKeyBuilder } from '../core/normalize/index.ts';
-import { BUILT_IN_RULES } from '../core/rules/index.ts';
+import { rulesOf } from '../core/rules/all.ts';
 import type { TestContextRef } from '../core/types/index.ts';
 import { drainApi, isApiRequestContext, wrapRequestContext } from '../collector/api.ts';
 import type { ApiSink } from '../collector/api.ts';
@@ -191,7 +191,7 @@ function openBuffer(baseURL: string | undefined, testInfo: TestInfo): SecBuffer 
   }
   const collector = new TestCollector({
     config: state.config,
-    rules: BUILT_IN_RULES,
+    rules: rulesOf(state.config),
     scope: state.scope,
     redactor: state.redactor,
     cache: state.cache,

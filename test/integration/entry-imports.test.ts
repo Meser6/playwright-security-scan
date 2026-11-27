@@ -57,3 +57,32 @@ describe('01-AC-03 the package never routes requests (P-04)', () => {
     }
   });
 });
+
+describe('the rules entry point loads as ESM and CJS (16, chapter 12)', () => {
+  test.skipIf(!built)('defineRule() from CJS makes a rule the ESM config accepts', async () => {
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    const cjs = require(join(DIST, 'rules.cjs')) as typeof import('../../src/entries/rules.ts');
+    const esm = (await import(
+      join(DIST, 'rules.js')
+    )) as typeof import('../../src/entries/rules.ts');
+    const config = (await import(
+      join(DIST, 'config.js')
+    )) as typeof import('../../src/entries/config.ts');
+    expect(typeof esm.defineRule).toBe('function');
+    expect(esm.builtinRuleIds).toEqual(cjs.builtinRuleIds);
+    const rule = cjs.defineRule({
+      id: 'custom.cjs',
+      defaultSeverity: 'low',
+      defaultConfidence: 'high',
+      scope: 'origin',
+      docs: { title: 't', why: 'w', fix: 'f' },
+      check: () => [],
+    });
+    expect(config.defineSecurityConfig({ rules: { custom: [rule] } }).rules?.custom).toEqual([
+      rule,
+    ]);
+    const { validateConfig } = await import('../../src/core/config/index.ts');
+    expect(validateConfig({ rules: { custom: [rule] } })).toEqual([]);
+  });
+});

@@ -12,7 +12,7 @@ export const DEFAULT_BODY_CONTENT_TYPES: readonly string[] = [
   'text/xml',
 ];
 
-export const DEFAULTS: Omit<ResolvedSecurityConfig, 'rules' | 'normalization'> = {
+export const DEFAULTS: Omit<ResolvedSecurityConfig, 'rules' | 'customRules' | 'normalization'> = {
   scope: { origins: [], includeBaseURL: true, exclude: [], projects: 'all', api: true },
   preset: 'recommended',
   limits: {

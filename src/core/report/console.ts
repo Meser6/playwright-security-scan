@@ -34,6 +34,8 @@ export interface BannerInput {
   mode: 'scan' | 'baseline' | 'check';
   scope: string[];
   enabledRules: number;
+  /** Enabled custom rules among them (16-REQ-12). */
+  customRules?: number;
   preset: string;
   minSeverity: string;
   minConfidence: string;
@@ -78,7 +80,10 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
       'Scope',
       b.scope.length === 0 ? '(none: set use.baseURL or scope.origins)' : b.scope.join(', '),
     ],
-    ['Rules', `${b.enabledRules} enabled (preset ${b.preset})`],
+    [
+      'Rules',
+      `${b.enabledRules} enabled (preset ${b.preset}${(b.customRules ?? 0) > 0 ? `, ${b.customRules} custom` : ''})`,
+    ],
     [
       'Gate',
       b.mode === 'baseline'

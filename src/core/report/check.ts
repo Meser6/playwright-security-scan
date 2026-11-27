@@ -30,6 +30,8 @@ export interface CheckInput {
   testsWithApi: number;
   projects: string[];
   enabledRules: number;
+  /** Enabled custom rules among them (16-REQ-12). */
+  customRules?: number;
   preset: string;
   /** `<file> (N entries)`, `<file> (not found)` or `<file> (invalid: CODE)`. */
   baseline: string;
@@ -148,7 +150,10 @@ export function formatCheck(c: CheckInput, opts: TerminalOptions): string[] {
       'Responses',
       `${c.responses} in scope (${c.apiResponses} API, from ${plural(c.testsWithApi, 'test')})`,
     ],
-    ['Rules', `${c.enabledRules} enabled (preset ${c.preset})`],
+    [
+      'Rules',
+      `${c.enabledRules} enabled (preset ${c.preset}${(c.customRules ?? 0) > 0 ? `, ${c.customRules} custom` : ''})`,
+    ],
     ['Baseline', c.baseline],
     [
       'Findings',

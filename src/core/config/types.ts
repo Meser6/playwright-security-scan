@@ -1,4 +1,5 @@
 // Package config (03, chapter 4): what users write and the resolved form.
+import type { Rule as CustomRule } from '../custom/define.ts';
 import type { NormalizationConfig, NormalizationInput } from '../normalize/index.ts';
 import type { Confidence, Severity } from '../types/index.ts';
 
@@ -19,7 +20,11 @@ export interface SecurityConfigInput {
     projects?: string[] | 'all';
     api?: boolean;
   };
-  rules?: { preset?: Preset } & { [ruleId: string]: RuleSetting | Preset | undefined };
+  rules?: {
+    preset?: Preset;
+    /** Custom rules made with defineRule() (16-REQ-04). @experimental */
+    custom?: readonly CustomRule[];
+  } & { [ruleId: string]: RuleSetting | Preset | readonly CustomRule[] | undefined };
   limits?: {
     maxBodyBytes?: number;
     bodyContentTypes?: string[];
@@ -63,6 +68,8 @@ export interface ResolvedSecurityConfig {
   };
   preset: Preset;
   rules: Record<string, ResolvedRule>;
+  /** Custom rules from rules.custom, in their order (16-REQ-07). */
+  customRules: readonly CustomRule[];
   limits: { maxBodyBytes: number; bodyContentTypes: string[]; maxFindingsPerRule: number };
   browser: { cspEvents: boolean; storageScan: boolean };
   gate: {

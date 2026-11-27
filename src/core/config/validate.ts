@@ -1,6 +1,7 @@
 // Validation of the package config (03-REQ-02): unknown options and rule ids with the closest
 // known name, wrong types and values with the allowed ones. Every problem is reported (P-12).
 import { canonicalOrigin, parseHostPattern } from '../normalize/index.ts';
+import { customRulesIssues, isCustomRule } from '../custom/define.ts';
 import { RULE_IDS, ruleManifest } from '../manifest/rules.ts';
 import { CONFIDENCES, SEVERITIES } from '../types/index.ts';
 import type { ConfigIssue } from './types.ts';
@@ -154,7 +155,13 @@ function section(c: Collector, path: string, value: unknown, fields: Record<stri
 const sameKind = (a: unknown, b: unknown): boolean =>
   Array.isArray(a) ? Array.isArray(b) : typeof a === typeof b && !Array.isArray(b);
 
-function ruleSetting(c: Collector, path: string, id: string, value: unknown): void {
+function ruleSetting(
+  c: Collector,
+  path: string,
+  id: string,
+  value: unknown,
+  defaults: Record<string, unknown>,
+): void {
   if (value === 'off' || value === 'on') return;
   if (!isRecord(value)) {
     c.type(path, value, '"off", "on" or { severity?, confidence?, options? }');
@@ -168,7 +175,6 @@ function ruleSetting(c: Collector, path: string, id: string, value: unknown): vo
         cc.type(p, options, 'an object');
         return;
       }
-      const defaults = ruleManifest(id)?.options ?? {};
       const known = Object.keys(defaults);
       for (const [key, v] of Object.entries(options)) {
         if (!(key in defaults)) {
@@ -190,24 +196,39 @@ function rules(c: Collector, value: unknown): void {
     c.type('rules', value, 'an object');
     return;
   }
+  // Custom rules (16-REQ-04): ids and option defaults of the valid ones.
+  const custom = new Map<string, Record<string, unknown>>();
+  if (value.custom !== undefined) {
+    c.issues.push(...customRulesIssues(value.custom));
+    if (Array.isArray(value.custom)) {
+      for (const rule of value.custom as unknown[]) {
+        if (isCustomRule(rule)) custom.set(rule.id, { ...(rule.options ?? {}) });
+      }
+    }
+  }
+  const ids = [...RULE_IDS, ...custom.keys()];
   for (const [key, v] of Object.entries(value)) {
     if (key === 'preset') {
       enumOf(PRESETS)(c, 'rules.preset', v);
       continue;
     }
-    if (!RULE_IDS.includes(key)) {
-      const suggestion = closest(key, RULE_IDS);
+    if (key === 'custom') continue;
+    const defaults = custom.get(key) ?? ruleManifest(key)?.options;
+    if (defaults === undefined) {
+      const suggestion = closest(key, ids);
       c.add(
         'CONFIG_UNKNOWN_RULE',
         `rules.${key}`,
         suggestion === undefined
           ? 'unknown rule id'
           : `unknown rule id. Did you mean "${suggestion}"?`,
-        'Rule ids are listed in docs/rules/README.md of the package.',
+        key.startsWith('custom.')
+          ? 'A custom rule must be listed in rules.custom.'
+          : 'Rule ids are listed in docs/rules/README.md of the package.',
       );
       continue;
     }
-    if (v !== undefined) ruleSetting(c, `rules.${key}`, key, v);
+    if (v !== undefined) ruleSetting(c, `rules.${key}`, key, v, defaults);
   }
 }
 

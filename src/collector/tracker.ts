@@ -160,6 +160,7 @@ export class ResponseTracker {
       frameUrl = undefined;
     }
     const record: ResponseRecord = {
+      kind: 'response',
       id: this.#nextId++,
       source: 'browser',
       method: request.method().toUpperCase(),

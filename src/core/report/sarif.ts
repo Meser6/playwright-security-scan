@@ -1,6 +1,7 @@
 // SARIF 2.1.0 (09, chapter 5). Pure: the rule catalog and the report come in, a JSON value goes out.
 import { sha256 } from '../hash/index.ts';
 import type { BuiltInRule } from '../rules/index.ts';
+import { ruleDocsUrl } from '../rules/types.ts';
 import type { ClassifiedFinding, RunReport, Severity } from '../types/index.ts';
 
 export const REPO_URL = 'https://github.com/Meser6/playwright-security-scan';
@@ -30,8 +31,16 @@ export function ruleHelpMarkdown(rule: BuiltInRule): string {
     '',
     rule.docs.fix,
     '',
-    `**False positives.** ${rule.docs.falsePositives}`,
+    ...(rule.docs.falsePositives === ''
+      ? []
+      : [`**False positives.** ${rule.docs.falsePositives}`]),
   ].join('\n');
+}
+
+/** helpUri: the docs page of a built-in rule, docs.url of a custom rule or none (16-REQ-12). */
+function helpUri(rule: BuiltInRule): { helpUri?: string } {
+  const url = ruleDocsUrl(rule, REPO_URL);
+  return url === undefined ? {} : { helpUri: url };
 }
 
 function result(f: ClassifiedFinding, ruleIndex: number): Record<string, unknown> {
@@ -111,14 +120,17 @@ export function buildSarif(
               shortDescription: { text: r.docs.title },
               fullDescription: { text: r.docs.why },
               help: {
-                text: `${r.docs.why}\n\n${r.docs.fix}\n\n${r.docs.falsePositives}`,
+                text: [r.docs.why, r.docs.fix, r.docs.falsePositives]
+                  .filter((t) => t !== '')
+                  .join('\n\n'),
                 markdown: ruleHelpMarkdown(r),
               },
-              helpUri: `${REPO_URL}/blob/main/docs/rules/${r.id}.md`,
+              ...helpUri(r),
               defaultConfiguration: { level: LEVEL[r.manifest.defaultSeverity] },
               properties: {
                 tags: [
                   'security',
+                  ...(r.manifest.group === 'custom' ? ['custom'] : []),
                   ...r.manifest.cwe.map((n) => `CWE-${n}`),
                   ...(r.manifest.owasp === undefined ? [] : [`OWASP-${r.manifest.owasp}`]),
                 ],
