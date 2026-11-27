@@ -246,6 +246,17 @@ export interface RunReport {
   startedAt: string;
   finishedAt: string;
   mode: 'scan' | 'baseline';
+  /**
+   * Shards of a merged run (17-REQ-12); null for a run without shards.
+   */
+  shards: null | {
+    total: number;
+    /**
+     * Numbers of the missing shards.
+     */
+    missing: number[];
+    list: ShardInfo[];
+  };
   pkgVersion: string;
   playwrightVersion: string;
   scope: {
@@ -287,6 +298,19 @@ export interface RunReport {
   };
   diagnostics: Diagnostic[];
   outcome: OutcomeFile;
+}
+/**
+ * One shard of a merged run (17-REQ-12).
+ */
+export interface ShardInfo {
+  index: number;
+  runId: string;
+  startedAt: string;
+  finishedAt: string;
+  tests: number;
+  findings: number;
+  responses: number;
+  buildUrl: string | null;
 }
 /**
  * A deduplicated finding (02, chapter 4).
@@ -357,13 +381,39 @@ export interface OutcomeFile {
    * 00, chapter 11.
    */
   code: 0 | 1 | 2 | 3 | 4;
-  name: 'OK' | 'NEW_FINDINGS' | 'BASELINE_EXPIRED' | 'TOOL_ERROR' | 'NO_TRAFFIC';
+  /**
+   * SHARD_WRITTEN: a shard run wrote its shard file (17-REQ-03).
+   */
+  name: 'OK' | 'NEW_FINDINGS' | 'BASELINE_EXPIRED' | 'TOOL_ERROR' | 'NO_TRAFFIC' | 'SHARD_WRITTEN';
+  /**
+   * Mode of the run (scan or baseline; also of a shard or a merge).
+   */
+  mode: 'scan' | 'baseline';
+  /**
+   * Shard i/n of a shard run (17-REQ-03); null otherwise, also for a merge.
+   */
+  shard: null | {
+    current: number;
+    total: number;
+  };
   /**
    * True when the functional tests passed.
    */
   testsPassed: boolean;
-  newBlocking: number;
-  newNonBlocking: number;
-  expired: number;
-  resolved: number;
+  /**
+   * null in the outcome of a shard run (17-REQ-03).
+   */
+  newBlocking: number | null;
+  /**
+   * null in the outcome of a shard run (17-REQ-03).
+   */
+  newNonBlocking: number | null;
+  /**
+   * null in the outcome of a shard run (17-REQ-03).
+   */
+  expired: number | null;
+  /**
+   * null in the outcome of a shard run (17-REQ-03).
+   */
+  resolved: number | null;
 }

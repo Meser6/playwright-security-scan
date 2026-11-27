@@ -43,6 +43,8 @@ export interface BannerInput {
   baselineEntries: number | null;
   reportPath: string;
   notes: Diagnostic[];
+  /** A shard run (17-REQ-04): the title says so and reportPath is the shard file. */
+  shard?: { current: number; total: number } | null;
 }
 
 /** The box of errors (red) or warnings (yellow) with the count in the title (04-REQ-07). */
@@ -109,7 +111,7 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
       ...opts,
       border: 'cyan',
       header: false,
-      title: `${icon}${PACKAGE_NAME} · ${b.mode === 'check' ? 'check (dry run)' : `${b.mode} run`}`,
+      title: `${icon}${PACKAGE_NAME} · ${b.mode === 'check' ? 'check (dry run)' : `${b.mode} run`}${b.shard == null ? '' : ` · shard ${b.shard.current}/${b.shard.total}`}`,
     },
   );
   const paint = painter(opts.color);
@@ -128,6 +130,48 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
       opts,
     ),
     ...b.notes.filter((n) => n.level === 'info').map((n) => paint(`note: ${n.message}`, 'dim')),
+  ];
+}
+
+export interface ShardSummaryInput {
+  mode: 'scan' | 'baseline';
+  shard: { current: number; total: number };
+  responses: number;
+  apiResponses: number;
+  /** Findings of the shard after deduplication, before classification. */
+  findings: number;
+  /** The shard file, relative to the working directory. */
+  dataPath: string;
+  diagnostics: Diagnostic[];
+  code: number;
+}
+
+/** Summary of a shard run (17-REQ-04): no verdict, the merge evaluates. */
+export function formatShardSummary(s: ShardSummaryInput, opts: TerminalOptions): string[] {
+  const paint = painter(opts.color);
+  const errors = s.diagnostics.filter((d) => d.level === 'error');
+  const warns = s.diagnostics.filter((d) => d.level === 'warn');
+  return [
+    paint((opts.ascii ? '-' : '─').repeat(Math.max(1, opts.width)), 'dim'),
+    paint(
+      [
+        PACKAGE_NAME,
+        s.mode,
+        `shard ${s.shard.current}/${s.shard.total}`,
+        `${s.responses} responses in scope${s.apiResponses > 0 ? ` (${s.apiResponses} API)` : ''}`,
+        `${plural(s.findings, 'finding')} (raw)`,
+      ].join(' · '),
+      'bold',
+    ),
+    ...issueBox('error', errors, MAX_BOX_ENTRIES, opts),
+    ...issueBox('warn', warns, MAX_BOX_ENTRIES, opts),
+    `${paint('Data:', 'bold')} ${s.dataPath}`,
+    s.code === 3
+      ? paint(
+          'TOOL_ERROR (code 3): the shard is not reliable; the merge will report the errors',
+          'red',
+        )
+      : `${paint('Next:', 'bold')} when all ${s.shard.total} shards are done, run ${paint('PW_SEC_MODE=merge npx pw-sec', 'cyan')} in the merge job`,
   ];
 }
 
@@ -153,10 +197,10 @@ export function verdict(report: RunReport, m: Marks): Verdict {
   const failed = (reason: string): Verdict => [m.error, 'FAILED', 'red', 'badge-red', reason];
   switch (o.code) {
     case 1:
-      return failed(`${head}: ${plural(o.newBlocking, 'new blocking finding')} ${gate}`);
+      return failed(`${head}: ${plural(o.newBlocking ?? 0, 'new blocking finding')} ${gate}`);
     case 2:
       return failed(
-        `${head}: ${plural(o.expired, 'expired baseline entry', 'expired baseline entries')}`,
+        `${head}: ${plural(o.expired ?? 0, 'expired baseline entry', 'expired baseline entries')}`,
       );
     case 4:
       return failed(`${head}: no response in scope (gate.failOnNoTraffic)`);
@@ -175,8 +219,9 @@ export function verdict(report: RunReport, m: Marks): Verdict {
     default: {
       const warnings: string[] = [];
       // In a baseline run the new findings were just written to the baseline (04-REQ-08).
-      if (o.newNonBlocking > 0 && report.mode !== 'baseline')
-        warnings.push(plural(o.newNonBlocking, 'new non-blocking finding'));
+      const nonBlocking = o.newNonBlocking ?? 0;
+      if (nonBlocking > 0 && report.mode !== 'baseline')
+        warnings.push(plural(nonBlocking, 'new non-blocking finding'));
       const expiring = report.findings.filter(isExpiring).length;
       if (expiring > 0) {
         warnings.push(
@@ -319,7 +364,7 @@ function hintLines(report: RunReport, paint: Painter): string[] {
       ),
     );
   }
-  if (report.mode === 'scan' && report.outcome.newBlocking > 0) {
+  if (report.mode === 'scan' && (report.outcome.newBlocking ?? 0) > 0) {
     lines.push(
       `${paint('Next:', 'bold')} ${paint('PW_SEC_MODE=baseline npx playwright test', 'cyan')}   ${paint('(review the diff before commit)', 'dim')}`,
     );
@@ -347,6 +392,10 @@ export function formatSummary(
         `${c.responses} responses in scope${c.apiResponses > 0 ? ` (${c.apiResponses} API)` : ''}`,
         plural(Object.keys(c.endpoints).length, 'endpoint'),
         plural(c.documents, 'document'),
+        // A merged run (17-REQ-13).
+        ...(report.shards == null
+          ? []
+          : [`merged from ${plural(report.shards.list.length, 'shard')}`]),
       ].join(' · '),
       'bold',
     ),

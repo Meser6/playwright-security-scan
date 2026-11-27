@@ -1,8 +1,8 @@
 // The package reporter (01-REQ-07; 04; 08; 09): collects the test attachments, deduplicates the
 // findings of the run, compares them with the baseline, writes the reports and the baseline, and
 // prints the start banner and the summary. Never throws: a failure becomes TOOL_ERROR (P-08).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type {
   FullConfig,
   FullResult,
@@ -11,16 +11,7 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
-import {
-  classify,
-  missingNotes,
-  outcome as computeOutcome,
-  parseBaseline,
-  resolveEntries,
-  serializeBaseline,
-  updateBaseline,
-} from '../core/baseline/index.ts';
-import type { BaselineDiff } from '../core/baseline/index.ts';
+import { classify, parseBaseline } from '../core/baseline/index.ts';
 import { enabledCustomRuleCount, enabledRuleCount, resolveConfig } from '../core/config/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { addCoverage, emptyCoverage, sortCoverage } from '../core/coverage.ts';
@@ -30,16 +21,15 @@ import {
   asciiTerminal,
   colorEnabled,
   DEFAULT_WIDTH,
-  formatBaselineDiff,
   formatBanner,
-  formatSummary,
+  formatShardSummary,
 } from '../core/report/console.ts';
 import type { TerminalOptions } from '../core/report/console.ts';
 import type {
   BaselineFile,
   Diagnostic,
   Finding,
-  RunReport,
+  OutcomeFile,
   TestAttachment,
   TestContextRef,
 } from '../core/types/index.ts';
@@ -51,12 +41,17 @@ import { formatCheck } from '../core/report/check.ts';
 import type { CheckOrigin } from '../core/report/check.ts';
 import { getRegistered } from '../registry/index.ts';
 import { VERSION } from '../version.ts';
+import { readCiInfo } from './ci-info.ts';
+import { finishRun, today } from './finish.ts';
+import type { RunData } from './finish.ts';
 import { isPartialRun } from './partial.ts';
-import { REPORT_WRITERS } from './sarif-junit.ts';
-
-const MAX_TESTS_WITHOUT_TRAFFIC = 50;
-
-const today = (): string => new Date().toISOString().slice(0, 10);
+import {
+  configSnapshot,
+  SHARD_FILE_FORMAT,
+  SHARD_FILE_VERSION,
+  shardFileName,
+} from './shard-file.ts';
+import type { ShardFile } from './shard-file.ts';
 
 export interface ReporterOptions {
   /** Where the console output goes; tests pass a collector. */
@@ -184,7 +179,9 @@ export default class SecurityReporter implements Reporter {
           entries = 0;
         }
       }
-      const reportFile = sec.report.html ? 'report.html' : 'report.json';
+      const shard = mode === 'check' ? null : config.shard;
+      const reportFile =
+        shard !== null ? shardFileName(shard) : sec.report.html ? 'report.html' : 'report.json';
       const banner = formatBanner(
         {
           mode,
@@ -198,6 +195,7 @@ export default class SecurityReporter implements Reporter {
           baselineEntries: entries,
           reportPath: `${sec.report.dir.replace(/[\\/]+$/, '')}/${reportFile}`,
           notes,
+          shard,
         },
         this.#terminal,
       );
@@ -342,6 +340,7 @@ export default class SecurityReporter implements Reporter {
     const max = readMaxTests(process.env);
     const lines = formatCheck(
       {
+        shard: this.#config?.shard ?? null,
         tests: { ran, selected: tests.length, passed, failed, skipped },
         maxTests: max.ok ? max.maxTests : 10,
         origins,
@@ -370,142 +369,142 @@ export default class SecurityReporter implements Reporter {
       this.#finishCheck(sec, scope);
       return undefined;
     }
-    const enabled = new Set(
-      Object.entries(sec.rules)
-        .filter(([, r]) => r.enabled)
-        .map(([id]) => id),
-    );
-    const findings = dedupeRun(this.#findings);
-    const coverage = sortCoverage(this.#coverage);
-    const date = today();
-
-    // Baseline file (08): only baseline.path (D-17).
-    const baselineName = sec.baseline.path;
-    const baselinePath = this.#path(baselineName);
-    let baseline: BaselineFile | undefined;
-    let baselineOk = true;
-    if (existsSync(baselinePath)) {
-      const parsed = parseBaseline(
-        readFileSync(baselinePath, 'utf8'),
-        baselineName,
-        new Set(RULE_IDS),
-        enabled,
-      );
-      for (const d of parsed.diagnostics) this.#diag(d);
-      if (parsed.ok) baseline = parsed.file;
-      else baselineOk = false;
-    }
-    if (mode === 'scan' && sec.baseline.requireNote) {
-      for (const d of missingNotes(baseline)) this.#diag(d);
-    }
-
-    const gate = sec.gate;
-    const classified = classify(findings, baseline, gate, date, mode === 'scan');
-    const { resolved, notCovered } = resolveEntries(baseline, findings, coverage, enabled);
-
-    if (coverage.responses === 0) {
-      this.#diag({
-        code: 'NO_TRAFFIC',
-        level: gate.failOnNoTraffic ? 'warn' : 'info',
-        message:
-          scope.length === 0
-            ? 'no response was in scope: set `use.baseURL` or `scope.origins`'
-            : `no response was in scope (${scope.join(', ')}); check scope.origins and that the tests use the fixtures of withSecurityFixtures()`,
-      });
-    }
-
-    // Baseline run: write the file (08-REQ-08), unless the existing one is invalid.
-    let diff: BaselineDiff | undefined;
-    const partial = isPartialRun(this.#config, this.#suite, process.argv);
-    if (mode === 'baseline' && partial) {
-      this.#diag({
-        code: 'PARTIAL_RUN',
-        level: 'warn',
-        message:
-          'baseline: the run is filtered (grep, shard, project, files or only-changed), so resolved entries are kept (04-REQ-03)',
-      });
-    }
-    if (mode === 'baseline' && baselineOk) {
-      const update = updateBaseline(baseline, findings, resolved, {
-        today: date,
-        generatedBy: `playwright-security-scan@${VERSION}`,
-        prune: sec.baseline.pruneResolved && !partial,
-      });
-      try {
-        mkdirSync(dirname(baselinePath), { recursive: true });
-        writeFileSync(baselinePath, serializeBaseline(update.file));
-        diff = update.diff;
-      } catch (error) {
-        this.#toolError(`writing ${baselineName}`, error);
-      }
-    }
-
-    const diagnostics = [...this.#diagnostics.values()];
-    const out = computeOutcome({
-      findings: classified,
-      resolved: resolved.length,
-      diagnostics,
-      testsPassed: result.status === 'passed',
-      responses: coverage.responses,
-      gate,
+    const shard = this.#config?.shard ?? null;
+    if (shard !== null) return this.#finishShard(result, sec, mode, scope, shard);
+    const out = finishRun(this.#runData(result), {
+      config: sec,
+      mode,
+      scope,
+      runId: process.env[RUN_ID_ENV] ?? getRegistered()?.runId ?? '',
+      startedAt: this.#startedAt.toISOString(),
+      finishedAt: () => new Date().toISOString(),
+      playwrightVersion: this.#config?.version ?? '',
+      configDir: this.#configDir(),
+      reportDir: this.#path(sec.report.dir),
+      partial: isPartialRun(this.#config, this.#suite, process.argv),
+      shards: null,
+      tests: this.#testRefs(),
+      write: this.#write,
+      terminal: this.#terminal,
     });
-    const report: RunReport = {
-      schemaVersion: 2,
+    return out.code === 0 ? undefined : { status: 'failed' };
+  }
+
+  #runData(result: FullResult): RunData {
+    return {
+      findings: this.#findings,
+      coverage: this.#coverage,
+      diagnostics: [...this.#diagnostics.values()],
+      testsWithoutTraffic: [...this.#withoutTraffic.values()],
+      testsPassed: result.status === 'passed',
+    };
+  }
+
+  /**
+   * A shard run (17, chapter 4): the shard file and outcome.json of the shard, no baseline, no
+   * classification and no reports (17-REQ-02). The exit code stays Playwright's, 1 on code 3.
+   */
+  #finishShard(
+    result: FullResult,
+    sec: ResolvedSecurityConfig,
+    mode: 'scan' | 'baseline',
+    scope: string[],
+    shard: { current: number; total: number },
+  ): { status?: FullResult['status'] } | undefined {
+    const dir = this.#path(sec.report.dir);
+    const file = join(dir, shardFileName(shard));
+    const configFile = this.#config?.configFile;
+    const configDir = this.#configDir();
+    const cwd = process.cwd();
+    const slash = (p: string): string => p.split('\\').join('/');
+    const tests = { total: 0, passed: 0, failed: 0, flaky: 0, skipped: 0 };
+    for (const test of this.#suite?.allTests() ?? []) {
+      tests.total += 1;
+      const outcome = test.outcome();
+      if (outcome === 'expected') tests.passed += 1;
+      else if (outcome === 'flaky') tests.flaky += 1;
+      else if (outcome === 'skipped') tests.skipped += 1;
+      else tests.failed += 1;
+    }
+    const data: ShardFile = {
+      format: SHARD_FILE_FORMAT,
+      schemaVersion: SHARD_FILE_VERSION,
+      pkgVersion: VERSION,
+      playwrightVersion: this.#config?.version ?? '',
+      shard: { current: shard.current, total: shard.total },
       runId: process.env[RUN_ID_ENV] ?? getRegistered()?.runId ?? '',
       startedAt: this.#startedAt.toISOString(),
       finishedAt: new Date().toISOString(),
       mode,
-      pkgVersion: VERSION,
-      playwrightVersion: this.#config?.version ?? '',
-      scope: { origins: scope },
-      coverage,
-      findings: [...classified].sort((a, b) => (a.fingerprint < b.fingerprint ? -1 : 1)),
-      resolved,
-      notCovered,
-      testsWithoutTraffic: [...this.#withoutTraffic.values()]
-        .sort(compareTests)
-        .slice(0, MAX_TESTS_WITHOUT_TRAFFIC),
-      gate: {
-        minSeverity: gate.minSeverity,
-        minConfidence: gate.minConfidence,
-        failed: out.code === 1 || out.code === 2,
-        blocking: classified.filter((f) => f.blocking).map((f) => f.fingerprint),
+      partial: isPartialRun(this.#config, this.#suite, process.argv),
+      paths: {
+        configDir: slash(relative(cwd, configDir)) || '.',
+        configFile: configFile === undefined ? '' : basename(configFile),
+        baselinePath: slash(sec.baseline.path),
       },
-      diagnostics,
-      outcome: out,
+      config: configSnapshot(sec),
+      scope,
+      ci: readCiInfo(process.env),
+      status: result.status,
+      tests,
+      findings: this.#findings,
+      coverage: sortCoverage(this.#coverage),
+      testsWithoutTraffic: [...this.#withoutTraffic.values()].sort(compareTests),
+      diagnostics: [...this.#diagnostics.values()],
+      authz: null,
     };
-
-    // Reports are written also when tests failed or the tool failed (09-REQ-02).
-    const dir = this.#path(sec.report.dir);
-    const written: { html: string | null; json: string | null } = { html: null, json: null };
+    let written = false;
     try {
       mkdirSync(dir, { recursive: true });
-      if (sec.report.json) {
-        writeFileSync(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
-        written.json = join(dir, 'report.json');
-      }
-      writeFileSync(join(dir, 'outcome.json'), `${JSON.stringify(out, null, 2)}\n`);
-      for (const writer of REPORT_WRITERS) {
-        const path = writer.write(report, sec, {
-          reportDir: dir,
-          configDir: this.#configDir(),
-          tests: this.#testRefs(),
-        });
-        if (writer.name === 'html' && path !== null) written.html = resolve(path);
-      }
+      // Atomic: the merge never reads half a file (17-REQ-07).
+      const temp = `${file}.${process.pid}.tmp`;
+      writeFileSync(temp, `${JSON.stringify(data)}\n`);
+      renameSync(temp, file);
+      written = true;
     } catch (error) {
+      this.#diag({
+        code: 'SHARD_WRITE_FAILED',
+        level: 'error',
+        message: `the shard file could not be written to ${file}: ${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
+    const diagnostics = [...this.#diagnostics.values()];
+    const error = !written || diagnostics.some((d) => d.level === 'error');
+    const out: OutcomeFile = {
+      schemaVersion: 2,
+      code: error ? 3 : 0,
+      name: error ? 'TOOL_ERROR' : 'SHARD_WRITTEN',
+      mode,
+      shard: { current: shard.current, total: shard.total },
+      testsPassed: result.status === 'passed',
+      newBlocking: null,
+      newNonBlocking: null,
+      expired: null,
+      resolved: null,
+    };
+    try {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, 'outcome.json'), `${JSON.stringify(out, null, 2)}\n`);
+    } catch (e) {
       this.#write(
-        `pw-sec: could not write the reports: ${error instanceof Error ? error.message : String(error)}`,
+        `pw-sec: could not write outcome.json: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
-
-    if (diff !== undefined) {
-      for (const line of formatBaselineDiff(baselineName, diff, partial, this.#terminal))
-        this.#write(line);
-    }
-    // Absolute path: terminals show it as a link whatever the current directory (04-REQ-07).
-    const reportPath = written.html ?? written.json;
-    for (const line of formatSummary(report, reportPath, this.#terminal)) this.#write(line);
-    return out.code === 0 ? undefined : { status: 'failed' };
+    const rawFindings = dedupeRun(this.#findings).length;
+    for (const line of formatShardSummary(
+      {
+        mode,
+        shard,
+        responses: data.coverage.responses,
+        apiResponses: data.coverage.apiResponses,
+        findings: rawFindings,
+        dataPath: relative(cwd, file).split('\\').join('/'),
+        diagnostics,
+        code: out.code,
+      },
+      this.#terminal,
+    ))
+      this.#write(line);
+    return out.code === 3 ? { status: 'failed' } : undefined;
   }
 }

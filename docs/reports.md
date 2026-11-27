@@ -51,7 +51,8 @@ seconds.
 `report.json` follows `schemas/run-report.schema.json` of the package (`schemaVersion` 2): mode,
 scope, coverage (responses per origin and endpoint, traffic outside the scope, bodies analysed and
 skipped, rules run), every finding with its classification and baseline entry, resolved and not
-covered entries, tests without traffic, diagnostics and the outcome.
+covered entries, tests without traffic, diagnostics and the outcome; `shards` lists the shards
+of a merged run (`null` without shards).
 
 `outcome.json` (`schemas/outcome.schema.json`):
 
@@ -60,6 +61,8 @@ covered entries, tests without traffic, diagnostics and the outcome.
   "schemaVersion": 2,
   "code": 1,
   "name": "NEW_FINDINGS",
+  "mode": "scan",
+  "shard": null,
   "testsPassed": true,
   "newBlocking": 2,
   "newNonBlocking": 5,

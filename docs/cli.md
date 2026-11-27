@@ -23,20 +23,28 @@ run exactly as before: the package adds no listener, no script and no reporter.
 | `check`       | first per file | yes      | none                                 | — (Playwright's exit code)    |
 | `baseline`    | all            | yes      | reports and `security-baseline.json` | tool errors, no traffic       |
 | `scan`        | all            | yes      | reports                              | new findings, expired entries |
+| `merge`       | none           | no       | reports (and the baseline)           | like the shards' mode         |
 
 The value is case-insensitive. `active` is reserved for the active scan of later versions and
 stops the run with [`MODE_NOT_AVAILABLE`](troubleshooting.md#mode_not_available); any other value
 stops it with [`MODE_INVALID`](troubleshooting.md#mode_invalid).
 
-Playwright filters (`--grep`, `--project`, `--shard`, file arguments) work as usual. A `baseline`
-run with a filter keeps the entries it could not confirm as resolved; see
+Playwright filters (`--grep`, `--project`, file arguments) work as usual. A `baseline` run with a
+filter keeps the entries it could not confirm as resolved; see
 [Partial runs](baseline.md#partial-runs).
+
+`--shard=i/n` is not a filter: a `scan` or `baseline` run with `--shard` writes only the shard
+file `reports/pw-sec/shard-<i>-of-<n>.json` and `outcome.json` (`SHARD_WRITTEN`), and the merge
+evaluates all shards at once. `merge` is no mode of the test command: run
+`PW_SEC_MODE=merge npx pw-sec` (no arguments, no browsers) in the merge job, from the directory
+where the shards ran the tests, with the shard files in `reports/pw-sec/`. Its exit code is the
+result code below. See [Sharded runs](ci.md#sharded-runs).
 
 ## Variables
 
 | Variable           | Meaning                                                                                                           |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `PW_SEC_MODE`      | `check`, `baseline` or `scan`; the package is off when it is unset or empty                                       |
+| `PW_SEC_MODE`      | `check`, `baseline` or `scan`; the package is off when it is unset or empty; `merge` for `npx pw-sec` only        |
 | `PW_SEC_MAX_TESTS` | in a check: tests to run, 1 to 1000 (default 10)                                                                  |
 | `PW_SEC_CONFIG`    | path of a package config file (`.json`, or a module with a default export); wins over `withSecurity()`'s argument |
 | `PW_SEC_RUN_ID`    | id of the run, set by the package for the workers; do not set it yourself                                         |
@@ -100,6 +108,10 @@ In `scan` and `baseline` mode the package reporter decides the result of the sca
 | 2    | `BASELINE_EXPIRED` | A baseline entry passed its `until` date and the finding still occurs. |
 | 3    | `TOOL_ERROR`       | The scan could not be trusted (e.g. an invalid baseline file).         |
 | 4    | `NO_TRAFFIC`       | No response was in scope: set `use.baseURL` or `scope.origins`.        |
+
+A shard run (`--shard=i/n`) writes `"name": "SHARD_WRITTEN"` with code 0 (or `TOOL_ERROR` with code
+3), `"shard": { "current": i, "total": n }` and `null` counters; the merge writes the result of
+all shards. `outcome.json` also has the `mode` of the run.
 
 Any code other than 0 makes the Playwright command exit with 1; failing functional tests do too,
 as always. `outcome.json` keeps the two apart (`code` and `testsPassed`), so CI can tell a security

@@ -184,6 +184,13 @@ export function runTab(ctx: Ctx): SafeHtml {
       `new findings with severity ≥ ${r.gate.minSeverity} and confidence ≥ ${r.gate.minConfidence}`,
     ],
   ];
+  if (r.shards != null) {
+    const shards = r.shards;
+    run.push([
+      'Shards',
+      html`merged from ${shards.list.map((s) => `${String(s.index)}/${String(shards.total)}`).join(', ')}${shards.missing.length > 0 ? html` · <b>missing ${shards.missing.map((n) => `${String(n)}/${String(shards.total)}`).join(', ')}</b>` : null}`,
+    ]);
+  }
   if (cfg !== null) {
     run.push(
       [

@@ -9,6 +9,8 @@
     "schemaVersion",
     "code",
     "name",
+    "mode",
+    "shard",
     "testsPassed",
     "newBlocking",
     "newNonBlocking",
@@ -20,12 +22,95 @@
       "description": "Version 2 (02-REQ-06): without the env field of version 1.",
       "const": 2
     },
-    "code": { "description": "00, chapter 11.", "enum": [0, 1, 2, 3, 4] },
-    "name": { "enum": ["OK", "NEW_FINDINGS", "BASELINE_EXPIRED", "TOOL_ERROR", "NO_TRAFFIC"] },
-    "testsPassed": { "description": "True when the functional tests passed.", "type": "boolean" },
-    "newBlocking": { "$ref": "common.schema.json#/$defs/count" },
-    "newNonBlocking": { "$ref": "common.schema.json#/$defs/count" },
-    "expired": { "$ref": "common.schema.json#/$defs/count" },
-    "resolved": { "$ref": "common.schema.json#/$defs/count" }
+    "code": {
+      "description": "00, chapter 11.",
+      "enum": [0, 1, 2, 3, 4]
+    },
+    "name": {
+      "enum": [
+        "OK",
+        "NEW_FINDINGS",
+        "BASELINE_EXPIRED",
+        "TOOL_ERROR",
+        "NO_TRAFFIC",
+        "SHARD_WRITTEN"
+      ],
+      "description": "SHARD_WRITTEN: a shard run wrote its shard file (17-REQ-03)."
+    },
+    "mode": {
+      "description": "Mode of the run (scan or baseline; also of a shard or a merge).",
+      "enum": ["scan", "baseline"]
+    },
+    "shard": {
+      "description": "Shard i/n of a shard run (17-REQ-03); null otherwise, also for a merge.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["current", "total"],
+          "properties": {
+            "current": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "testsPassed": {
+      "description": "True when the functional tests passed.",
+      "type": "boolean"
+    },
+    "newBlocking": {
+      "description": "null in the outcome of a shard run (17-REQ-03).",
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "newNonBlocking": {
+      "description": "null in the outcome of a shard run (17-REQ-03).",
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expired": {
+      "description": "null in the outcome of a shard run (17-REQ-03).",
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolved": {
+      "description": "null in the outcome of a shard run (17-REQ-03).",
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
   }
 }

@@ -14,7 +14,11 @@ function sources(dir: string): string[] {
 
 const NODE_CODES = new Set(['MODULE_NOT_FOUND']);
 const codes = new Set<string>();
-for (const file of sources(join(ROOT, 'src'))) {
+// Names of CI variables (commit, branch, build URL of the shard file), not codes of the package.
+const NOT_CODES = new Set(['ci-info.ts']);
+for (const file of sources(join(ROOT, 'src')).filter(
+  (f) => !NOT_CODES.has(f.split(/[\\/]/).pop() ?? ''),
+)) {
   for (const m of readFileSync(file, 'utf8').matchAll(/'([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)'/g)) {
     // Environment variable names are documented in docs/cli.md.
     // Node's own error codes are not codes of the package.

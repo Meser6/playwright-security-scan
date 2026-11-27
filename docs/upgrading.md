@@ -22,7 +22,8 @@ would alter them, it is listed here with the way to migrate.
   `security-baseline.<env>.json` to `security-baseline.json`, or set `baseline.path` per
   environment as in [Several environments](faq.md#several-environments). An `"env"` field left in
   a baseline file is ignored and dropped by the next `baseline` run.
-- `report.json` and `outcome.json` have `schemaVersion: 2`, without the `env` field. The SARIF
+- `report.json` and `outcome.json` have `schemaVersion: 2`, without the `env` field; `report.json`
+  has `shards` and `outcome.json` has `mode` and `shard` (sharded runs, `docs/ci.md`). The SARIF
   category is always `pw-sec` (`automationDetails.id` is `pw-sec/<runId>`) and the JUnit root is
   always `<testsuites name="pw-sec">`.
 - The guided setup has eight steps (no environment question) and its check is one trial run.

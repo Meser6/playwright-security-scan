@@ -26,6 +26,19 @@ export function readMode(env: Readonly<Record<string, string | undefined>>): Mod
   if (raw === '') return { ok: true, mode: null };
   const value = raw.toLowerCase();
   if ((MODES as readonly string[]).includes(value)) return { ok: true, mode: value as ScanMode };
+  if (value === 'merge') {
+    return {
+      ok: false,
+      issues: [
+        {
+          code: 'MODE_INVALID',
+          path: MODE_ENV,
+          message: `${MODE_ENV}=merge is not a mode of the test command: merge runs without tests`,
+          hint: `Run the merge of the shard files with: ${MODE_ENV}=merge npx pw-sec (17-REQ-09).`,
+        },
+      ],
+    };
+  }
   if (value === 'active') {
     return {
       ok: false,
@@ -50,6 +63,11 @@ export function readMode(env: Readonly<Record<string, string | undefined>>): Mod
       },
     ],
   };
+}
+
+/** PW_SEC_MODE=merge: the binary merges the shard files instead of the wizard (17-REQ-09). */
+export function isMergeMode(env: Readonly<Record<string, string | undefined>>): boolean {
+  return (env[MODE_ENV] ?? '').trim().toLowerCase() === 'merge';
 }
 
 /** Whether the scan is on, for the fixtures; invalid values were rejected by withSecurity(). */

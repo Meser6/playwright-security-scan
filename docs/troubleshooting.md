@@ -49,8 +49,9 @@ the package config, and make sure the tests import `test` from your `fixtures.ts
 
 ### MODE_INVALID
 
-`PW_SEC_MODE` has a value other than `scan` or `baseline` (case does not matter). Unset it to turn
-the scan off.
+`PW_SEC_MODE` has a value other than `check`, `scan` or `baseline` (case does not matter). Unset
+it to turn the scan off. `merge` is not a mode of the test command: the merge of shard files runs
+without tests, with `PW_SEC_MODE=merge npx pw-sec`.
 
 ### MODE_NOT_AVAILABLE
 
@@ -243,6 +244,61 @@ file permissions of `report.dir` and `baseline.path`.
 `--reporter` on the command line replaces the reporters of the Playwright config, so the security
 reporter would not run and the scan could never fail. Add it to the flag
 (`--reporter=dot,playwright-security-scan/reporter`) or drop `--reporter`.
+
+## Sharded runs
+
+### SHARD_WRITTEN
+
+The result of a shard run (`--shard=i/n`): the shard file `reports/pw-sec/shard-<i>-of-<n>.json`
+was written. A shard does not judge the findings; run `PW_SEC_MODE=merge npx pw-sec` when all
+shards are done. See [Sharded runs](ci.md#sharded-runs).
+
+### SHARD_WRITE_FAILED
+
+The shard file could not be written (permissions, disk full). The shard ends with `TOOL_ERROR`;
+the merge will miss this shard.
+
+### MERGE_NO_SHARD_FILES
+
+The merge found no `shard-<i>-of-<n>.json` in `reports/pw-sec/` of the working directory. Download
+the shard files of all shard jobs there and run the merge from the directory where the shards ran
+the test command.
+
+### MERGE_SHARD_INVALID
+
+A shard file is not valid JSON, not a shard file or incomplete; it was skipped. Use the files the
+shard jobs wrote, unchanged.
+
+### MERGE_SHARD_MISMATCH
+
+The shard files differ in the package version, Playwright version, mode, number of shards, package
+config or paths. Merge the files of one run: the same lock file, mode and config on every machine,
+and the same `n` in `--shard=i/n` as in the matrix.
+
+### MERGE_SHARD_DUPLICATE
+
+Two files have the same shard number. Keep one file per shard in `reports/pw-sec/` and remove the
+files of earlier runs.
+
+### MERGE_SHARD_MISSING
+
+Some shards have no file. The report covers the other shards, the result is `TOOL_ERROR` and the
+baseline is not written. Upload the shard file also when the tests of a shard failed
+(`if: always()`, `when: always`).
+
+### MERGE_WRONG_DIRECTORY
+
+The Playwright config of the shards is not below the working directory. Run the merge from the
+directory where the shards ran the test command (in CI: the root of the checkout).
+
+### MERGE_SHARDS_DIFFERENT_COMMIT
+
+The shards ran on different commits. The merge goes on, but merge the shard files of one pipeline
+run to judge one version of the app.
+
+### MERGE_INTERNAL_ERROR
+
+An unexpected error in the merge. Please report it with the message.
 
 ## Setup wizard
 

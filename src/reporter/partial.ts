@@ -1,9 +1,11 @@
-// A filtered run (04-REQ-03): --grep, --grep-invert, --shard, --project, file arguments,
-// --only-changed or --last-failed. A baseline run then keeps resolved entries. test.only cannot be
+// A filtered run (04-REQ-03): --grep, --grep-invert, --project, file arguments, --only-changed
+// or --last-failed. A baseline run then keeps resolved entries. --shard is no filter (17-REQ-06):
+// a shard run writes a shard file and the merge decides. test.only cannot be
 // detected with public APIs (P-11); the documentation warns about it.
 import type { FullConfig, Suite } from '@playwright/test/reporter';
 
 const VALUE_OPTIONS = new Set([
+  '--shard',
   '-c',
   '--config',
   '--reporter',
@@ -25,7 +27,6 @@ const FILTER_OPTIONS = [
   '-g',
   '--grep',
   '--grep-invert',
-  '--shard',
   '--project',
   '--only-changed',
   '--last-failed',
@@ -33,11 +34,10 @@ const FILTER_OPTIONS = [
 
 /** Whether the run covers only part of the tests. */
 export function isPartialRun(
-  config: FullConfig | undefined,
+  _config: FullConfig | undefined,
   _suite: Suite | undefined,
   argv: readonly string[],
 ): boolean {
-  if (config?.shard != null) return true;
   const start = argv.findIndex((a) => a === 'test');
   const args = start < 0 ? [] : argv.slice(start + 1);
   for (let i = 0; i < args.length; i++) {

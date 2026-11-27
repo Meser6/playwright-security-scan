@@ -140,6 +140,144 @@ on:
     - cron: '0 5 * * 1-5'
 ```
 
+## Sharded runs
+
+A large suite often runs on several machines with Playwright's `--shard=i/n`. Each shard then sees
+only part of the traffic, so it cannot judge the findings or write the baseline on its own. Add a
+merge job instead:
+
+1. **Shard jobs** run your usual test command with `PW_SEC_MODE=scan` (or `baseline`) and
+   `--shard=i/n`. A shard does not read the baseline and writes no report: it writes
+   `reports/pw-sec/shard-<i>-of-<n>.json` and `outcome.json` (`SHARD_WRITTEN`, or `TOOL_ERROR`
+   when something went wrong). The console ends with
+   `Next: when all n shards are done, run PW_SEC_MODE=merge npx pw-sec in the merge job`.
+2. **The merge job** downloads the shard files of all shards to `reports/pw-sec/` and runs
+   `PW_SEC_MODE=merge npx pw-sec`. It needs no browsers and no app, only the checkout (with
+   `security-baseline.json`) and `npm ci`. It deduplicates the findings of all shards, compares
+   them with the baseline once and writes one `report.json`, `report.html`, `results.sarif`,
+   `junit.xml` and `outcome.json`. Its exit code is the result code (0, 1, 2, 3 or 4) like a run
+   without shards; the summary says `merged from 3 shards`.
+
+### GitHub Actions
+
+```yaml
+name: security-scan
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write # upload-sarif
+
+jobs:
+  shard:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3] # also change the 3 in --shard below
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --shard=${{ matrix.shard }}/3
+        env:
+          PW_SEC_MODE: scan
+      - name: Upload the shard file
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pw-sec-shard-${{ matrix.shard }}
+          path: reports/pw-sec/shard-*.json
+          retention-days: 7
+
+  merge:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pw-sec-shard-*
+          path: reports/pw-sec
+          merge-multiple: true
+      - run: npx pw-sec
+        env:
+          PW_SEC_MODE: merge
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: reports/pw-sec/results.sarif
+          category: playwright-security-scan
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pw-sec
+          path: reports/pw-sec/
+```
+
+### GitLab CI
+
+```yaml
+security-scan-shard:
+  image: mcr.microsoft.com/playwright:v1.57.0-noble
+  parallel: 3
+  script:
+    - npm ci
+    - PW_SEC_MODE=scan npx playwright test --shard=$CI_NODE_INDEX/$CI_NODE_TOTAL
+  artifacts:
+    when: always
+    paths: [reports/pw-sec/shard-*.json]
+    expire_in: 7 days
+
+security-scan-merge:
+  image: node:22
+  needs: [security-scan-shard]
+  when: always
+  script:
+    - npm ci
+    - PW_SEC_MODE=merge npx pw-sec
+  artifacts:
+    when: always
+    paths: [reports/pw-sec/]
+    reports:
+      junit: reports/pw-sec/junit.xml
+```
+
+Rules for sharded runs:
+
+- **Upload only the `shard-*.json` files** (`outcome.json` has the same name on every machine) and
+  upload them also when the tests failed (`if: always()`, `when: always`). A missing shard is
+  `MERGE_SHARD_MISSING` (exit code 3): the report covers the other shards and no baseline is
+  written.
+- **The number of shards is in two places**: the matrix (or `parallel:`) and `--shard=i/n`. Keep
+  them equal; shard files with different totals are rejected (`MERGE_SHARD_MISMATCH`), as are
+  files of another package version, mode or config.
+- **Run the merge from the root of the checkout**, the directory where the shards ran the test
+  command: it finds the Playwright config and `security-baseline.json` from there
+  (`MERGE_WRONG_DIRECTORY` otherwise). The merge always reads and writes `reports/pw-sec/` of the
+  working directory, also with your own `report.dir`.
+- **A new baseline through shards:** run the shard jobs with `PW_SEC_MODE=baseline`; the merge
+  job writes the complete `security-baseline.json` (keep it as an artifact, download, review and
+  commit it). Resolved entries are removed only when no shard was filtered (`--grep`,
+  `--project`, files) and no shard is missing; otherwise `PARTIAL_RUN` keeps them.
+- `PW_SEC_MODE=check` with `--shard` checks only the tests of that shard and writes no shard file.
+- **Testing the merge locally:** run the shards one after another in separate copies of the
+  project, copy their `shard-*.json` files into `reports/pw-sec/` of one checkout and run
+  `PW_SEC_MODE=merge npx pw-sec` there.
+
 ## Updating the baseline
 
 Do not run `baseline` mode in CI on every build: it would accept every new finding. Run it locally
