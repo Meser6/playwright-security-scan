@@ -29,7 +29,11 @@ test('context closed while a body is read', async ({ browser, security }) => {
   const page = await context.newPage();
   await page.goto('/page');
   const response = page.waitForResponse('**/slow');
-  void page.evaluate(() => fetch('/slow').catch(() => undefined));
+  // fetch() resolves with the headers while the body still streams for 3 s; awaiting it (not a
+  // floating evaluate) keeps the close from rejecting the evaluate on WebKit.
+  await page.evaluate(async () => {
+    await fetch('/slow');
+  });
   await response;
   await context.close();
 });
