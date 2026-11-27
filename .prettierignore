@@ -5,3 +5,5 @@ coverage/
 spec-ids.json
 # Third-party files kept unchanged.
 test/contract/vendor/
+# Golden HTML of the report, compared byte for byte.
+test/golden/html/

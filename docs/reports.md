@@ -29,7 +29,7 @@ in a light and a dark theme:
 - **Findings**: new blocking findings first, then expired, new non-blocking and baseline entries;
   filters for classification, severity, confidence, rule group and origin, a search over rule,
   subject and test, and sorting by any column (sort by Rule or Subject to group the findings). A
-  click on a row shows the details: the state against the baseline (note, added, until, "expires
+  click on a row opens the details in a dialog (Previous / Next finding, `Esc` closes it): the state against the baseline (note, added, until, "expires
   in N days"), the fingerprint, where it is, the redacted evidence, the tests that saw it (the
   first one with its step), why it matters, how to fix it, known false positives, CWE and OWASP,
   and for a new or expired finding the baseline entry to paste;
@@ -40,7 +40,10 @@ in a light and a dark theme:
   the diagnostics.
 
 Without JavaScript the page shows every tab one below the other, and each finding's details open
-from its row. Links: `report.html#tab=coverage` opens a tab. 1000 findings open in under two
+from its row. Links: `report.html#tab=coverage` opens a tab, and
+`report.html#finding=<fingerprint>` (the **Copy link** button of the dialog, with the fingerprint
+URL-encoded) opens a finding; the fingerprint does not change between runs, so the link works in
+the next report too. 1000 findings open in under two
 seconds.
 
 ## JSON

@@ -1,5 +1,5 @@
-// Script of the HTML report (09-REQ-18): tabs, filters, sorting, search, deep links to tabs and
-// copying. The content is rendered statically; the script only changes the order, visibility,
+// Script of the HTML report (09-REQ-18): tabs, filters, sorting, search, the finding dialog
+// (09-REQ-19), deep links (09-REQ-21) and copying. The content is rendered statically; the script only changes the order, visibility,
 // parent and attributes of existing elements and the text of counters and the status region. It
 // never builds elements from report data and never uses innerHTML. No dependencies.
 // Adapted from the report script of playwright-performance-regression
@@ -216,23 +216,6 @@ if (table !== null) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Rows: a click anywhere on a finding row opens or closes its details
-
-function detailsOf(body: HTMLTableSectionElement): HTMLDetailsElement | null {
-  return body.querySelector<HTMLDetailsElement>('details');
-}
-
-/** Shows or hides the details row of a finding; `open` forces a state. */
-function toggleRow(body: HTMLTableSectionElement, open?: boolean): void {
-  const details = detailsOf(body);
-  if (details === null) return;
-  const on = open ?? !details.open;
-  details.open = on;
-  body.rows[0]?.classList.toggle('sel', on);
-  body.rows[1]?.classList.toggle('on', on);
-}
-
-// ---------------------------------------------------------------------------------------------
 // Rule reference: the Why, Fix, False positives and references of a rule are rendered once; the
 // details of a finding get a copy of that static block when they open (09, chapter 3.7)
 
@@ -262,40 +245,189 @@ doc.addEventListener(
 );
 
 // ---------------------------------------------------------------------------------------------
-// Deep links: #tab=<id>
+// Finding dialog (09-REQ-19): a native <dialog> opened with showModal(); the browser keeps the
+// focus in it and makes the rest of the page inert. The details block of the row moves into it
+// and back. Copied from the key dialog of the perf report (MIT, D-08).
 
-function route(hash: string): void {
-  const match = /^#tab[=-]([a-z-]+)$/u.exec(hash);
-  if (match === null) {
-    // A link to an element inside a panel selects that panel.
-    const target = hash.length > 1 ? doc.getElementById(decodeURIComponent(hash.slice(1))) : null;
-    const id = target === null ? null : panelOf(target);
-    if (id !== null) selectTab(id);
-    const body = target?.closest('#table-findings > tbody');
-    if (body instanceof HTMLTableSectionElement) toggleRow(body, true);
-    else if (target instanceof HTMLDetailsElement) target.open = true;
-    target?.scrollIntoView({ block: 'start' });
+/** Rows by fingerprint, compared exactly, never used as a selector (09-REQ-21). */
+const byFingerprint = new Map<string, HTMLTableSectionElement>();
+for (const body of bodies) byFingerprint.set(body.dataset['fp'] ?? '', body);
+
+const dialog = doc.getElementById('finding-dialog') as HTMLDialogElement | null;
+const dialogTitle = doc.getElementById('dlg-title');
+const dialogPos = doc.getElementById('dlg-pos');
+const dialogSlot = dialog?.querySelector<HTMLElement>('.dh-slot') ?? null;
+const dialogBody = dialog?.querySelector<HTMLElement>('.db') ?? null;
+const copyOut = dialog?.querySelector<HTMLElement>('.copy-out') ?? null;
+const prevButton = dialog?.querySelector<HTMLButtonElement>('[data-act="prev"]') ?? null;
+const nextButton = dialog?.querySelector<HTMLButtonElement>('[data-act="next"]') ?? null;
+let current: {
+  body: HTMLTableSectionElement;
+  block: HTMLElement;
+  head: HTMLElement | null;
+  home: HTMLElement;
+} | null = null;
+let returnFocus: HTMLElement | null = null;
+
+/** Puts the details block (and its header, moved into the dialog head) back in its row. */
+function giveBack(): void {
+  if (current === null) return;
+  if (current.head !== null) current.block.prepend(current.head);
+  current.home.appendChild(current.block);
+  current.body.rows[0]?.classList.remove('sel');
+  current = null;
+}
+
+function visibleRows(): HTMLTableSectionElement[] {
+  return table === null ? [] : Array.from(table.tBodies).filter((b) => !b.hidden);
+}
+
+/** Shows the details of a finding row in the dialog; `deep` (a link) selects Findings first. */
+function openFinding(body: HTMLTableSectionElement, from: HTMLElement | null, deep = false): void {
+  const home = body.querySelector<HTMLElement>('details');
+  const block = home?.querySelector<HTMLElement>('.kd');
+  if (dialog === null || dialogBody === null || home === null || block == null) return;
+  giveBack();
+  if (from !== null) returnFocus = from;
+  fillRuleDocs(block);
+  const head = block.querySelector<HTMLElement>('.kh');
+  if (head !== null) dialogSlot?.appendChild(head);
+  dialogBody.appendChild(block);
+  current = { body, block, head, home };
+  body.rows[0]?.classList.add('sel');
+  const rowsShown = visibleRows();
+  const index = rowsShown.indexOf(body);
+  const fingerprint = body.dataset['fp'] ?? '';
+  if (dialogTitle !== null) {
+    dialogTitle.textContent = `Finding ${head?.querySelector('.ft')?.textContent ?? ''}`;
+  }
+  if (dialogPos !== null) {
+    dialogPos.textContent =
+      index < 0 ? 'Finding' : `Finding ${String(index + 1)} of ${String(rowsShown.length)}`;
+  }
+  if (prevButton !== null) prevButton.disabled = index <= 0;
+  if (nextButton !== null) nextButton.disabled = index < 0 || index >= rowsShown.length - 1;
+  if (copyOut !== null) copyOut.hidden = true;
+  if (deep) selectTab('findings');
+  if (!dialog.open) {
+    dialog.showModal();
+    doc.documentElement.classList.add('modal-open');
+  }
+  dialog.scrollTop = 0;
+  setHash(`#finding=${encodeURIComponent(fingerprint)}`);
+  dialogTitle?.focus();
+}
+
+/** Closes the dialog; the `close` event gives the block back and restores the focus. */
+let restoreOnClose = true;
+function closeDialog(restoreFocus = true): void {
+  if (dialog === null || !dialog.open) return;
+  restoreOnClose = restoreFocus;
+  giveBack();
+  dialog.close();
+}
+
+dialog?.addEventListener('close', () => {
+  giveBack();
+  doc.documentElement.classList.remove('modal-open');
+  if (restoreOnClose) {
+    setHash(`#tab=${currentTab}`);
+    returnFocus?.focus();
+  }
+  restoreOnClose = true;
+  returnFocus = null;
+});
+
+function step(delta: number): void {
+  if (current === null) return;
+  const rowsShown = visibleRows();
+  const next = rowsShown[rowsShown.indexOf(current.body) + delta];
+  if (next !== undefined) openFinding(next, next.querySelector<HTMLElement>('a.kl'));
+}
+
+dialog?.addEventListener('click', (event) => {
+  // A click on the backdrop targets the dialog itself (its content covers the whole box).
+  if (event.target === dialog) {
+    closeDialog();
     return;
   }
-  const id = match[1] ?? '';
-  if (panels.has(id)) {
-    selectTab(id);
-    setHash(`#tab=${id}`);
-  } else {
-    selectTab(firstTab);
-    announce('Tab not found in this report');
+  const action = (event.target as Element).closest<HTMLElement>('[data-act]')?.dataset['act'];
+  if (action === 'close') closeDialog();
+  else if (action === 'prev') step(-1);
+  else if (action === 'next') step(1);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Deep links (09-REQ-21): #tab=<id>, #finding=<encoded fingerprint>, anchors inside a panel
+
+function route(hash: string, from: HTMLElement | null = null): void {
+  let match = /^#tab[=-]([a-z-]+)$/u.exec(hash);
+  if (match !== null) {
+    closeDialog(false);
+    const id = match[1] ?? '';
+    if (panels.has(id)) {
+      selectTab(id);
+      setHash(`#tab=${id}`);
+    } else {
+      selectTab(firstTab);
+      announce('Tab not found in this report');
+    }
+    return;
   }
+  match = /^#finding=(.*)$/su.exec(hash);
+  if (match !== null) {
+    let fingerprint: string | null;
+    try {
+      fingerprint = decodeURIComponent(match[1] ?? '');
+    } catch {
+      fingerprint = null;
+    }
+    const body = fingerprint === null ? undefined : byFingerprint.get(fingerprint);
+    if (body === undefined) {
+      closeDialog(false);
+      selectTab('findings');
+      announce('Finding not found in this report');
+      return;
+    }
+    openFinding(body, from, from === null);
+    return;
+  }
+  // A link to an element inside a panel (the rule reference, a row anchor) selects that panel.
+  let target: HTMLElement | null;
+  try {
+    target = hash.length > 1 ? doc.getElementById(decodeURIComponent(hash.slice(1))) : null;
+  } catch {
+    target = null;
+  }
+  if (target === null) return;
+  const body = target.closest('#table-findings > tbody');
+  if (body instanceof HTMLTableSectionElement) {
+    openFinding(body, from, true);
+    return;
+  }
+  closeDialog(false);
+  const id = panelOf(target);
+  if (id !== null) selectTab(id);
+  for (
+    let d = target.closest('details');
+    d !== null;
+    d = d.parentElement?.closest('details') ?? null
+  ) {
+    d.open = true;
+  }
+  target.scrollIntoView({ block: 'start' });
 }
 
 doc.addEventListener('click', (event) => {
   const target = event.target as Element;
   const link = target.closest<HTMLAnchorElement>('a[href^="#"]');
   if (link === null) {
+    // A click anywhere on a finding row opens its details (09-REQ-19).
     const row = target.closest<HTMLTableRowElement>('#table-findings > tbody > tr:first-child');
     const body = row?.parentElement;
     if (row == null || !(body instanceof HTMLTableSectionElement)) return;
     if (target.closest('button, input, label, summary, select') !== null) return;
-    toggleRow(body);
+    openFinding(body, row.querySelector<HTMLElement>('a.kl'));
     return;
   }
   const hash = link.getAttribute('href') ?? '';
@@ -303,32 +435,44 @@ doc.addEventListener('click', (event) => {
   if (filter !== undefined) {
     // A counter tile: the Findings tab filtered to its classes (09-REQ-17, item 3).
     event.preventDefault();
+    closeDialog(false);
     selectTab('findings');
     setHash('#tab=findings');
     filterClasses(filter.split(' '));
     return;
   }
-  if (link.closest('#table-findings > tbody > tr:first-child') !== null) {
+  if (hash.startsWith('#tab-')) {
     event.preventDefault();
-    const body = link.closest('tbody');
-    if (body !== null) toggleRow(body);
+    route(`#tab=${hash.slice(5)}`);
     return;
   }
-  if (hash.startsWith('#tab-') || hash.startsWith('#cov-')) {
+  if (hash.length > 1) {
     event.preventDefault();
-    if (hash.startsWith('#tab-')) {
-      route(`#tab=${hash.slice(5)}`);
-    } else {
-      selectTab('coverage');
-      setHash('#tab=coverage');
-      doc.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
-    }
+    route(hash, link);
   }
 });
 window.addEventListener('hashchange', () => route(location.hash));
 
 // ---------------------------------------------------------------------------------------------
 // Copy: the button copies the text of the element before it (fingerprint, baseline entry)
+
+doc.addEventListener('click', (event) => {
+  if ((event.target as Element).closest('[data-copy-link]') === null) return;
+  const url = location.href;
+  const fallback = (): void => {
+    const input = copyOut?.querySelector('input');
+    if (copyOut === null || input == null) return;
+    copyOut.hidden = false;
+    input.value = url;
+    input.focus();
+    input.select();
+  };
+  if (navigator.clipboard === undefined) {
+    fallback();
+    return;
+  }
+  navigator.clipboard.writeText(url).then(() => announce('Link copied'), fallback);
+});
 
 doc.addEventListener('click', (event) => {
   const button = (event.target as Element).closest<HTMLButtonElement>('[data-copy-prev]');
@@ -352,6 +496,7 @@ for (const element of all<HTMLElement>('.js-only')) element.hidden = false;
 
 let opened: HTMLDetailsElement[] = [];
 window.addEventListener('beforeprint', () => {
+  closeDialog(false);
   opened = all<HTMLDetailsElement>('details[data-v]:not([open])');
   for (const details of opened) details.open = true;
 });

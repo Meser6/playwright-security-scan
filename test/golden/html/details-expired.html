@@ -1,0 +1,19 @@
+<div class="kd">
+<div class="kh"><p class="fkl"><span class="ft">Cookie without SameSite</span> <code class="rid">cookie.samesite-missing</code></p><p class="pills"><span class="pill sev medium">medium</span><span class="pill ne">high<span class="sr"> confidence</span></span><span class="pill f">expired</span><span class="src">browser</span><span class="src">api</span><span class="sub">2 occurrences · 2 tests</span></p></div><p class="msg">cookie.samesite-missing on cart@shop.test (expired).</p>
+<div class="bs t-bad"><span class="bi"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg></span><div><p><b>Expired</b>: the baseline entry ended on 2026-11-20; fix the finding, or review it and move <code>until</code>.</p><dl class="kvl"><dt>Note</dt><dd>until the cart rewrite, SEC-7</dd><dt>Added</dt><dd>2026-09-01</dd><dt>Until</dt><dd>2026-11-20</dd></dl></div></div>
+<div class="ds"><h4>Fingerprint</h4><div class="cp"><code class="fp">cookie.samesite-missing|expired|cart@shop.test</code><button type="button" class="btn sm js-only" data-copy-prev aria-label="Copy the fingerprint" hidden><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div>
+<div class="ds"><h4>Location</h4><dl class="kvl"><dt>Origin</dt><dd><code>https://shop.test</code></dd><dt>Cookie</dt><dd><code>cart@shop.test</code></dd></dl></div>
+<div class="ds"><h4>Evidence <span class="sub">redacted</span></h4><ul class="evl"><li><span class="src">cookie</span><b>sid</b><code class="snip">sid=[redacted sha256:9f8e7d]; Path=/</code></li></ul></div>
+<div class="ds"><h4>Tests <span class="sub">2 occurrences in 2 tests</span></h4><ul class="tl two"><li class="first"><span class="tt"><span><code>tests/area-6.spec.ts:7</code> › shop › test 6 › <span class="step">open the cart</span></span><span class="sub">chromium</span></span><span class="num"><span class="pill p">first seen</span></span></li><li><span class="tt"><span><code>tests/area-7.spec.ts:8</code> › shop › test 7</span><span class="sub">chromium</span></span></li></ul></div>
+<div class="ds rref" data-rule="cookie.samesite-missing"><h4>Why, fix and false positives</h4><p><a href="#rule-cookie.samesite-missing">Rule reference of <code>cookie.samesite-missing</code></a></p></div>
+<div class="ds"><h4>Accept <span class="sub">add to security-baseline.json, fill in &quot;note&quot; (and &quot;until&quot; or remove it), commit after review</span></h4><div class="cp"><pre class="code">{
+  &quot;cookie.samesite-missing|expired|cart@shop.test&quot;: {
+    &quot;ruleId&quot;: &quot;cookie.samesite-missing&quot;,
+    &quot;subject&quot;: &quot;cart@shop.test&quot;,
+    &quot;severity&quot;: &quot;medium&quot;,
+    &quot;status&quot;: &quot;accepted&quot;,
+    &quot;note&quot;: &quot;&quot;,
+    &quot;until&quot;: &quot;&quot;,
+    &quot;addedAt&quot;: &quot;2026-11-24&quot;
+  }
+}</pre><button type="button" class="btn sm js-only" data-copy-prev aria-label="Copy the baseline entry" hidden><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div></div>
