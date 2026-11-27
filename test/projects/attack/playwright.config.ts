@@ -6,12 +6,16 @@ import type { SecurityConfigInput } from 'playwright-security-scan/config';
 // project customer uses his storageState and is the scan role. ATTACK=1 sets attack.allowedOrigins
 // to the reference app (APP_URL); ZAP_URL is a ZAP the test started on 127.0.0.1 (19-AC-06).
 // PARTNER_URL is in the scan scope but never in attack.allowedOrigins (19-AC-03).
+// TEST_BROWSER: firefox or webkit in the informational browser cells of CI (10-AC-01).
+const browser = (process.env.TEST_BROWSER ?? 'chromium') as 'chromium' | 'firefox' | 'webkit';
 const app = process.env.APP_URL ?? '';
 // On macOS the test reaches the local app through host.docker.internal (the host loopback, as
 // Docker Desktop maps it): the browser resolves that name to 127.0.0.1 too.
 const host = app === '' ? 'localhost' : new URL(app).hostname;
 const launchOptions =
-  host === 'localhost' ? {} : { args: [`--host-resolver-rules=MAP ${host} 127.0.0.1`] };
+  host === 'localhost' || browser !== 'chromium'
+    ? {}
+    : { args: [`--host-resolver-rules=MAP ${host} 127.0.0.1`] };
 const attack: SecurityConfigInput['attack'] =
   process.env.ATTACK === '1'
     ? {
@@ -27,7 +31,7 @@ export default withSecurity(
     testDir: './tests',
     workers: 1,
     reporter: [['json', { outputFile: 'results.json' }]],
-    use: { baseURL: app, ignoreHTTPSErrors: true, launchOptions },
+    use: { baseURL: app, ignoreHTTPSErrors: true, browserName: browser, launchOptions },
     projects: [
       { name: 'setup', testMatch: /auth\.setup\.ts/ },
       {
