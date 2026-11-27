@@ -1,0 +1,20 @@
+{
+  "title": "a script is a static asset",
+  "input": {
+    "url": "https://app.test/app.js",
+    "resourceType": "script",
+    "requestHeaders": [
+      {
+        "name": "cookie",
+        "value": "sid=Zq8xK2mP9vL4tR7wY1nB3c; theme=dark"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/javascript"
+      }
+    ]
+  },
+  "expect": []
+}

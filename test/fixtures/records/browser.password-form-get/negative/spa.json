@@ -1,0 +1,14 @@
+{
+  "title": "no method and no action (single-page app)",
+  "input": {
+    "url": "https://app.test/login",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html; charset=utf-8"
+      }
+    ],
+    "body": "<form id=\"login\"><input type=\"password\" name=\"p\"></form>"
+  },
+  "expect": []
+}

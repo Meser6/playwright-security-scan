@@ -5,7 +5,7 @@ import type { RuleManifest } from '../manifest/rules.ts';
 import type { BrowserEvent, Confidence, RawFinding, ResponseRecord } from '../types/index.ts';
 import { isDeletion, isSessionCookie, parseSetCookie } from './cookies.ts';
 import { finding, header, headers, manifestOf, transportConfidence } from './types.ts';
-import type { BuiltInRule, RuleContext } from './types.ts';
+import type { BuiltInRule, RuleContext, RuleInput } from './types.ts';
 
 /** A cookie as the rules see it, from a header or from the jar. */
 interface CookieInput {
@@ -20,6 +20,8 @@ interface CookieInput {
   /** Lifetime in seconds, when known. */
   lifetime: number | undefined;
   domain: string;
+  /** The Domain attribute of a Set-Cookie header; unset without it and for the jar. */
+  domainAttribute?: string;
   https: boolean;
   origin: string;
   endpointKey?: string;
@@ -55,6 +57,7 @@ function fromRecord(r: ResponseRecord): CookieInput[] {
         sameSiteKnown: true,
         lifetime,
         domain: c.domain ?? new URL(r.url).hostname,
+        ...(c.domain === undefined || c.domain === '' ? {} : { domainAttribute: c.domain }),
         https: r.url.startsWith('https:'),
         origin: r.origin,
         endpointKey: r.endpointKey,
@@ -84,8 +87,8 @@ function fromJar(event: Extract<BrowserEvent, { kind: 'cookie-jar' }>): CookieIn
     }));
 }
 
-function cookiesOf(input: ResponseRecord | BrowserEvent): CookieInput[] {
-  if ('status' in input) return fromRecord(input);
+function cookiesOf(input: RuleInput): CookieInput[] {
+  if (input.kind === 'response') return fromRecord(input);
   if (input.kind === 'cookie-jar') return fromJar(input);
   return [];
 }
@@ -275,6 +278,29 @@ export const nonSessionInsecure = cookieRule(
     ),
     falsePositives: 'Reported as info.',
   },
+);
+
+export const broadDomain = cookieRule(
+  'cookie.broad-domain',
+  (c, ctx) =>
+    c.domainAttribute !== undefined && isSession(c, ctx)
+      ? {
+          message: `Session cookie ${c.name} has Domain=${c.domainAttribute} and is sent to every subdomain.`,
+        }
+      : null,
+  {
+    why: 'A cookie with a Domain attribute goes to every subdomain of that domain: any subdomain that is compromised, taken over or hosts user content can read or overwrite the session.',
+    fix: [
+      'Leave out the `Domain` attribute so the cookie stays on the host that set it (a host-only cookie), or use the `__Host-` name prefix, which forbids `Domain`.',
+      '',
+      '- nginx (as a proxy): `proxy_cookie_domain ~.* "";` removes the Domain attribute of upstream cookies',
+      "- Express: no `domain` in `res.cookie('sid', value, { … })` or in the `cookie` options of `express-session`",
+      '- Spring Boot: no `server.servlet.session.cookie.domain`; `cookie.setDomain(…)` not called',
+    ].join('\n'),
+    falsePositives:
+      'Single sign-on across subdomains needs a shared cookie: accept it with a note when every subdomain is trusted.',
+  },
+  true,
 );
 
 export const COOKIE_RULES: readonly BuiltInRule[] = [

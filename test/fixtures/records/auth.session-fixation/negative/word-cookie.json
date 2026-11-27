@@ -1,0 +1,33 @@
+{
+  "title": "a cookie with a plain-word value is not a session cookie",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "method": "POST",
+        "endpointKey": "POST /api/login",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "sentCookies": [
+          {
+            "name": "session-username",
+            "valueHash": "dddddd",
+            "valueClass": "words"
+          }
+        ]
+      },
+      {
+        "endpointKey": "GET /api/me",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "session-username",
+            "valueHash": "dddddd",
+            "valueClass": "words"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": []
+}

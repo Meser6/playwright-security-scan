@@ -1,0 +1,7 @@
+{
+  "title": "empty value",
+  "input": {
+    "url": "https://app.test/account?sid="
+  },
+  "expect": []
+}

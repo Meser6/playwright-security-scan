@@ -53,3 +53,25 @@ test('subscribe form', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#subscribe')).toBeVisible();
 });
+
+test('sign-in page, login and subscribe', async ({ page }) => {
+  await page.goto('/login');
+  await expect(page.locator('#login')).toBeVisible();
+  // No navigation after the calls: it would drop bodies the collector still reads (05-REQ-09).
+  const result = await page.evaluate(async () => {
+    const login = await fetch('/api/login', { method: 'POST' });
+    await login.text();
+    await (await fetch('/api/me')).text();
+    // The subscribe form of the home page, posted with its fields (the CSRF token when secure).
+    const html = await (await fetch('/')).text();
+    const form = new DOMParser().parseFromString(html, 'text/html').querySelector('#subscribe');
+    const body = new URLSearchParams();
+    for (const input of Array.from(form?.querySelectorAll('input') ?? [])) {
+      body.append(input.name, input.value);
+    }
+    const subscribe = await fetch('/subscribe?ajax=1', { method: 'POST', body });
+    await subscribe.text();
+    return [login.status, subscribe.status];
+  });
+  expect(result).toEqual([200, 204]);
+});

@@ -9,7 +9,12 @@ import { Redactor } from '../../../src/core/fingerprint/index.ts';
 import { createKeyBuilder, resolveNormalization } from '../../../src/core/normalize/index.ts';
 import { BUILT_IN_RULES } from '../../../src/core/rules/index.ts';
 import type { BuiltInRule, RuleContext } from '../../../src/core/rules/index.ts';
-import type { BrowserEvent, RawFinding, ResponseRecord } from '../../../src/core/types/index.ts';
+import type {
+  BrowserEvent,
+  RawFinding,
+  ResponseRecord,
+  TestTraffic,
+} from '../../../src/core/types/index.ts';
 
 const ROOT = join(import.meta.dirname, '../../fixtures/records');
 const config = resolveConfig({ rules: { preset: 'strict' } });
@@ -25,7 +30,38 @@ interface Case {
   expect: Partial<RawFinding>[];
 }
 
-function toInput(raw: Record<string, unknown>): ResponseRecord | BrowserEvent {
+/** A request of a test-traffic file with defaults (06-REQ-04: rules on test-traffic files). */
+function toTrafficRequest(
+  raw: Record<string, unknown>,
+  i: number,
+): TestTraffic['requests'][number] {
+  return {
+    id: i + 1,
+    method: 'GET',
+    endpointKey: 'GET /',
+    origin: 'https://app.test',
+    status: 200,
+    resourceType: 'document',
+    isLoginCandidate: false,
+    sentCookies: [],
+    setCookies: [],
+    hasAuthorization: false,
+    csrfSignal: false,
+    ...raw,
+  } as TestTraffic['requests'][number];
+}
+
+function toInput(raw: Record<string, unknown>): ResponseRecord | BrowserEvent | TestTraffic {
+  if (raw.kind === 'test-end') {
+    return {
+      kind: 'test-end',
+      context: ref,
+      requests: ((raw.requests as Record<string, unknown>[] | undefined) ?? []).map(
+        toTrafficRequest,
+      ),
+      jarCookies: (raw.jarCookies as TestTraffic['jarCookies'] | undefined) ?? [],
+    };
+  }
   if (typeof raw.kind === 'string') return { ...raw, context: ref } as unknown as BrowserEvent;
   const url = (raw.url as string | undefined) ?? 'https://app.test/';
   const method = (raw.method as string | undefined) ?? 'GET';
@@ -74,7 +110,9 @@ function run(rule: BuiltInRule, c: Case): RawFinding[] {
     redact: new Redactor({ salt: 'salt' }),
     ...(c.context ?? {}),
   };
-  if ('status' in input) {
+  if (input.kind === 'test-end') {
+    if (rule.appliesTo.testEnd !== true) return [];
+  } else if (input.kind === 'response') {
     if (!applies(rule, input) && !(rule.appliesTo.outOfScope ?? false)) return [];
   } else if (rule.appliesTo.events?.includes(input.kind) !== true) {
     return [];

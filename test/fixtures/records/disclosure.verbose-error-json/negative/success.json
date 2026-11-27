@@ -1,0 +1,16 @@
+{
+  "title": "2xx response",
+  "input": {
+    "url": "https://app.test/api/x",
+    "resourceType": "fetch",
+    "status": 200,
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"stack\":\"items\"}"
+  },
+  "expect": []
+}

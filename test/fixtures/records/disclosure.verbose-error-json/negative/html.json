@@ -1,0 +1,16 @@
+{
+  "title": "not JSON",
+  "input": {
+    "url": "https://app.test/api/x",
+    "resourceType": "fetch",
+    "status": 500,
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/plain"
+      }
+    ],
+    "body": "stack: boom"
+  },
+  "expect": []
+}

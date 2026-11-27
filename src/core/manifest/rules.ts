@@ -4,7 +4,16 @@
 import type { Confidence, FindingScope, Severity, Source } from '../types/index.ts';
 
 export type RuleGroup =
-  'header' | 'cookie' | 'cors' | 'transport' | 'data' | 'disclosure' | 'browser' | 'custom';
+  | 'header'
+  | 'cookie'
+  | 'cors'
+  | 'transport'
+  | 'data'
+  | 'disclosure'
+  | 'browser'
+  | 'auth'
+  | 'cache'
+  | 'custom';
 
 export interface RuleManifest {
   id: string;
@@ -97,6 +106,13 @@ export const REDIRECT_PARAM_NAMES = [
   'goto',
   'target',
 ];
+
+/** Default session parameter names of auth.session-in-url (06, chapter 4.13). */
+export const SESSION_PARAM_NAMES = ['sid', 'jsessionid', 'phpsessid', 'session_id'];
+
+/** Default login path of auth.session-fixation (06, chapter 4.13.1). */
+export const LOGIN_PATH_PATTERN =
+  '(^|/)(login|log-in|signin|sign-in|auth|authenticate|session|sessions|token)(/|$)';
 
 const rule = (
   id: string,
@@ -667,6 +683,135 @@ export const RULE_MANIFEST: readonly RuleManifest[] = [
     {
       minLength: 6,
     },
+  ),
+  // 4.13 v3 rules
+  rule(
+    'auth.session-fixation',
+    'auth',
+    'Session id not renewed at login',
+    'medium',
+    'medium',
+    'cookie',
+    [384],
+    'A07:2025',
+    BROWSER,
+    { ...cookieOptions, loginPathPattern: LOGIN_PATH_PATTERN },
+  ),
+  rule(
+    'auth.session-in-url',
+    'auth',
+    'Session id in URL',
+    'medium',
+    'high',
+    'endpoint',
+    [598],
+    'A07:2025',
+    BOTH,
+    { paramNames: SESSION_PARAM_NAMES },
+  ),
+  rule(
+    'cache.sensitive-cacheable',
+    'cache',
+    'Authenticated response may be cached',
+    'medium',
+    'medium',
+    'endpoint',
+    [524],
+    'A02:2025',
+    BOTH,
+    cookieOptions,
+  ),
+  rule(
+    'browser.csrf-missing',
+    'browser',
+    'State-changing request without CSRF protection',
+    'medium',
+    'low',
+    'endpoint',
+    [352],
+    'A01:2025',
+    BROWSER,
+    cookieOptions,
+  ),
+  rule(
+    'asset.unexpected-third-party',
+    'browser',
+    'Script from an unexpected third-party origin',
+    'medium',
+    'high',
+    'origin',
+    [829],
+    'A08:2025',
+    BROWSER,
+    { allowedScriptOrigins: [] },
+  ),
+  rule(
+    'data.pii-in-url',
+    'data',
+    'Personal data in URL',
+    'medium',
+    'medium',
+    'endpoint',
+    [598],
+    'A04:2025',
+    BOTH,
+  ),
+  rule(
+    'data.card-number',
+    'data',
+    'Payment card number in a response',
+    'high',
+    'medium',
+    'endpoint',
+    [359],
+    'A04:2025',
+    BOTH,
+    { ignoreTestCards: true },
+  ),
+  rule(
+    'cookie.broad-domain',
+    'cookie',
+    'Session cookie shared with subdomains',
+    'low',
+    'high',
+    'cookie',
+    [565],
+    'A02:2025',
+    BOTH,
+    cookieOptions,
+  ),
+  rule(
+    'disclosure.internal-hostname',
+    'disclosure',
+    'Internal host name disclosed',
+    'low',
+    'medium',
+    'endpoint',
+    [200],
+    'A02:2025',
+    BOTH,
+  ),
+  rule(
+    'disclosure.verbose-error-json',
+    'disclosure',
+    'Error details in a JSON response',
+    'medium',
+    'medium',
+    'endpoint',
+    [209],
+    'A10:2025',
+    BOTH,
+  ),
+  rule(
+    'browser.password-form-get',
+    'browser',
+    'Password form submitted with GET',
+    'medium',
+    'high',
+    'endpoint',
+    [598],
+    'A04:2025',
+    BROWSER,
   ),
 ];
 

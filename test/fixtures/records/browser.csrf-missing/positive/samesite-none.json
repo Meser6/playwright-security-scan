@@ -1,0 +1,41 @@
+{
+  "title": "DELETE with a SameSite=None cookie",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "POST /api/login",
+        "method": "POST",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token",
+            "secure": true,
+            "httpOnly": true,
+            "sameSite": "None"
+          }
+        ]
+      },
+      {
+        "endpointKey": "DELETE /api/items/:id",
+        "method": "DELETE",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "DELETE /api/items/:id"
+    }
+  ]
+}

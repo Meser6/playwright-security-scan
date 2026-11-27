@@ -1,7 +1,7 @@
 // disclosure.* rules (06, chapter 4.6).
 import { normalizeAssetUrl } from '../fingerprint/index.ts';
 import type { RawFinding, ResponseRecord } from '../types/index.ts';
-import { finding, header, manifestOf } from './types.ts';
+import { finding, header, isJson, manifestOf } from './types.ts';
 import type { BuiltInRule, RuleContext } from './types.ts';
 
 const isRecord = (input: unknown): input is ResponseRecord =>
@@ -373,6 +373,197 @@ export const serverError: BuiltInRule = {
       '`@ControllerAdvice` with `@ExceptionHandler` returning 4xx for client errors',
     ),
     falsePositives: 'Tests that provoke 5xx on purpose. Reported as info.',
+  },
+};
+
+const INTERNAL = manifestOf('disclosure.internal-hostname');
+/** Host names with an internal suffix; svc.cluster.local first, it also ends with .local. */
+const INTERNAL_HOST =
+  /(?<![\w.@-])((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+)(svc\.cluster\.local|internal|local|lan|corp|intranet)(?![\w-]|\.[a-z0-9])/g;
+const INTERNAL_SUFFIXES = ['svc.cluster.local', 'internal', 'local', 'lan', 'corp', 'intranet'];
+/** Object names of scripts: `config.internal` is a property, not a host (06, chapter 4.14). */
+const JS_NAMES = new Set([
+  'this',
+  'window',
+  'document',
+  'self',
+  'globalthis',
+  'config',
+  'options',
+  'props',
+  'state',
+  'process',
+  'module',
+  'exports',
+]);
+const SCRIPT_OR_STYLE = /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+
+function internalSuffix(host: string): string | undefined {
+  const lower = host.toLowerCase();
+  return INTERNAL_SUFFIXES.find((s) => lower === s || lower.endsWith(`.${s}`));
+}
+
+/** Internal host names in `text`, with their suffix. */
+function findInternalHost(text: string): { index: number; length: number; suffix: string }[] {
+  const out: { index: number; length: number; suffix: string }[] = [];
+  for (const m of text.matchAll(INTERNAL_HOST)) {
+    const first = (m[1] ?? '').split('.')[0] ?? '';
+    if (JS_NAMES.has(first)) continue;
+    out.push({ index: m.index, length: m[0].length, suffix: internalSuffix(m[0]) ?? m[2] ?? '' });
+  }
+  return out;
+}
+
+export const internalHostname: BuiltInRule = {
+  id: INTERNAL.id,
+  manifest: INTERNAL,
+  appliesTo: { resourceTypes: ['document', 'xhr', 'fetch', 'api', 'other'] },
+  needsBody: ['document', 'xhr', 'fetch', 'api'],
+  check(input, ctx) {
+    if (!isRecord(input)) return [];
+    let host: string;
+    try {
+      host = new URL(input.origin).hostname;
+    } catch {
+      return [];
+    }
+    if (internalSuffix(host) !== undefined) return [];
+    // Local development: still worth a look, but advisory (06, chapter 4.14).
+    const confidence = ctx.localDev ? 'low' : ctx.confidence;
+    const found = new Map<string, RawFinding>();
+    const location = { origin: input.origin, endpointKey: input.endpointKey };
+    for (const h of input.responseHeaders) {
+      for (const hit of findInternalHost(h.value)) {
+        if (found.has(hit.suffix)) continue;
+        found.set(
+          hit.suffix,
+          finding(ctx, INTERNAL, {
+            subject: input.endpointKey,
+            discriminator: hit.suffix,
+            confidence,
+            location: { ...location, header: h.name },
+            evidence: [
+              {
+                kind: 'header',
+                name: h.name,
+                snippet: ctx.redact.text(h.value.slice(hit.index, hit.index + hit.length)),
+              },
+            ],
+            message: `${input.endpointKey} discloses an internal host name (.${hit.suffix}) in ${h.name}.`,
+          }),
+        );
+      }
+    }
+    if (input.body !== undefined) {
+      const text = /html/i.test(input.body.contentType)
+        ? input.body.text.replace(SCRIPT_OR_STYLE, (m) => ' '.repeat(m.length))
+        : input.body.text;
+      for (const hit of findInternalHost(text)) {
+        if (found.has(hit.suffix)) continue;
+        found.set(
+          hit.suffix,
+          finding(ctx, INTERNAL, {
+            subject: input.endpointKey,
+            discriminator: hit.suffix,
+            confidence,
+            location,
+            evidence: [{ kind: 'body', snippet: ctx.redact.snippet(text, hit.index, hit.length) }],
+            message: `${input.endpointKey} discloses an internal host name (.${hit.suffix}).`,
+          }),
+        );
+      }
+    }
+    return [...found.values()];
+  },
+  docs: {
+    title: INTERNAL.title,
+    why: 'Internal host names (Kubernetes services, corporate DNS, .internal zones) map the network behind the application and give targets for SSRF and lateral movement.',
+    fix: [
+      'Remove internal host names from responses and headers: upstream names, debug fields, absolute URLs built from internal addresses.',
+      '',
+      '- nginx: `proxy_hide_header X-Upstream;` (and similar), `proxy_redirect` to rewrite internal `Location` values',
+      '- Express: build absolute URLs from the public host (`trust proxy`), never from the internal one',
+      '- Spring Boot: `server.forward-headers-strategy=framework`; no infrastructure fields in DTOs',
+    ].join('\n'),
+    falsePositives:
+      'API documentation and examples that mention internal names on purpose. Apps served from such a host are skipped; on localhost the confidence is low.',
+  },
+};
+
+const VERBOSE = manifestOf('disclosure.verbose-error-json');
+const ERROR_KEYS = new Set([
+  'stack',
+  'stacktrace',
+  'stack_trace',
+  'exception',
+  'trace',
+  'traceback',
+]);
+
+/** Error detail keys of a JSON value with a non-empty text or array (depth ≤ 10). */
+function errorKeys(
+  value: unknown,
+  depth = 0,
+  found = new Map<string, string>(),
+): Map<string, string> {
+  if (depth > 10 || value === null || typeof value !== 'object') return found;
+  if (Array.isArray(value)) {
+    for (const item of value.slice(0, 200)) errorKeys(item, depth + 1, found);
+    return found;
+  }
+  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+    const lower = key.toLowerCase();
+    const filled = (typeof v === 'string' && v.trim() !== '') || (Array.isArray(v) && v.length > 0);
+    if (ERROR_KEYS.has(lower) && filled && !found.has(lower)) found.set(lower, key);
+    errorKeys(v, depth + 1, found);
+  }
+  return found;
+}
+
+export const verboseErrorJson: BuiltInRule = {
+  id: VERBOSE.id,
+  manifest: VERBOSE,
+  appliesTo: { resourceTypes: ['xhr', 'fetch', 'api', 'document', 'other'] },
+  needsBody: ['xhr', 'fetch', 'api', 'document'],
+  check(input, ctx) {
+    if (!isRecord(input) || input.status < 400 || input.status > 599) return [];
+    if (input.body === undefined || !isJson(input.body.contentType)) return [];
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(input.body.text);
+    } catch {
+      return [];
+    }
+    const text = input.body.text;
+    return [...errorKeys(parsed)].map(([lower, key]) => {
+      const at = text.indexOf(`"${key}"`);
+      return finding(ctx, VERBOSE, {
+        subject: input.endpointKey,
+        discriminator: lower,
+        location: { origin: input.origin, endpointKey: input.endpointKey },
+        evidence: [
+          {
+            kind: 'body',
+            snippet:
+              at < 0
+                ? `"${key}": …`
+                : ctx.redact.text(text.slice(at, at + 120) + (text.length > at + 120 ? '…' : '')),
+          },
+        ],
+        message: `The ${input.status} response of ${input.endpointKey} returns error details in the JSON key "${key}".`,
+      });
+    });
+  },
+  docs: {
+    title: VERBOSE.title,
+    why: 'Stack traces and exception details in API errors reveal frameworks, file paths, queries and internal logic, which helps attackers tune their input.',
+    fix: ERRORS_FIX(
+      'Return a generic error body (a message and a correlation id) and log the details on the server.',
+      'an error handler that returns `{ error, requestId }` only, with `NODE_ENV=production`',
+      '`server.error.include-stacktrace=never` and `server.error.include-exception=false`',
+    ),
+    falsePositives:
+      'A key named `trace` or `exception` that carries something harmless (e.g. a trace id): accept it with a note.',
   },
 };
 

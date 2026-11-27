@@ -1,6 +1,6 @@
 # Rules
 
-46 passive rules; 44 in the default `recommended` preset.
+57 passive rules; 55 in the default `recommended` preset.
 
 | Rule                                                                                                                          | Severity | Confidence | Traffic      | CWE     |
 | ----------------------------------------------------------------------------------------------------------------------------- | -------- | ---------- | ------------ | ------- |
@@ -50,3 +50,14 @@
 | [`asset.sri-missing`](asset.sri-missing.md) — Third-party script or style without SRI                                         | low      | high       | browser      | 353     |
 | [`browser.open-redirect-candidate`](browser.open-redirect-candidate.md) — Open redirect candidate                             | medium   | medium     | browser, api | 601     |
 | [`browser.reflected-param`](browser.reflected-param.md) — Query parameter reflected in HTML                                   | info     | low        | browser      | 79      |
+| [`auth.session-fixation`](auth.session-fixation.md) — Session id not renewed at login                                         | medium   | medium     | browser      | 384     |
+| [`auth.session-in-url`](auth.session-in-url.md) — Session id in URL                                                           | medium   | high       | browser, api | 598     |
+| [`cache.sensitive-cacheable`](cache.sensitive-cacheable.md) — Authenticated response may be cached                            | medium   | medium     | browser, api | 524     |
+| [`browser.csrf-missing`](browser.csrf-missing.md) — State-changing request without CSRF protection                            | medium   | low        | browser      | 352     |
+| [`asset.unexpected-third-party`](asset.unexpected-third-party.md) — Script from an unexpected third-party origin              | medium   | high       | browser      | 829     |
+| [`data.pii-in-url`](data.pii-in-url.md) — Personal data in URL                                                                | medium   | medium     | browser, api | 598     |
+| [`data.card-number`](data.card-number.md) — Payment card number in a response                                                 | high     | medium     | browser, api | 359     |
+| [`cookie.broad-domain`](cookie.broad-domain.md) — Session cookie shared with subdomains                                       | low      | high       | browser, api | 565     |
+| [`disclosure.internal-hostname`](disclosure.internal-hostname.md) — Internal host name disclosed                              | low      | medium     | browser, api | 200     |
+| [`disclosure.verbose-error-json`](disclosure.verbose-error-json.md) — Error details in a JSON response                        | medium   | medium     | browser, api | 209     |
+| [`browser.password-form-get`](browser.password-form-get.md) — Password form submitted with GET                                | medium   | high       | browser      | 598     |

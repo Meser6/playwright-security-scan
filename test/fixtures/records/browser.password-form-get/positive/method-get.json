@@ -1,0 +1,18 @@
+{
+  "title": "explicit GET",
+  "input": {
+    "url": "https://app.test/login",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html; charset=utf-8"
+      }
+    ],
+    "body": "<form method=\"GET\" action=\"/login\"><input name=\"u\"><input type=\"password\" name=\"p\"></form>"
+  },
+  "expect": [
+    {
+      "subject": "GET /login"
+    }
+  ]
+}

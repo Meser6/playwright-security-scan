@@ -1,9 +1,9 @@
 // Reference test application (10, chapter 3; 10-REQ-02): a small shop on node:http/https with a
 // secure mode and one switch per rule. Without switches it is configured by the book and must give
 // no finding of severity low or above (NF-11, 10-REQ-04). Each switch turns on exactly the case of
-// its rule (10-REQ-05). Three servers: the app (HTTPS, in scope), a partner site (HTTPS, another
-// origin: CORS, third-party scripts, redirect targets) and a plain HTTP server (cleartext, mixed
-// content). No dependencies.
+// its rule (10-REQ-05). Four servers: the app (HTTPS, in scope), a partner site (HTTPS, another
+// origin: CORS, the allowed third-party script, redirect targets), a CDN (HTTPS, a script origin
+// that is not allowed) and a plain HTTP server (cleartext, mixed content). No dependencies.
 import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -59,6 +59,18 @@ export const APP_RULES = [
   'asset.sri-missing',
   'browser.open-redirect-candidate',
   'browser.reflected-param',
+  // v3 (06, chapter 4.13)
+  'auth.session-fixation',
+  'auth.session-in-url',
+  'cache.sensitive-cacheable',
+  'browser.csrf-missing',
+  'asset.unexpected-third-party',
+  'data.pii-in-url',
+  'data.card-number',
+  'cookie.broad-domain',
+  'disclosure.internal-hostname',
+  'disclosure.verbose-error-json',
+  'browser.password-form-get',
 ] as const;
 
 /**
@@ -80,8 +92,10 @@ export interface Shop {
   url: string;
   /** The app over plain HTTP (transport.cleartext runs the tests against it). */
   httpUrl: string;
-  /** The partner site: another origin, out of scope. */
+  /** The partner site: another origin, out of scope; its script is allowed (allowedScriptOrigins). */
   partnerUrl: string;
+  /** A CDN: another origin whose script is not allowed (asset.unexpected-third-party). */
+  cdnUrl: string;
   close(): Promise<void>;
 }
 
@@ -115,17 +129,29 @@ export const SECRETS = {
     'Y2xhaW1zLXNpZ25hdHVyZQ',
   ),
   basicAuth: 'cGFydG5lcjpzM2NyM3RQYXNz',
+  /** The session id the sign-in page gives before login (auth.session-fixation). */
+  anonSession: 'An0nSess10nV4lue3k8Pq1RtYw',
+  /** A session id in a link (auth.session-in-url). */
+  urlSession: 'urlSess10nAbc987Def654Ghi',
+  // Personal data (07-AC-04): never in any output file, also not in evidence of other rules.
+  email: 'alice@example.com',
+  pesel: '44051401458',
+  phone: '+48601234567',
+  card: '4539 1488 0343 7770',
 };
 
 const APP_JS = `document.documentElement.dataset.ready = '1';`;
 const LIB_JS = `window.partnerLib = { version: 1 };`;
 const LIB_SRI = `sha384-${createHash('sha384').update(LIB_JS).digest('base64')}`;
+const WIDGET_JS = `window.cdnWidget = { version: 2 };`;
+const WIDGET_SRI = `sha384-${createHash('sha384').update(WIDGET_JS).digest('base64')}`;
 const CSS = `body { font-family: sans-serif; }`;
 
 interface Ports {
   app: string;
   http: string;
   partner: string;
+  cdn: string;
 }
 
 function escapeHtml(text: string): string {
@@ -141,7 +167,8 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
   const securityHeaders = (nonce: string): Record<string, string> => {
     const h: Record<string, string> = {};
     const partner = ports().partner;
-    let csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' ${partner}; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
+    const cdn = on('asset.unexpected-third-party') ? ` ${ports().cdn}` : '';
+    let csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' ${partner}${cdn}; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
     if (on('header.csp-unsafe')) csp = csp.replace(`'nonce-${nonce}'`, `'unsafe-inline'`);
     if (on('header.csp-missing-directives'))
       csp = csp.replace(`; object-src 'none'; base-uri 'self'`, '');
@@ -173,6 +200,9 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
       h.server = 'nginx/1.25.3';
       h['x-powered-by'] = 'PHP/8.2.12';
     }
+    // Personal responses stay out of shared caches. Not no-store: Chromium never finishes a no-store
+    // fetch whose body the page does not read, so the record would be lost (05-REQ-09).
+    if (!on('cache.sensitive-cacheable')) h['cache-control'] = 'private';
     return h;
   };
 
@@ -203,21 +233,31 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
       headers,
     );
 
-  const page = (res: ServerResponse, title: string, body: string, status = 200): void => {
+  const page = (
+    res: ServerResponse,
+    title: string,
+    body: string,
+    status = 200,
+    headers: Record<string, string | string[]> = {},
+  ): void => {
     const nonce = randomBytes(12).toString('base64');
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><link rel="stylesheet" href="/static/app.5d41402a.css"></head><body>${body.replaceAll('{{nonce}}', nonce)}</body></html>`;
-    send(res, status, 'text/html; charset=utf-8', html, securityHeaders(nonce));
+    send(res, status, 'text/html; charset=utf-8', html, { ...securityHeaders(nonce), ...headers });
   };
 
-  const sessionCookie = (): string => {
-    const parts = [`sid=${SECRETS.session}`, 'Path=/'];
+  const sessionCookie = (value: string = SECRETS.session): string => {
+    const parts = [`sid=${value}`, 'Path=/'];
+    if (on('cookie.broad-domain')) parts.push('Domain=localhost');
     if (!on('cookie.no-secure')) parts.push('Secure');
     if (!on('cookie.no-httponly')) parts.push('HttpOnly');
     if (on('cookie.samesite-none')) parts.push('SameSite=None');
-    else if (!on('cookie.samesite-missing')) parts.push('SameSite=Lax');
+    else if (!on('cookie.samesite-missing') && !on('browser.csrf-missing'))
+      parts.push('SameSite=Lax');
     if (on('cookie.long-lived-session')) parts.push('Max-Age=7776000');
     return parts.join('; ');
   };
+  const hasSession = (req: IncomingMessage): boolean =>
+    /(?:^|;\s*)sid=/.test(req.headers.cookie ?? '');
 
   const cors = (req: IncomingMessage): Record<string, string> => {
     const origin = req.headers.origin;
@@ -242,7 +282,7 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
   return (req: IncomingMessage, res: ServerResponse): void => {
     const url = new URL(req.url ?? '/', 'https://shop.test');
     const path = url.pathname;
-    const { partner, http } = ports();
+    const { partner, http, cdn } = ports();
     // For the custom rule of test/projects/shop (16-AC-01); no built-in rule reads it.
     if (
       path.startsWith('/api/') &&
@@ -263,20 +303,37 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
         res.end();
         return;
       case '/': {
+        const query: string[] = [];
+        if (on('data.token-in-url')) query.push(`token=${SECRETS.urlToken}`);
+        if (on('auth.session-in-url')) query.push(`sid=${SECRETS.urlSession}`);
+        if (on('data.pii-in-url')) {
+          query.push(
+            `email=${encodeURIComponent(SECRETS.email)}`,
+            `pesel=${SECRETS.pesel}`,
+            `tel=${encodeURIComponent(SECRETS.phone)}`,
+          );
+        }
+        const account = query.length === 0 ? '/account' : `/account?${query.join('&amp;')}`;
+        const csrf = on('browser.csrf-missing')
+          ? ''
+          : `<input type="hidden" name="_csrf" value="${createHash('sha256').update(build).digest('hex').slice(0, 24)}">`;
+        const form = (action: string): string =>
+          `<form id="subscribe" method="post" action="${action}">${csrf}<input type="hidden" name="list" value="news"><button>Subscribe</button></form>`;
         const parts = [
           '<h1>Shop</h1>',
-          '<nav><a id="account" href="/account">Account</a> <a id="search" href="/search?q=xyzzy42plugh">Search</a></nav>',
+          `<nav><a id="account" href="${account}">Account</a> <a id="search" href="/search?q=xyzzy42plugh">Search</a></nav>`,
           `<script nonce="{{nonce}}" src="/static/${bundle}"></script>`,
           on('asset.sri-missing')
             ? `<script nonce="{{nonce}}" src="${partner}/lib.js"></script>`
             : `<script nonce="{{nonce}}" src="${partner}/lib.js" integrity="${LIB_SRI}" crossorigin="anonymous"></script>`,
-          '<form id="subscribe" method="post" action="/subscribe"><button>Subscribe</button></form>',
+          form('/subscribe'),
         ];
-        if (on('data.token-in-url'))
-          parts[1] =
-            parts[1]?.replace('href="/account"', `href="/account?token=${SECRETS.urlToken}"`) ?? '';
-        if (on('transport.form-to-http'))
-          parts[4] = `<form id="subscribe" method="post" action="${http}/subscribe"><button>Subscribe</button></form>`;
+        if (on('transport.form-to-http')) parts[4] = form(`${http}/subscribe`);
+        if (on('asset.unexpected-third-party')) {
+          parts.push(
+            `<script nonce="{{nonce}}" src="${cdn}/widget.js" integrity="${WIDGET_SRI}" crossorigin="anonymous"></script>`,
+          );
+        }
         if (on('transport.mixed-content')) parts.push(`<img alt="pixel" src="${http}/pixel.png">`);
         if (on('browser.csp-violation'))
           parts.push('<script>window.inlineWithoutNonce = 1</script>');
@@ -293,6 +350,20 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
       case '/account':
         page(res, 'Account', '<h1>Account</h1>');
         return;
+      case '/login': {
+        // The sign-in page gives an anonymous session (auth.session-fixation) and a password form.
+        const form = on('browser.password-form-get')
+          ? '<form id="login" method="get" action="/login">'
+          : '<form id="login" method="post" action="/api/login">';
+        page(
+          res,
+          'Sign in',
+          `<h1>Sign in</h1>${form}<input name="user" autocomplete="username"><input type="password" name="password" autocomplete="current-password"><button>Sign in</button></form>`,
+          200,
+          hasSession(req) ? {} : { 'set-cookie': sessionCookie(SECRETS.anonSession) },
+        );
+        return;
+      }
       case '/search': {
         const q = url.searchParams.get('q') ?? '';
         page(
@@ -312,6 +383,12 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
         return;
       }
       case '/subscribe':
+        // A scripted submit gets 204: a redirect body cannot always be read (stable coverage).
+        if (url.searchParams.has('ajax')) {
+          res.writeHead(204, common());
+          res.end();
+          return;
+        }
         res.writeHead(303, { ...common(), location: '/' });
         res.end();
         return;
@@ -338,7 +415,9 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
         }
         return;
       case '/api/login': {
-        const cookies = [sessionCookie()];
+        // auth.session-fixation: an existing session id is kept instead of a new one.
+        const keep = on('auth.session-fixation') && hasSession(req);
+        const cookies = keep ? [] : [sessionCookie()];
         cookies.push(
           on('cookie.non-session-insecure')
             ? `theme=${SECRETS.theme}; Path=/; SameSite=Lax`
@@ -348,10 +427,14 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
         return;
       }
       case '/api/me': {
-        const me: Record<string, unknown> = { id: 1, name: 'Alice', email: 'alice@example.com' };
+        const me: Record<string, unknown> = { id: 1, name: 'Alice', email: SECRETS.email };
         if (on('data.password-in-response')) me.passwordHash = SECRETS.passwordHash;
         if (on('disclosure.private-ip')) me.internalHost = '10.20.30.40';
-        json(res, 200, me, cors(req));
+        me.card = on('data.card-number') ? SECRETS.card : '**** **** **** 7770';
+        const upstream: Record<string, string> = on('disclosure.internal-hostname')
+          ? { 'x-upstream': 'profile-api.shop.svc.cluster.local' }
+          : {};
+        json(res, 200, me, { ...cors(req), ...upstream });
         return;
       }
       case '/api/token': {
@@ -376,8 +459,13 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
             res,
             500,
             'text/plain',
-            `TypeError: Cannot read properties of undefined (reading 'id')\n    at handler (/srv/shop/node_modules/express/lib/router/layer.js:95:5)\n    at next (/srv/shop/node_modules/express/lib/router/route.js:149:13)`,
+            `TypeError: no order for ${SECRETS.email}\n    at handler (/srv/shop/node_modules/express/lib/router/layer.js:95:5)\n    at next (/srv/shop/node_modules/express/lib/router/route.js:149:13)`,
           );
+        } else if (on('disclosure.verbose-error-json')) {
+          json(res, 500, {
+            error: 'Internal error',
+            stack: `TypeError: Cannot read properties of undefined (reading 'id')\n    at handler (/srv/shop/node_modules/express/lib/router/layer.js:95:5)`,
+          });
         } else if (on('disclosure.sql-error')) {
           json(res, 400, {
             error:
@@ -438,6 +526,21 @@ window.done = Promise.allSettled([
   };
 }
 
+/** The CDN: a script origin that is not on allowedScriptOrigins (asset.unexpected-third-party). */
+function cdnHandler() {
+  return (req: IncomingMessage, res: ServerResponse): void => {
+    const path = new URL(req.url ?? '/', 'https://cdn.test').pathname;
+    const base = { 'x-content-type-options': 'nosniff', 'access-control-allow-origin': '*' };
+    if (path === '/widget.js') {
+      res.writeHead(200, { ...base, 'content-type': 'text/javascript' });
+      res.end(WIDGET_JS);
+      return;
+    }
+    res.writeHead(404, { ...base, 'content-type': 'text/plain' });
+    res.end('Not found');
+  };
+}
+
 function httpHandler(app: ReturnType<typeof appHandler>) {
   return (req: IncomingMessage, res: ServerResponse): void => {
     const path = new URL(req.url ?? '/', 'http://plain.test').pathname;
@@ -473,7 +576,7 @@ export async function startShop(
     key: readFileSync(join(certs, 'key.pem')),
     cert: readFileSync(join(certs, 'cert.pem')),
   };
-  let ports: Ports = { app: '', http: '', partner: '' };
+  let ports: Ports = { app: '', http: '', partner: '', cdn: '' };
   const handler = appHandler(set, () => ports, options.build ?? '1');
   const app = createHttpsServer(tls, handler);
   const plain = createServer(httpHandler(handler));
@@ -481,22 +584,26 @@ export async function startShop(
     tls,
     partnerHandler(() => ports),
   );
-  const [appPort, httpPort, partnerPort] = await Promise.all([
+  const cdn = createHttpsServer(tls, cdnHandler());
+  const [appPort, httpPort, partnerPort, cdnPort] = await Promise.all([
     listen(app as unknown as Server, '127.0.0.1'),
     listen(plain, '127.0.0.1'),
     listen(partner as unknown as Server, '127.0.0.1'),
+    listen(cdn as unknown as Server, '127.0.0.1'),
   ]);
-  // The app on "localhost", the partner on "127.0.0.1": two origins of one certificate.
+  // The app on "localhost", the partner and the CDN on "127.0.0.1": origins of one certificate.
   ports = {
     app: `https://localhost:${appPort}`,
     http: `http://localhost:${httpPort}`,
     partner: `https://127.0.0.1:${partnerPort}`,
+    cdn: `https://127.0.0.1:${cdnPort}`,
   };
-  const servers = [app, plain, partner] as unknown as Server[];
+  const servers = [app, plain, partner, cdn] as unknown as Server[];
   return {
     url: ports.app,
     httpUrl: ports.http,
     partnerUrl: ports.partner,
+    cdnUrl: ports.cdn,
     async close() {
       for (const s of servers) s.closeAllConnections();
       await Promise.all(servers.map((s) => new Promise((r) => s.close(r))));

@@ -1,0 +1,12 @@
+{
+  "title": "allowed exactly",
+  "input": {
+    "url": "https://cdn.other.test/lib.js",
+    "resourceType": "script",
+    "frameUrl": "https://app.test/"
+  },
+  "options": {
+    "allowedScriptOrigins": ["https://cdn.other.test"]
+  },
+  "expect": []
+}

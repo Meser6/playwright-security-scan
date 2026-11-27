@@ -1,0 +1,20 @@
+{
+  "title": "Visa in groups of 4",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"card\":\"4539 1488 0343 7770\",\"name\":\"A\"}"
+  },
+  "expect": [
+    {
+      "subject": "GET /api/me",
+      "discriminator": "visa"
+    }
+  ]
+}

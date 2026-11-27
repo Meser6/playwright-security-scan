@@ -1,0 +1,7 @@
+{
+  "title": "names of data.token-in-url are left to that rule",
+  "input": {
+    "url": "https://app.test/account?sessionid=8f3a2c91d0e4b7a6"
+  },
+  "expect": []
+}

@@ -21,6 +21,11 @@ const BROWSER_ONLY = [
   'browser.csp-violation',
   'asset.sri-missing',
   'browser.reflected-param',
+  // v3 (15 v0.3, chapter 5)
+  'auth.session-fixation',
+  'browser.csrf-missing',
+  'asset.unexpected-third-party',
+  'browser.password-form-get',
 ];
 
 describe('15-REQ-08 rule sources follow the table of 15, chapter 5', () => {

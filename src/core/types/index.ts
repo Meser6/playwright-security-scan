@@ -130,6 +130,54 @@ export type BrowserEvent =
 
 export type BrowserEventKind = BrowserEvent['kind'];
 
+/**
+ * What a cookie value looks like, without the value (06, chapter 4.14): `token` (a JWT or an opaque
+ * token), `words` (plain words) or `other`. Enough for the session cookie heuristic of 06, 4.2.
+ */
+export type CookieValueClass = 'token' | 'words' | 'other';
+
+/** One in-scope browser request of a test, without values (02, chapter 3). */
+export interface TrafficRequest {
+  /** Order of the response within the test. */
+  id: number;
+  method: string;
+  endpointKey: string;
+  origin: string;
+  status: number;
+  resourceType: string;
+  /** POST to a login-like path with a 2xx or 3xx status (06, chapter 4.13.1). */
+  isLoginCandidate: boolean;
+  /** Content type of the request, lowercase, without parameters. */
+  contentType?: string;
+  /** Cookies of the cookie request header; the value only as a salted hash (07-REQ-15). */
+  sentCookies: { name: string; valueHash: string; valueClass: CookieValueClass }[];
+  /** Cookies of the Set-Cookie headers of the response, deletions left out. */
+  setCookies: {
+    name: string;
+    valueHash: string;
+    valueClass: CookieValueClass;
+    domain?: string;
+    /** As written; unset when the attribute is missing. */
+    sameSite?: 'Strict' | 'Lax' | 'None';
+    secure: boolean;
+    httpOnly: boolean;
+  }[];
+  hasAuthorization: boolean;
+  /** A CSRF header or form field, or x-requested-with (06, chapter 4.14). */
+  csrfSignal: boolean;
+}
+
+/**
+ * The end-of-test input of rules with `appliesTo.testEnd` (02, chapter 3; 06, chapter 4.13.1): the
+ * in-scope browser traffic of one test in order, with cookie values only as hashes.
+ */
+export interface TestTraffic {
+  kind: 'test-end';
+  context: TestContextRef;
+  requests: TrafficRequest[];
+  jarCookies: Omit<CookieView, 'value'>[];
+}
+
 /** What a rule returns, before redaction and fingerprinting (02, chapter 4). */
 export interface RawFinding {
   ruleId: string;

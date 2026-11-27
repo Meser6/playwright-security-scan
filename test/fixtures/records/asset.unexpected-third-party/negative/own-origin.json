@@ -1,0 +1,9 @@
+{
+  "title": "the app origin is in scope",
+  "input": {
+    "url": "https://app.test/app.js",
+    "resourceType": "script",
+    "frameUrl": "https://app.test/"
+  },
+  "expect": []
+}

@@ -1,0 +1,59 @@
+{
+  "title": "domain from the cookie jar",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "GET /",
+        "sentCookies": [
+          {
+            "name": "PHPSESSID",
+            "valueHash": "bbbbbb",
+            "valueClass": "other"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "endpointKey": "POST /api/login",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "sentCookies": [
+          {
+            "name": "PHPSESSID",
+            "valueHash": "bbbbbb",
+            "valueClass": "other"
+          }
+        ]
+      },
+      {
+        "endpointKey": "GET /api/me",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "PHPSESSID",
+            "valueHash": "bbbbbb",
+            "valueClass": "other"
+          }
+        ]
+      }
+    ],
+    "jarCookies": [
+      {
+        "name": "PHPSESSID",
+        "domain": ".shop.app.test",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "expires": -1,
+        "origin": "https://app.test"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "PHPSESSID@shop.app.test"
+    }
+  ]
+}

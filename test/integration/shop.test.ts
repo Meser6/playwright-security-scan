@@ -34,7 +34,7 @@ describe('reference test app (10-REQ-02, 10-REQ-02a)', () => {
       expect(
         run.results.map((r) => r.status),
         run.output,
-      ).toEqual(Array(12).fill('passed'));
+      ).toEqual(Array(13).fill('passed'));
       const responses = run.results.reduce(
         (n, r) => n + (r.attachment?.coverage.responses ?? 0),
         0,

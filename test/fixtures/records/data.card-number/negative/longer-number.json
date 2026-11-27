@@ -1,0 +1,15 @@
+{
+  "title": "digits inside a longer number",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"id\":\"145391488034377701\"}"
+  },
+  "expect": []
+}

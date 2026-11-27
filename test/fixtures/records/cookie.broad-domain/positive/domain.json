@@ -1,0 +1,17 @@
+{
+  "title": "session cookie with Domain",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=8f3a2c91d0e4b7a6; Domain=.app.test; Path=/; Secure; HttpOnly; SameSite=Lax"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "sid@app.test"
+    }
+  ]
+}

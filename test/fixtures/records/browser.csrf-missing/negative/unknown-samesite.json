@@ -1,0 +1,22 @@
+{
+  "title": "cookie not set in this test",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "POST /subscribe",
+        "method": "POST",
+        "status": 303,
+        "contentType": "application/x-www-form-urlencoded",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": []
+}

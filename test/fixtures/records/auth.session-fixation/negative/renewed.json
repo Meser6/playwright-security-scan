@@ -1,0 +1,57 @@
+{
+  "title": "login sets a new session id",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "GET /login",
+        "sentCookies": [],
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token",
+            "sameSite": "Lax",
+            "secure": true,
+            "httpOnly": true
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "endpointKey": "POST /api/login",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ],
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "cccccc",
+            "valueClass": "token",
+            "sameSite": "Lax",
+            "secure": true,
+            "httpOnly": true
+          }
+        ]
+      },
+      {
+        "endpointKey": "GET /api/me",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "cccccc",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": []
+}

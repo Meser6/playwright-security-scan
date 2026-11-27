@@ -1,0 +1,14 @@
+{
+  "title": "no list: inventory at info",
+  "input": {
+    "url": "https://cdn.other.test/widget.js",
+    "resourceType": "script",
+    "frameUrl": "https://app.test/page"
+  },
+  "expect": [
+    {
+      "subject": "https://cdn.other.test",
+      "severity": "info"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "script from an origin outside the list",
+  "input": {
+    "url": "https://cdn.other.test/widget.js",
+    "resourceType": "script",
+    "frameUrl": "https://app.test/"
+  },
+  "options": {
+    "allowedScriptOrigins": ["https://*.partner.test"]
+  },
+  "expect": [
+    {
+      "subject": "https://cdn.other.test",
+      "severity": "medium",
+      "location": {
+        "origin": "https://app.test"
+      }
+    }
+  ]
+}

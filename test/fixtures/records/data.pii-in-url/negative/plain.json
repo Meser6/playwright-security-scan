@@ -1,0 +1,7 @@
+{
+  "title": "ordinary values",
+  "input": {
+    "url": "https://app.test/search?q=teapot&page=2&id=12345678901"
+  },
+  "expect": []
+}

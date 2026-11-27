@@ -1,0 +1,37 @@
+{
+  "title": "no session cookie before login",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "method": "POST",
+        "endpointKey": "POST /api/login",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "sentCookies": [],
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "cccccc",
+            "valueClass": "token",
+            "sameSite": "Lax",
+            "secure": true,
+            "httpOnly": true
+          }
+        ]
+      },
+      {
+        "endpointKey": "GET /api/me",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "cccccc",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": []
+}

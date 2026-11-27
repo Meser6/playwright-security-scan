@@ -2,14 +2,7 @@
 // a built-in rule, with `check` filling in what the package owns (id, severity, confidence, scope).
 import type { RuleManifest } from '../manifest/rules.ts';
 import type { BuiltInRule, RuleAppliesTo, RuleContext } from '../rules/types.ts';
-import type {
-  BrowserEvent,
-  Evidence,
-  Location,
-  RawFinding,
-  ResponseRecord,
-  Source,
-} from '../types/index.ts';
+import type { Evidence, Location, RawFinding, Source } from '../types/index.ts';
 import type { Rule, RuleInput } from './define.ts';
 
 /** Resource types whose body `needsBody: true` reads when the rule names none (16, chapter 12a). */
@@ -51,9 +44,11 @@ function isPromiseLike(v: unknown): v is PromiseLike<unknown> {
 }
 
 /** The origin of a rule input, the default of `location.origin`. */
-function inputOrigin(input: ResponseRecord | BrowserEvent): string {
+function inputOrigin(input: RuleInput): string {
   if (input.kind === 'response' || input.kind === 'storage') return input.origin;
   if (input.kind === 'csp-violation') return input.documentOrigin;
+  // The end-of-test input: the origin of its first request (16, chapter 12a).
+  if (input.kind === 'test-end') return input.requests[0]?.origin ?? '';
   return input.cookies[0]?.origin ?? '';
 }
 
@@ -73,10 +68,7 @@ function toEvidence(value: unknown, ctx: RuleContext, at: string): Evidence {
 }
 
 /** Only the fields of Location (02, chapter 4), with the defaults of the input. */
-function toLocation(
-  value: Record<string, unknown>,
-  input: ResponseRecord | BrowserEvent,
-): Location {
+function toLocation(value: Record<string, unknown>, input: RuleInput): Location {
   const text = (key: string): string | undefined =>
     typeof value[key] === 'string' && value[key] !== '' ? value[key] : undefined;
   const endpointKey =
@@ -95,13 +87,19 @@ function toLocation(
 export function adaptCustomRule(rule: Rule): BuiltInRule {
   const to = rule.appliesTo ?? {};
   const events = to.events ?? [];
+  const testEnd = to.testEnd === true;
+  // Records are the default input unless only events or only the end of the test are given.
   const records =
     to.records ??
-    (events.length === 0 || to.resourceTypes !== undefined || to.sources !== undefined);
+    ((events.length === 0 && !testEnd) ||
+      to.resourceTypes !== undefined ||
+      to.sources !== undefined);
   const appliesTo: RuleAppliesTo = {
     ...(to.resourceTypes === undefined ? {} : { resourceTypes: [...to.resourceTypes] }),
     ...(to.sources === undefined ? {} : { sources: [...to.sources] }),
-    ...(events.length === 0 ? {} : { events: [...events], records }),
+    ...(events.length === 0 && !testEnd ? {} : { records }),
+    ...(events.length === 0 ? {} : { events: [...events] }),
+    ...(testEnd ? { testEnd: true } : {}),
     ...(to.outOfScope === true ? { outOfScope: true } : {}),
   };
   const sources: Source[] = to.sources === undefined ? ['browser', 'api'] : [...to.sources];
@@ -136,7 +134,7 @@ export function adaptCustomRule(rule: Rule): BuiltInRule {
       ...(rule.docs.url === undefined ? {} : { url: rule.docs.url }),
     },
     check(input, ctx): RawFinding[] {
-      const out: unknown = rule.check(input as RuleInput, ctx);
+      const out: unknown = rule.check(input, ctx);
       if (isPromiseLike(out)) {
         // The rejection of a promise nobody awaits would crash the worker.
         Promise.resolve(out).catch(() => undefined);

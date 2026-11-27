@@ -8,7 +8,7 @@ problem appears.
 
 It checks security headers, cookies, CORS, transport, tokens and secrets, information disclosure
 and what the browser itself reports (CSP violations, Web Storage), with
-[44 rules](docs/rules/README.md) by default. Reports: console, HTML, JSON, SARIF (GitHub code
+[55 rules](docs/rules/README.md) by default. Reports: console, HTML, JSON, SARIF (GitHub code
 scanning) and JUnit XML (any CI).
 
 > **Status:** beta, published under the `next` tag.

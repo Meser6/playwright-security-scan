@@ -2,6 +2,7 @@
 import { normalizeAssetUrl } from '../fingerprint/index.ts';
 import { canonicalOrigin } from '../normalize/index.ts';
 import type { RawFinding, ResponseRecord } from '../types/index.ts';
+import { sessionTest } from './cookies.ts';
 import { finding, header, manifestOf } from './types.ts';
 import type { BuiltInRule } from './types.ts';
 
@@ -233,6 +234,176 @@ export const reflectedParam: BuiltInRule = {
     ].join('\n'),
     falsePositives:
       'Safe reflections such as search terms shown escaped (letters and digits look the same encoded). Reported as info with low confidence.',
+  },
+};
+
+const CSRF = manifestOf('browser.csrf-missing');
+const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+export const csrfMissing: BuiltInRule = {
+  id: CSRF.id,
+  manifest: CSRF,
+  appliesTo: { testEnd: true, sources: ['browser'] },
+  check(input, ctx) {
+    if (input.kind !== 'test-end') return [];
+    const isSession = sessionTest(ctx);
+    // SameSite of the session cookies set in this test (06, chapter 4.14): only these are judged.
+    const weak = new Map<string, string>();
+    for (const r of input.requests) {
+      for (const c of r.setCookies) {
+        if (!isSession(c)) continue;
+        if (c.sameSite === undefined || c.sameSite === 'None') {
+          weak.set(c.name, c.sameSite === undefined ? 'no SameSite' : 'SameSite=None');
+        } else {
+          weak.delete(c.name);
+        }
+      }
+    }
+    if (weak.size === 0) return [];
+    const out: RawFinding[] = [];
+    const seen = new Set<string>();
+    for (const r of [...input.requests].sort((a, b) => a.id - b.id)) {
+      if (!STATE_CHANGING.has(r.method) || r.csrfSignal || seen.has(r.endpointKey)) continue;
+      if (r.contentType === 'application/json' || (r.contentType ?? '').endsWith('+json')) continue;
+      const cookie = r.sentCookies.find((c) => weak.has(c.name) && isSession(c));
+      if (cookie === undefined) continue;
+      seen.add(r.endpointKey);
+      out.push(
+        finding(ctx, CSRF, {
+          subject: r.endpointKey,
+          location: { origin: r.origin, endpointKey: r.endpointKey },
+          evidence: [
+            {
+              kind: 'cookie',
+              name: cookie.name,
+              snippet: `${r.method} with ${cookie.name} (${weak.get(cookie.name) ?? ''}), content-type ${r.contentType ?? 'none'}, no CSRF token or header`,
+            },
+          ],
+          message: `${r.endpointKey} changes state with the session cookie ${cookie.name} (${weak.get(cookie.name) ?? ''}) and no CSRF token.`,
+        }),
+      );
+    }
+    return out;
+  },
+  docs: {
+    title: CSRF.title,
+    why: 'A cookie without SameSite=Lax/Strict goes along with requests from other sites: without a CSRF token, any page the user visits can submit this request in their name (cross-site request forgery).',
+    fix: [
+      'Set the session cookie with `SameSite=Lax` (or `Strict`) and protect state-changing requests with a CSRF token (synchronizer or double-submit) or a custom header that cross-site forms cannot send.',
+      '',
+      '- nginx (as a proxy): `proxy_cookie_flags ~ samesite=lax;`',
+      "- Express: `csurf`-style middleware (e.g. `csrf-csrf`) and `cookie: { sameSite: 'lax' }` in express-session",
+      '- Spring Security: CSRF protection on (the default) with `CookieCsrfTokenRepository` for SPAs',
+    ].join('\n'),
+    falsePositives:
+      'Servers that check the Origin or Referer header, which is invisible to a passive scan. Reported with low confidence and never blocks by default. Cookies not set during the test (e.g. from storageState) are not judged.',
+  },
+};
+
+const THIRD_PARTY = manifestOf('asset.unexpected-third-party');
+
+/** Whether `origin` matches an allowed origin or a `https://*.example.com` pattern (06, 4.14). */
+export function originAllowed(origin: string, allowed: readonly string[]): boolean {
+  for (const entry of allowed) {
+    const star = /^([a-z][a-z0-9+.-]*:\/\/)\*\.(.+)$/i.exec(entry.trim());
+    if (star !== null) {
+      const scheme = (star[1] ?? '').toLowerCase();
+      const rest = (star[2] ?? '').toLowerCase();
+      if (origin.startsWith(scheme) && origin.slice(scheme.length).endsWith(`.${rest}`))
+        return true;
+      continue;
+    }
+    if (canonicalOrigin(entry.trim()) === origin) return true;
+  }
+  return false;
+}
+
+export const unexpectedThirdParty: BuiltInRule = {
+  id: THIRD_PARTY.id,
+  manifest: THIRD_PARTY,
+  appliesTo: { resourceTypes: ['script'], outOfScope: true },
+  check(input, ctx) {
+    if (input.kind !== 'response' || input.resourceType !== 'script') return [];
+    if (ctx.inScope(input.origin) || input.frameUrl === undefined) return [];
+    const page = canonicalOrigin(input.frameUrl);
+    if (page === null || !ctx.inScope(page)) return [];
+    const allowed = Array.isArray(ctx.options.allowedScriptOrigins)
+      ? (ctx.options.allowedScriptOrigins as unknown[]).filter(
+          (o): o is string => typeof o === 'string',
+        )
+      : [];
+    if (originAllowed(input.origin, allowed)) return [];
+    const asset = normalizeAssetUrl(input.url) ?? input.origin;
+    return [
+      finding(ctx, THIRD_PARTY, {
+        subject: input.origin,
+        // Without a list the rule is an inventory (06, chapter 4.13).
+        ...(allowed.length === 0 ? { severity: 'info' as const } : {}),
+        location: { origin: page },
+        evidence: [{ kind: 'url', snippet: ctx.redact.text(asset) }],
+        message:
+          allowed.length === 0
+            ? `${page} loads scripts from ${input.origin} (inventory: no allowedScriptOrigins set).`
+            : `${page} loads scripts from ${input.origin}, which is not in allowedScriptOrigins.`,
+      }),
+    ];
+  },
+  docs: {
+    title: THIRD_PARTY.title,
+    why: 'Every script origin runs code with the full rights of your page; a new third-party origin is a new supplier that can read what users type. Keeping the list explicit makes new origins visible in review.',
+    fix: [
+      'List the expected script origins in the option `allowedScriptOrigins` (patterns like `https://*.example.com` allowed); remove or self-host scripts from origins you do not expect; restrict `script-src` in the CSP to the same list.',
+      '',
+      '- nginx: `add_header Content-Security-Policy "script-src \'self\' https://cdn.example.com"`',
+      '- Express: `helmet.contentSecurityPolicy({ directives: { scriptSrc: ["\'self\'", "https://cdn.example.com"] } })`',
+      '- Spring Security: `contentSecurityPolicy(csp -> csp.policyDirectives("script-src \'self\' https://cdn.example.com"))`',
+    ].join('\n'),
+    falsePositives:
+      'A trusted CDN that is not on the list yet: add it to allowedScriptOrigins. Without the list the rule only keeps an inventory at severity info, and the baseline records the known origins.',
+  },
+};
+
+const PASSWORD_GET = manifestOf('browser.password-form-get');
+const FORM = /<form\b([^>]*)>([\s\S]*?)<\/form\s*>/gi;
+const PASSWORD_INPUT = /<input\b[^>]*\btype\s*=\s*["']?password\b/i;
+export const passwordFormGet: BuiltInRule = {
+  id: PASSWORD_GET.id,
+  manifest: PASSWORD_GET,
+  appliesTo: { resourceTypes: ['document'] },
+  needsBody: ['document'],
+  check(input, ctx) {
+    if (input.kind !== 'response' || !isHtmlDoc(input) || input.body === undefined) return [];
+    for (const m of input.body.text.matchAll(FORM)) {
+      const attributes = m[1] ?? '';
+      if (!PASSWORD_INPUT.test(m[2] ?? '')) continue;
+      const method = attr(attributes, 'method')?.trim().toLowerCase();
+      const action = attr(attributes, 'action')?.trim();
+      const realAction =
+        action !== undefined && action !== '' && action !== '#' && !/^javascript:/i.test(action);
+      if (!(method === 'get' || (method === undefined && realAction))) continue;
+      const tag = `<form${method === undefined ? '' : ` method="${method}"`}${action === undefined ? '' : ` action="${action}"`}>`;
+      return [
+        finding(ctx, PASSWORD_GET, {
+          subject: input.endpointKey,
+          location: { origin: input.origin, endpointKey: input.endpointKey },
+          evidence: [{ kind: 'body', snippet: ctx.redact.text(tag) }],
+          message: `${input.endpointKey} has a password form that is sent with GET, so the password lands in the URL.`,
+        }),
+      ];
+    }
+    return [];
+  },
+  docs: {
+    title: PASSWORD_GET.title,
+    why: 'A form sent with GET puts its fields, the password included, into the URL: browser history, server and proxy logs and the Referer header of the next page keep it.',
+    fix: [
+      'Use `<form method="post">` for every form with a password field (or send it from script with a POST body).',
+      '',
+      '- nginx: nothing to configure; fix the form (and do not log query strings of the login path meanwhile)',
+      '- Express: render the form with `method="post"` and handle it in `app.post(...)`',
+      '- Spring: `th:method="post"` in the template and `@PostMapping` for the login handler (Spring Security login is POST only)',
+    ].join('\n'),
+    falsePositives:
+      'Forms without method and action are skipped (single-page apps submit them from script); a form whose submit is always intercepted by script but has a GET action: fix the markup or accept it with a note.',
   },
 };
 

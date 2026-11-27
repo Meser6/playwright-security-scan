@@ -1,0 +1,15 @@
+{
+  "title": "PESEL and phone (raw +)",
+  "input": {
+    "url": "https://app.test/api/find?pesel=44051401458&tel=+48601234567",
+    "resourceType": "xhr"
+  },
+  "expect": [
+    {
+      "discriminator": "pesel"
+    },
+    {
+      "discriminator": "tel"
+    }
+  ]
+}

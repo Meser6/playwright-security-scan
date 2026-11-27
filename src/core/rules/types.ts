@@ -10,6 +10,7 @@ import type {
   ResponseRecord,
   Severity,
   Source,
+  TestTraffic,
 } from '../types/index.ts';
 
 export interface RuleContext {
@@ -38,7 +39,12 @@ export interface RuleAppliesTo {
   records?: boolean;
   /** Also gets out-of-scope records, without body (05-REQ-05: mixed content). */
   outOfScope?: boolean;
+  /** Gets the end-of-test input TestTraffic, once per test (06, chapter 4.13.1). */
+  testEnd?: boolean;
 }
+
+/** What a rule checks: a response record, a browser event or the end-of-test traffic. */
+export type RuleInput = ResponseRecord | BrowserEvent | TestTraffic;
 
 export interface RuleDocs {
   title: string;
@@ -55,7 +61,7 @@ export interface Rule {
   appliesTo: RuleAppliesTo;
   /** Resource types whose body the rule reads (05-REQ-10); unset: none. */
   needsBody?: string[];
-  check(input: ResponseRecord | BrowserEvent, ctx: RuleContext): RawFinding[];
+  check(input: RuleInput, ctx: RuleContext): RawFinding[];
   docs: RuleDocs;
 }
 

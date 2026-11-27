@@ -1,0 +1,23 @@
+{
+  "title": "nested exception and trace array",
+  "input": {
+    "url": "https://app.test/api/x",
+    "resourceType": "api",
+    "status": 400,
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"error\":{\"Exception\":\"NullPointerException\",\"trace\":[\"a.b(C.java:1)\"]}}"
+  },
+  "expect": [
+    {
+      "discriminator": "exception"
+    },
+    {
+      "discriminator": "trace"
+    }
+  ]
+}

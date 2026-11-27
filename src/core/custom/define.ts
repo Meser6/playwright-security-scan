@@ -14,6 +14,7 @@ import type {
   ResponseRecord,
   Severity,
   Source,
+  TestTraffic,
 } from '../types/index.ts';
 
 /** Marks objects made by defineRule(); Symbol.for gives one key for the ESM and the CJS build. */
@@ -27,8 +28,11 @@ const SCOPES: readonly FindingScope[] = ['origin', 'endpoint', 'cookie', 'storag
 const SOURCES: readonly Source[] = ['browser', 'api'];
 const EVENTS: readonly BrowserEventKind[] = ['csp-violation', 'storage', 'cookie-jar'];
 
-/** Input of a custom rule: a response record or a browser event (06, chapter 2). */
-export type RuleInput = ResponseRecord | BrowserEvent;
+/**
+ * Input of a custom rule: a response record, a browser event or the end-of-test traffic
+ * (06, chapters 2 and 4.13.1).
+ */
+export type RuleInput = ResponseRecord | BrowserEvent | TestTraffic;
 
 /**
  * What `check` of a custom rule returns (16-REQ-02): a raw finding without `ruleId`, `severity`,
@@ -59,6 +63,8 @@ export interface CustomRuleAppliesTo {
   events?: BrowserEventKind[];
   /** Also out-of-scope records, without body (05-REQ-05). */
   outOfScope?: boolean;
+  /** The end-of-test input TestTraffic, once per test (06, chapter 4.13.1). */
+  testEnd?: boolean;
 }
 
 /** @experimental */
@@ -154,11 +160,9 @@ export function ruleDefinitionIssues(value: unknown, path: string): ConfigIssue[
   if (to !== undefined) {
     if (!isRecord(to)) add('appliesTo', 'expected an object');
     else {
-      const known = ['sources', 'resourceTypes', 'records', 'events', 'outOfScope'];
+      const known = ['sources', 'resourceTypes', 'records', 'events', 'outOfScope', 'testEnd'];
       for (const key of Object.keys(to)) {
-        if (key === 'testEnd') {
-          add('appliesTo.testEnd', 'the end-of-test input is not available in this version');
-        } else if (!known.includes(key)) {
+        if (!known.includes(key)) {
           add(`appliesTo.${key}`, 'unknown field', `Allowed: ${known.join(', ')}.`);
         }
       }
@@ -179,14 +183,17 @@ export function ruleDefinitionIssues(value: unknown, path: string): ConfigIssue[
       list('sources', to.sources, SOURCES);
       list('resourceTypes', to.resourceTypes);
       list('events', to.events, EVENTS);
-      for (const flag of ['records', 'outOfScope'] as const) {
+      for (const flag of ['records', 'outOfScope', 'testEnd'] as const) {
         if (to[flag] !== undefined && typeof to[flag] !== 'boolean') {
           add(`appliesTo.${flag}`, 'expected true or false');
         }
       }
       const hasEvents = Array.isArray(to.events) && to.events.length > 0;
-      if (to.records === false && !hasEvents) {
-        add('appliesTo', 'the rule has no input: set records: true or events: [...]');
+      if (to.records === false && !hasEvents && to.testEnd !== true) {
+        add(
+          'appliesTo',
+          'the rule has no input: set records: true, events: [...] or testEnd: true',
+        );
       }
     }
   }
