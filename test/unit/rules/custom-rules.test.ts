@@ -449,6 +449,7 @@ describe('baseline and reports (16-REQ-11, 16-REQ-12)', () => {
       startedAt: '2026-11-27T00:00:00.000Z',
       finishedAt: '2026-11-27T00:00:01.000Z',
       mode: 'scan',
+      shards: null,
       pkgVersion: '0.0.0',
       playwrightVersion: '1.57.0',
       scope: { origins: ['https://app.test'] },

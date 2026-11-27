@@ -150,6 +150,7 @@ export function outcome(input: {
   testsPassed: boolean;
   responses: number;
   gate: Gate;
+  mode: OutcomeFile['mode'];
 }): OutcomeFile {
   const newBlocking = input.findings.filter((f) => f.classification === 'new' && f.blocking).length;
   const newNonBlocking = input.findings.filter(
@@ -168,6 +169,8 @@ export function outcome(input: {
     schemaVersion: 2,
     code,
     name: NAMES[code],
+    mode: input.mode,
+    shard: null,
     testsPassed: input.testsPassed,
     newBlocking,
     newNonBlocking,

@@ -116,6 +116,7 @@ describe('classification (08, chapter 3)', () => {
       testsPassed: true,
       responses: 10,
       gate,
+      mode: 'scan',
     });
     expect([result.code, result.name, result.expired]).toEqual([2, 'BASELINE_EXPIRED', 1]);
     const lenient = classify([cookie], base, { ...gate, failOnExpired: false }, '2026-11-24', true);
@@ -127,6 +128,7 @@ describe('classification (08, chapter 3)', () => {
         testsPassed: true,
         responses: 10,
         gate,
+        mode: 'scan',
       }).code,
     ).toBe(0);
   });
@@ -151,7 +153,7 @@ describe('classification (08, chapter 3)', () => {
 });
 
 describe('result codes (00, chapter 11; 08-REQ-02)', () => {
-  const base = { resolved: 0, testsPassed: true, responses: 5, gate };
+  const base = { resolved: 0, testsPassed: true, responses: 5, gate, mode: 'scan' as const };
   test('TOOL_ERROR > NEW_FINDINGS > BASELINE_EXPIRED > NO_TRAFFIC > OK', () => {
     const newOne = classify([cookie], undefined, gate, '2026-11-24', true);
     const error = [{ code: 'BASELINE_INVALID', level: 'error' as const, message: 'x' }];
@@ -173,6 +175,8 @@ describe('result codes (00, chapter 11; 08-REQ-02)', () => {
       schemaVersion: 2,
       code: 0,
       name: 'OK',
+      mode: 'scan',
+      shard: null,
       testsPassed: true,
       newBlocking: 0,
       newNonBlocking: 0,

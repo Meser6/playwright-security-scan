@@ -12,6 +12,7 @@ import type {
   Location,
   OutcomeFile,
   RunReport,
+  ShardInfo,
   TestAttachment,
   TestContextRef,
 } from './generated/formats.ts';
@@ -28,6 +29,7 @@ export type {
   Location,
   OutcomeFile,
   RunReport,
+  ShardInfo,
   TestAttachment,
   TestContextRef,
 };

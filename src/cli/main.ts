@@ -1,5 +1,5 @@
-// Entry logic of the binary (11-REQ-01): without arguments it runs the wizard, with arguments it
-// prints CLI_UNKNOWN_COMMAND. Every error is caught at this
+// Entry logic of the binary (11-REQ-01): without arguments it runs the wizard (or, with
+// PW_SEC_MODE=merge, the shard merge of 17), with arguments it prints CLI_UNKNOWN_COMMAND. Every error is caught at this
 // boundary and ends with exit code 3 (01, chapter 8).
 import type { Issue } from './constants.ts';
 import { readInitEnv } from './env.ts';
@@ -9,6 +9,8 @@ import { LANGUAGES } from './init/messages.ts';
 import type { WizardLanguage } from './init/messages.ts';
 import { formatIssues, outputStyle } from './output.ts';
 import { parseArgs } from './parse.ts';
+import { runMerge } from '../merge/index.ts';
+import { isMergeMode } from '../mode/index.ts';
 
 function color(host: CliHost): { color: boolean } {
   return outputStyle(host.stderr, host.env);
@@ -31,6 +33,8 @@ export async function main(argv: readonly string[], host: CliHost): Promise<numb
       host.stderr.write(formatIssues(parsed.issues, 'error', color(host)));
       return 3;
     }
+    // PW_SEC_MODE=merge npx pw-sec: the shard merge instead of the wizard (17-REQ-09).
+    if (isMergeMode(host.env)) return runMerge(host);
     const env = readInitEnv(host.env, LANGUAGES);
     if (!env.ok) {
       host.stderr.write(formatIssues(env.issues, 'error', color(host)));

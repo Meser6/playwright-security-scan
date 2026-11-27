@@ -20,6 +20,8 @@ export interface CheckOrigin {
 }
 
 export interface CheckInput {
+  /** A check with --shard (17-REQ-05). */
+  shard?: { current: number; total: number } | null;
   tests: { ran: number; selected: number; passed: number; failed: number; skipped: number };
   maxTests: number;
   origins: CheckOrigin[];
@@ -74,6 +76,7 @@ export function formatCheck(c: CheckInput, opts: TerminalOptions): string[] {
       [
         PACKAGE_NAME,
         'check',
+        ...(c.shard == null ? [] : [`shard ${c.shard.current}/${c.shard.total}`]),
         `${t.ran} of ${plural(t.selected, 'test')} run (${t.passed} passed${failed})`,
         `${t.skipped} skipped by check (PW_SEC_MAX_TESTS=${c.maxTests})`,
       ].join(' · '),

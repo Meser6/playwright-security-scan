@@ -11,6 +11,7 @@
     "startedAt",
     "finishedAt",
     "mode",
+    "shards",
     "pkgVersion",
     "playwrightVersion",
     "scope",
@@ -39,6 +40,39 @@
     },
     "mode": {
       "enum": ["scan", "baseline"]
+    },
+    "shards": {
+      "description": "Shards of a merged run (17-REQ-12); null for a run without shards.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "missing", "list"],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "missing": {
+              "description": "Numbers of the missing shards.",
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "list": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/shardInfo"
+              }
+            }
+          }
+        }
+      ]
     },
     "pkgVersion": {
       "type": "string"
@@ -186,6 +220,58 @@
         },
         "subject": {
           "type": "string"
+        }
+      }
+    },
+    "shardInfo": {
+      "description": "One shard of a merged run (17-REQ-12).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "runId",
+        "startedAt",
+        "finishedAt",
+        "tests",
+        "findings",
+        "responses",
+        "buildUrl"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "runId": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "finishedAt": {
+          "type": "string"
+        },
+        "tests": {
+          "description": "Tests of the shard.",
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "findings": {
+          "description": "Findings of the shard after deduplication.",
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "responses": {
+          "description": "Responses in scope.",
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "buildUrl": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

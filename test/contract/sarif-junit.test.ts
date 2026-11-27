@@ -53,6 +53,7 @@ function report(findings: ClassifiedFinding[], code: RunReport['outcome']['code'
     startedAt: '2026-11-24T20:00:00.000Z',
     finishedAt: '2026-11-24T20:01:00.000Z',
     mode: 'scan',
+    shards: null,
     pkgVersion: '0.1.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test'] },
@@ -70,6 +71,8 @@ function report(findings: ClassifiedFinding[], code: RunReport['outcome']['code'
       name: ['OK', 'NEW_FINDINGS', 'BASELINE_EXPIRED', 'TOOL_ERROR', 'NO_TRAFFIC'][
         code
       ] as RunReport['outcome']['name'],
+      mode: 'scan',
+      shard: null,
       testsPassed: true,
       newBlocking: 1,
       newNonBlocking: 0,

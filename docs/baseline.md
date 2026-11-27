@@ -111,9 +111,14 @@ remove it`); it never changes the file.
 
 A `baseline` run that sees only part of the tests could take an entry for resolved when the tests
 that cover it did not run. So when the command filters the tests (`--grep`, `--grep-invert`,
-`--project`, `--shard`, file or line arguments, `--only-changed`, `--last-failed`), resolved
-entries are kept and the run warns with [`PARTIAL_RUN`](troubleshooting.md#partial_run). New
-findings are still added.
+`--project`, file or line arguments, `--only-changed`, `--last-failed`), resolved entries are kept
+and the run warns with [`PARTIAL_RUN`](troubleshooting.md#partial_run). New findings are still
+added.
+
+Sharded runs (`--shard=i/n`) are not partial: the shards write shard files, and the merge
+(`PW_SEC_MODE=merge npx pw-sec`) writes the complete baseline from the traffic of all shards. It
+keeps resolved entries only when a shard was filtered or is missing; with a missing shard it does
+not write the baseline at all. See [Sharded runs](ci.md#sharded-runs).
 
 `test.only` cannot be detected: avoid it in a `baseline` run.
 

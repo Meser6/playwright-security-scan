@@ -45,6 +45,13 @@ function header(ctx: Ctx): SafeHtml {
     html`<p class="brand">${logo()}<b>${PACKAGE_NAME}</b> <span class="ver">v${r.pkgVersion}</span></p>`,
     html`<div class="meta" role="group" aria-label="Run details" tabindex="0">`,
     chip('play', html`mode <b>${r.mode}</b> · passive`),
+    // A merged run (17-REQ-12, 09-REQ-22).
+    r.shards == null
+      ? null
+      : chip(
+          'branch',
+          html`merged from <b>${r.shards.list.length}</b> ${r.shards.list.length === 1 ? 'shard' : 'shards'}${r.shards.missing.length > 0 ? ` · ${String(r.shards.missing.length)} missing` : ''}`,
+        ),
     chip(
       'globe',
       scope.length === 0
