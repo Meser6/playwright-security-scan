@@ -1,5 +1,6 @@
 // The rules of a run: the built-in catalog, then the custom rules in the order of rules.custom
 // (16-REQ-07).
+import { AUTHZ_RULES } from '../authz/rules.ts';
 import type { ResolvedSecurityConfig } from '../config/index.ts';
 import { adaptCustomRule } from '../custom/adapt.ts';
 import type { Rule as CustomRule } from '../custom/define.ts';
@@ -24,4 +25,15 @@ export function rulesOf(
 ): readonly BuiltInRule[] {
   if (config.customRules.length === 0) return BUILT_IN_RULES;
   return [...BUILT_IN_RULES, ...config.customRules.map(adapt)];
+}
+
+/**
+ * The rules the reports describe: those of rulesOf() and, with authz.enabled, the authorization
+ * tests (18-REQ-16, 18-REQ-21).
+ */
+export function reportRulesOf(
+  config: Pick<ResolvedSecurityConfig, 'customRules' | 'authz'>,
+): readonly BuiltInRule[] {
+  const rules = rulesOf(config);
+  return config.authz.enabled ? [...rules, ...AUTHZ_RULES] : rules;
 }

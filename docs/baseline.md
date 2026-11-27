@@ -100,7 +100,9 @@ finding is blocking again until you fix it, extend `until` or remove the date.
 An entry whose finding did not occur in the run is **resolved** only when the run covered its
 subject: a document of the origin was loaded, the endpoint key was called, the origin that sets the
 cookie responded, the asset was loaded, or the storage of the origin was scanned. Otherwise the
-entry is **not covered**: the tests did not go there, so the package cannot tell.
+entry is **not covered**: the tests did not go there, so the package cannot tell. An entry of an
+[authorization test](authz.md#results) (`authz.*`) is resolved only when the run replayed its role
+pair on its endpoint and got a denial or another answer.
 
 - A `scan` run only reports resolved entries (`→ 1 baseline entry resolved — run baseline mode to
 remove it`); it never changes the file.

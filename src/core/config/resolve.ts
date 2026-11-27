@@ -1,4 +1,6 @@
 // Resolution of the package config: defaults, presets (06, chapter 3) and per-rule settings.
+import { resolveAuthz } from '../authz/config.ts';
+import { AUTHZ_MANIFEST } from '../authz/manifest.ts';
 import { adaptCustomRule } from '../custom/adapt.ts';
 import type { Rule as CustomRule } from '../custom/define.ts';
 import { RULE_MANIFEST } from '../manifest/rules.ts';
@@ -59,6 +61,17 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
     const base = presetRule(rule, preset);
     rules[rule.id] = setting === undefined ? base : applySetting(base, setting);
   }
+  // Presets leave the authorization tests alone: authz.enabled decides (18 chapter 12a).
+  for (const rule of AUTHZ_MANIFEST) {
+    const setting = i.rules?.[rule.id] as RuleSetting | undefined;
+    const base: ResolvedRule = {
+      enabled: true,
+      severity: rule.defaultSeverity,
+      confidence: rule.defaultConfidence,
+      options: {},
+    };
+    rules[rule.id] = setting === undefined ? base : applySetting(base, setting);
+  }
   const reportDir = i.report?.dir ?? DEFAULTS.report.dir;
   return {
     ok: true,
@@ -77,13 +90,16 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
         junitPath: i.report?.junitPath ?? `${reportDir.replace(/[\\/]+$/, '')}/junit.xml`,
       },
       normalization: resolveNormalization(i.normalization),
+      authz: resolveAuthz(i.authz),
     },
   };
 }
 
 /** Number of enabled rules, for the start banner (04, chapter 3). */
 export function enabledRuleCount(config: ResolvedSecurityConfig): number {
-  return Object.values(config.rules).filter((r) => r.enabled).length;
+  // Without the authorization tests: they have their own banner line (18 chapter 12a).
+  return Object.entries(config.rules).filter(([id, r]) => r.enabled && !id.startsWith('authz.'))
+    .length;
 }
 
 /** Number of enabled custom rules, for the start banner (16-REQ-12). */

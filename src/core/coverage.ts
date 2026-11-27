@@ -50,6 +50,14 @@ export function addCoverage(into: Coverage, from: Coverage): void {
   }
   into.assets = [...new Set([...into.assets, ...from.assets])];
   into.storageOrigins = [...new Set([...into.storageOrigins, ...from.storageOrigins])];
+  if (from.authzObserved !== undefined) {
+    into.authzObserved ??= {};
+    for (const [key, seen] of Object.entries(from.authzObserved)) {
+      const current = (into.authzObserved[key] ??= { roles: [], public: false });
+      current.roles = [...new Set([...current.roles, ...seen.roles])].sort();
+      current.public ||= seen.public;
+    }
+  }
 }
 
 /** The same coverage with sorted keys and lists, for deterministic output (P-06). */
@@ -65,5 +73,20 @@ export function sortCoverage(coverage: Coverage): Coverage {
     origins: sortKeys(coverage.origins),
     assets: [...coverage.assets].sort(),
     storageOrigins: [...coverage.storageOrigins].sort(),
+    ...(coverage.authzObserved === undefined
+      ? {}
+      : {
+          authzObserved: Object.fromEntries(
+            Object.keys(coverage.authzObserved)
+              .sort()
+              .map((k) => {
+                const seen = (coverage.authzObserved ?? {})[k] as {
+                  roles: string[];
+                  public: boolean;
+                };
+                return [k, { roles: [...seen.roles].sort(), public: seen.public }];
+              }),
+          ),
+        }),
   };
 }

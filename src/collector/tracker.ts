@@ -202,6 +202,9 @@ export class ResponseTracker {
 
     const header = (name: string): string | undefined =>
       responseHeaders.find((h) => h.name === name)?.value;
+    // A template of the authorization tests needs the body for its digest (05-REQ-28).
+    const template = collector.templates?.wants(record) === true ? collector.templates : undefined;
+    const ruleWantsBody = collector.bodyTypes.has(resourceType);
     const skip = bodySkipReason({
       resourceType,
       status: record.status,
@@ -209,10 +212,11 @@ export class ResponseTracker {
       contentLength: header('content-length'),
       maxBodyBytes: opts.config.limits.maxBodyBytes,
       allowedTypes: opts.config.limits.bodyContentTypes,
-      wanted: collector.bodyTypes.has(resourceType),
+      wanted: ruleWantsBody || template !== undefined,
     });
     if (skip !== null) {
       if (skip !== 'no-rule') collector.skipBody(skip);
+      template?.add(record, undefined);
       collector.analyzeRecord(record);
       return;
     }
@@ -243,6 +247,9 @@ export class ResponseTracker {
         `collector: the body of a ${resourceType} response could not be read: ${errorText(error)}`,
       );
     }
+    template?.add(record, record.body?.text);
+    // A body read only for the template is not given to the rules.
+    if (!ruleWantsBody) delete record.body;
     collector.analyzeRecord(record);
     // The body is dropped with the record (05-REQ-12).
     delete record.body;

@@ -70,6 +70,56 @@ describe('init plan (11, chapter 6)', () => {
     expect(configOptionPaths(DEFAULTS).length).toBeLessThanOrEqual(12);
   });
 
+  test('11-AC-11 "yes" in step 4a writes authz.enabled and the scope origins; one storageState project gets the second-user step', async () => {
+    const p = await plan('init-ts-fixtures', {
+      ...DEFAULTS,
+      origins: ['https://api.example.test'],
+      authzOrigins: ['https://shop.example.test', 'https://api.example.test'],
+    });
+    golden('init-ts-fixtures-authz', diffText(p));
+    const config = p.changes.find((c) => c.path === 'pw-sec.config.ts')?.after ?? '';
+    expect(config).toContain('  authz: {\n');
+    expect(config).toContain('    enabled: true,');
+    expect(config).toContain(
+      "    allowedOrigins: ['https://shop.example.test', 'https://api.example.test'],",
+    );
+    expect(config.replace(/\n\s*\/\/ /gu, ' ')).toContain('AUTHZ_ORIGIN_DENIED');
+    expect(p.manualSteps.map((m) => m.message)).toContain(
+      'The IDOR test (authz.horizontal) needs a second user of one role.',
+    );
+    // The written config is valid: the run would start.
+    const { validateConfig } = await import('../../../src/core/config/index.ts');
+    expect(
+      validateConfig({
+        authz: {
+          enabled: true,
+          allowedOrigins: ['https://shop.example.test', 'https://api.example.test'],
+        },
+      }),
+    ).toEqual([]);
+    // "no" (the default) adds nothing.
+    const no = await plan('init-ts-fixtures', DEFAULTS);
+    expect(no.changes.find((c) => c.path === 'pw-sec.config.ts')?.after).not.toContain('authz');
+    // No origin left after the production check: a manual step instead of an invalid config.
+    const none = await plan('init-ts-fixtures', { ...DEFAULTS, authzOrigins: [] });
+    expect(none.changes.find((c) => c.path === 'pw-sec.config.ts')?.after).not.toContain('authz');
+    expect(none.manualSteps.map((m) => m.message)).toContain(
+      'The authorization tests were not enabled: no origin of a test environment is known.',
+    );
+  });
+
+  test('11-REQ-07 projects with a literal storageState are the roles of step 4a', async () => {
+    const { roleProjectsIn } = await import('../../../src/cli/init/detect.ts');
+    expect(
+      roleProjectsIn(`projects: [
+  { name: 'setup', testMatch: /setup/ },
+  { name: 'admin', use: { ...devices['Desktop Chrome'], storageState: '.auth/admin.json' } },
+  { name: 'customer', dependencies: ['setup'], use: { storageState: "playwright/.auth/user.json" } },
+  { name: 'guest' },
+]`),
+    ).toEqual(['admin', 'customer']);
+  });
+
   test('11-REQ-08 withSecurity() goes outside withPerf(), also when the order was reversed', async () => {
     const perf = await plan('init-perf');
     const config = perf.changes.find((c) => c.path === 'playwright.config.ts')?.after ?? '';

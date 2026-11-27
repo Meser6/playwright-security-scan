@@ -46,8 +46,8 @@ export function readMode(env: Readonly<Record<string, string | undefined>>): Mod
         {
           code: 'MODE_NOT_AVAILABLE',
           path: MODE_ENV,
-          message: `${MODE_ENV}=active: the active scan is not available in this version; the package is passive only`,
-          hint: `Use ${MODE_ENV}=scan or ${MODE_ENV}=baseline.`,
+          message: `${MODE_ENV}=active is not a mode: authorization tests are enabled in the config: authz.enabled`,
+          hint: `Set authz: { enabled: true, allowedOrigins: [...] } in pw-sec.config and run ${MODE_ENV}=scan or ${MODE_ENV}=baseline (docs/authz.md).`,
         },
       ],
     };
@@ -101,3 +101,35 @@ export function readMaxTests(env: Readonly<Record<string, string | undefined>>):
 
 /** The check skips a test with this reason (04-REQ-10). */
 export const CHECK_SKIP_REASON = 'pw-sec check: only the first test of each file runs';
+
+/** Switches the authorization tests off for one run (18-REQ-05). */
+export const AUTHZ_ENV = 'PW_SEC_AUTHZ';
+
+export type AuthzEnvResult = { ok: true; off: boolean } | { ok: false; issues: ConfigIssue[] };
+
+/** PW_SEC_AUTHZ (18-REQ-05): `0` switches the tests off, empty or unset changes nothing. */
+export function readAuthzEnv(env: Readonly<Record<string, string | undefined>>): AuthzEnvResult {
+  const raw = (env[AUTHZ_ENV] ?? '').trim();
+  if (raw === '') return { ok: true, off: false };
+  if (raw === '0') return { ok: true, off: true };
+  return {
+    ok: false,
+    issues: [
+      {
+        code: 'AUTHZ_ENV_INVALID',
+        path: AUTHZ_ENV,
+        message: `${AUTHZ_ENV}=${JSON.stringify(raw)} is not a valid value`,
+        hint: `Use ${AUTHZ_ENV}=0 to switch the authorization tests off for one run; they are switched on only with authz.enabled in the config.`,
+      },
+    ],
+  };
+}
+
+/** Whether the authorization tests run: authz.enabled and not PW_SEC_AUTHZ=0 (18-REQ-05). */
+export function authzOn(
+  enabled: boolean,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  const r = readAuthzEnv(env);
+  return enabled && r.ok && !r.off;
+}

@@ -14,9 +14,12 @@ import type { ApiSink } from '../collector/api.ts';
 import { instrumentContext, scanContext } from '../collector/browser.ts';
 import { Scope } from '../collector/scope.ts';
 import { AnalysisCache, ATTACHMENT_NAME, TestCollector } from '../collector/test-collector.ts';
+import { TemplateCollector } from '../collector/templates.ts';
+import { TEMPLATES_ATTACHMENT } from '../core/authz/types.ts';
 import { ResponseTracker } from '../collector/tracker.ts';
 import type { KeyBuilder } from '../collector/tracker.ts';
 import {
+  authzOn,
   CHECK_SKIP_REASON,
   readMaxTests,
   readMode,
@@ -59,6 +62,10 @@ interface WorkerState {
   redactor: Redactor;
   cache: AnalysisCache;
   binding: string;
+  /** Redaction salt of the run, also of the template digests (18-REQ-12). */
+  salt: string;
+  /** The authorization tests run (18-REQ-05): templates are made (05-REQ-28). */
+  authz: boolean;
   scannedProjects: string[] | 'all';
   /** withSecurity() was not applied in this process (01-REQ-06). */
   configMissing: boolean;
@@ -90,6 +97,8 @@ function workerState(baseURL: string | undefined): WorkerState {
     }),
     cache: new AnalysisCache(),
     binding: `__pwSec_${salt.slice(0, 8)}`,
+    salt,
+    authz: authzOn(config.authz.enabled),
     scannedProjects: registered?.scannedProjects ?? 'all',
     configMissing: registered === undefined,
   };
@@ -206,6 +215,20 @@ function openBuffer(baseURL: string | undefined, testInfo: TestInfo): SecBuffer 
       'config: withSecurityFixtures() is used but withSecurity() was not applied to the Playwright config; the defaults are used',
     );
   }
+  if (state.authz) {
+    const use = testInfo.project.use as {
+      storageState?: unknown;
+      extraHTTPHeaders?: Record<string, string>;
+    };
+    collector.templates = new TemplateCollector({
+      config: state.config,
+      test: collector.test,
+      salt: state.salt,
+      apiCredentials:
+        use.storageState !== undefined ||
+        Object.keys(use.extraHTTPHeaders ?? {}).some((h) => h.toLowerCase() === 'authorization'),
+    });
+  }
   const scan = new TestScan(collector, state);
   return {
     scan,
@@ -256,6 +279,14 @@ const scanFixtures = {
       if (scan === null) return;
       await scan.finishAll();
       if (activeCollector() === scan) setActiveCollector(undefined);
+      // Before the findings attachment: it carries the observed map and the diagnostic (18-REQ-13).
+      const templates = scan.collector.templatesAttachment();
+      if (templates !== null) {
+        await testInfo.attach(TEMPLATES_ATTACHMENT, {
+          body: templates,
+          contentType: 'application/json',
+        });
+      }
       await testInfo.attach(ATTACHMENT_NAME, {
         body: scan.collector.attachment(),
         contentType: 'application/json',

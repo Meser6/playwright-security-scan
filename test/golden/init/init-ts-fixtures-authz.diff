@@ -1,0 +1,93 @@
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,1 +1,2 @@
+ node_modules/
++reports/pw-sec/
+--- a/playwright.config.ts
++++ b/playwright.config.ts
+@@ -1,6 +1,8 @@
+ import { defineConfig } from '@playwright/test';
++import { withSecurity } from 'playwright-security-scan/config';
++import securityConfig from './pw-sec.config';
+ 
+-export default defineConfig({
++export default withSecurity(defineConfig({
+   testDir: './tests',
+   use: { baseURL: 'https://shop.example.test' },
+-});
++}), securityConfig);
+--- /dev/null
++++ b/pw-sec.config.ts
+@@ -0,0 +1,58 @@
++// Config of playwright-security-scan. Every option: https://github.com/Meser6/playwright-security-scan/blob/main/docs/configuration.md
++// Objects are merged with the defaults; an array you set replaces the default one.
++import { defineSecurityConfig } from 'playwright-security-scan/config';
++
++export default defineSecurityConfig({
++  // Which traffic is scanned.
++  scope: {
++    // Origins scanned besides the use.baseURL origins, e.g. your API. Default: [].
++    origins: ['https://api.example.test'],
++    // Origins never scanned, even when they match.
++    exclude: [],
++    // Playwright projects whose tests are scanned: 'all' or a list of names.
++    projects: 'all',
++    // Scan the calls of the request fixture (API tests).
++    api: true,
++  },
++
++  // The passive rules; turn one off with rules: { "<rule id>": "off" }.
++  rules: {
++    // 'recommended', 'strict' (every rule, higher severities) or 'minimal'.
++    preset: 'recommended',
++  },
++
++  // Which new findings fail the scan; findings in the baseline never do.
++  gate: {
++    // Lowest severity of a new finding that fails the scan.
++    minSeverity: 'medium',
++    // Lowest confidence of a new finding that fails the scan.
++    minConfidence: 'medium',
++    // Fail when no response was in scope (a wrong scope scans nothing).
++    failOnNoTraffic: true,
++  },
++
++  // The baseline file you commit.
++  baseline: {
++    // Relative to the Playwright config.
++    path: 'security-baseline.json',
++    // Require a note on every accepted entry.
++    requireNote: false,
++  },
++
++  // Authorization tests: after the tests, GET/HEAD requests are replayed as other roles and
++  // without a session. Docs: docs/authz.md.
++  authz: {
++    // Off by default; PW_SEC_AUTHZ=0 switches them off for one run. Default: false.
++    enabled: true,
++    // The only origins that get replays; never production: www., prod and domains without a
++    // subdomain stop the run (AUTHZ_ORIGIN_DENIED). Default: [].
++    allowedOrigins: ['https://shop.example.test', 'https://api.example.test'],
++  },
++
++  // Reports of a run.
++  report: {
++    // Directory of report.html, report.json, results.sarif and junit.xml (do not commit it),
++    // relative to the Playwright config.
++    dir: 'reports/pw-sec',
++  },
++});
+--- a/tests/fixtures.ts
++++ b/tests/fixtures.ts
+@@ -1,8 +1,9 @@
+ import { test as base } from '@playwright/test';
++import { withSecurityFixtures } from 'playwright-security-scan/fixture';
+ 
+ export { expect } from '@playwright/test';
+-export const test = base.extend<{ user: string }>({
++export const test = withSecurityFixtures(base.extend<{ user: string }>({
+   user: async ({}, use) => {
+     await use('alice');
+   },
+-});
++}));

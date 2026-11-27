@@ -16,6 +16,11 @@ export interface InitAnswers {
   command: string;
   /** Run the check of step 8 (a terminal and step 6 not skipped). */
   runCheck: boolean;
+  /**
+   * "yes" in step 4a (18-REQ-22): the origins the authorization tests may replay to (the scope
+   * without production-looking ones); undefined for "no".
+   */
+  authzOrigins?: string[] | undefined;
 }
 
 export type ConfigFormat = 'ts' | 'esm' | 'cjs';
@@ -41,7 +46,7 @@ interface Section {
 }
 
 function sections(a: InitAnswers): Section[] {
-  const d = DEFAULTS;
+  const d: typeof DEFAULTS & { authz?: { enabled: boolean } } = DEFAULTS;
   return [
     {
       name: 'scope',
@@ -127,6 +132,30 @@ function sections(a: InitAnswers): Section[] {
         },
       ],
     },
+    ...(a.authzOrigins === undefined || a.authzOrigins.length === 0
+      ? []
+      : [
+          {
+            name: 'authz',
+            comment:
+              'Authorization tests: after the tests, GET/HEAD requests are replayed as other roles and without a session. Docs: docs/authz.md.',
+            options: [
+              {
+                key: 'enabled',
+                value: true,
+                default: d.authz?.enabled ?? false,
+                comment: 'Off by default; PW_SEC_AUTHZ=0 switches them off for one run.',
+              },
+              {
+                key: 'allowedOrigins',
+                value: a.authzOrigins,
+                default: [],
+                comment:
+                  'The only origins that get replays; never production: www., prod and domains without a subdomain stop the run (AUTHZ_ORIGIN_DENIED).',
+              },
+            ],
+          },
+        ]),
     {
       name: 'report',
       comment: 'Reports of a run.',

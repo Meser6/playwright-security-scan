@@ -131,6 +131,9 @@ async function analyze(
   const header = (name: string): string | undefined =>
     responseHeaders.find((h) => h.name === name)?.value;
   const limits = collector.options.config.limits;
+  // A template of the authorization tests needs the body for its digest (05-REQ-28).
+  const template = collector.templates?.wants(record) === true ? collector.templates : undefined;
+  const ruleWantsBody = collector.bodyTypes.has('api');
   const skip = bodySkipReason({
     resourceType: 'api',
     status: record.status,
@@ -138,7 +141,7 @@ async function analyze(
     contentLength: header('content-length'),
     maxBodyBytes: limits.maxBodyBytes,
     allowedTypes: limits.bodyContentTypes,
-    wanted: collector.bodyTypes.has('api'),
+    wanted: ruleWantsBody || template !== undefined,
   });
   if (skip === null) {
     try {
@@ -155,6 +158,8 @@ async function analyze(
   } else if (skip !== 'no-rule') {
     collector.skipBody(skip);
   }
+  template?.add(record, record.body?.text);
+  if (!ruleWantsBody) delete record.body;
   collector.analyzeRecord(record);
   delete record.body;
 }

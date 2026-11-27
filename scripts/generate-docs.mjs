@@ -14,9 +14,11 @@ const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const load = (/** @type {string} */ path) => import(pathToFileURL(join(root, path)).href);
 const { BUILT_IN_RULES } = await load('src/core/rules/index.ts');
 const { presetRule } = await load('src/core/config/resolve.ts');
+const { AUTHZ_RULES } = await load('src/core/authz/rules.ts');
 
 /** @param {any} rule */
 function presets(rule) {
+  if (rule.manifest.group === 'authz') return 'every preset, with `authz.enabled` (docs/authz.md)';
   return ['minimal', 'recommended', 'strict']
     .filter((p) => presetRule(rule.manifest, p).enabled)
     .map(
@@ -44,6 +46,12 @@ function rulePage(rule) {
     `| OWASP Top 10 | ${m.owasp ?? '—'} |`,
     `| Presets | ${presets(rule)} |`,
     '',
+    ...(rule.manifest.group === 'authz'
+      ? [
+          'An authorization test, not a passive rule: it runs only with `authz.enabled: true` and replays GET/HEAD requests of your tests (see [docs/authz.md](../authz.md)).',
+          '',
+        ]
+      : []),
     '## Why it matters',
     '',
     rule.docs.why,
@@ -84,7 +92,7 @@ function rulePage(rule) {
 const table = [
   '| Rule | Severity | Confidence | Traffic | CWE |',
   '|---|---|---|---|---|',
-  ...BUILT_IN_RULES.map(
+  ...[...BUILT_IN_RULES, ...AUTHZ_RULES].map(
     (/** @type {any} */ r) =>
       `| [\`${r.id}\`](docs/rules/${r.id}.md)${r.manifest.strictOnly ? ' (strict)' : ''} — ${r.docs.title} | ${r.manifest.defaultSeverity} | ${r.manifest.defaultConfidence} | ${r.manifest.sources.join(', ')} | ${r.manifest.cwe.join(', ')} |`,
   ),
@@ -92,11 +100,11 @@ const table = [
 
 /** @type {[string, string][]} */
 const outputs = [];
-for (const rule of BUILT_IN_RULES)
+for (const rule of [...BUILT_IN_RULES, ...AUTHZ_RULES])
   outputs.push([join(root, 'docs/rules', `${rule.id}.md`), rulePage(rule)]);
 outputs.push([
   join(root, 'docs/rules/README.md'),
-  `# Rules\n\n${BUILT_IN_RULES.length} passive rules; ${BUILT_IN_RULES.filter((/** @type {any} */ r) => !r.manifest.strictOnly).length} in the default \`recommended\` preset.\n\n${table.replaceAll('](docs/rules/', '](')}\n`,
+  `# Rules\n\n${BUILT_IN_RULES.length} passive rules; ${BUILT_IN_RULES.filter((/** @type {any} */ r) => !r.manifest.strictOnly).length} in the default \`recommended\` preset; ${AUTHZ_RULES.length} authorization tests (\`authz.*\`) with \`authz.enabled\` ([docs/authz.md](../authz.md)).\n\n${table.replaceAll('](docs/rules/', '](')}\n`,
 ]);
 const readmePath = join(root, 'README.md');
 const readme = readFileSync(readmePath, 'utf8');

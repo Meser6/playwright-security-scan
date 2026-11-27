@@ -13,6 +13,7 @@ export type RuleGroup =
   | 'browser'
   | 'auth'
   | 'cache'
+  | 'authz'
   | 'custom';
 
 export interface RuleManifest {

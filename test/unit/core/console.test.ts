@@ -56,6 +56,7 @@ function report(
     finishedAt: '2026-11-25T10:01:00.000Z',
     mode: 'scan',
     shards: null,
+    authz: null,
     pkgVersion: '0.1.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test'] },

@@ -6,6 +6,7 @@
 // The dialog and the flow follow the wizard of the perf package (same author).
 import { asciiTerminal, box as renderBox } from '../../core/report/term/box.ts';
 import type { BoxLine } from '../../core/report/term/box.ts';
+import { productionPattern } from '../../core/authz/config.ts';
 import { SEVERITIES } from '../../core/types/index.ts';
 import type { Severity } from '../../core/types/index.ts';
 import type { Preset } from '../../core/config/index.ts';
@@ -329,6 +330,31 @@ async function askAnswers(dialog: Dialog, info: ProjectInfo): Promise<InitAnswer
     () => t('originsInvalid', { value: badOrigin.value }),
   );
 
+  // Step 4a (18-REQ-22): the authorization tests, only to the origins of step 4; "no" without a TTY.
+  dialog.line(t('authzLesson'), 'dim');
+  dialog.line(
+    info.roleProjects.length === 0
+      ? t('authzNoRoles')
+      : t('authzRoles', { roles: info.roleProjects.join(', ') }),
+    'dim',
+  );
+  const authz = await dialog.ask<boolean>(t('authzQuestion'), 'no', false, (a) => {
+    const answer = a.toLowerCase();
+    if (['y', 'yes', 'tak', 't', 'sí', 'si', 'oui', 'o', 'так', 'да', 'д'].includes(answer))
+      return true;
+    if (['n', 'no', 'nie', 'non', 'ні', 'нет', 'н'].includes(answer)) return false;
+    return null;
+  });
+  let authzOrigins: string[] | undefined;
+  if (authz) {
+    authzOrigins = [];
+    for (const origin of [...(info.baseOrigin === null ? [] : [info.baseOrigin]), ...origins]) {
+      if (productionPattern(origin) !== null)
+        dialog.line(`⚠ ${t('authzProduction', { origin })}`, 'yellow');
+      else if (!authzOrigins.includes(origin)) authzOrigins.push(origin);
+    }
+  }
+
   // Step 6: the test command C as typed; Enter keeps the default, 'skip' also skips the check.
   dialog.stepOf(5, 'stepCommand', 'commandLesson1', 'commandLesson2');
   const suggested = defaultTestCommand(info.packageManager, info.scriptTexts);
@@ -347,7 +373,14 @@ async function askAnswers(dialog: Dialog, info: ProjectInfo): Promise<InitAnswer
   if (scriptHints(command, info.scriptTexts).reporter)
     dialog.line(`⚠ ${t('commandReporter')}`, 'yellow');
 
-  return { preset, minSeverity, origins, command, runCheck: dialog.interactive && !skipped };
+  return {
+    preset,
+    minSeverity,
+    origins,
+    command,
+    runCheck: dialog.interactive && !skipped,
+    ...(authzOrigins === undefined ? {} : { authzOrigins }),
+  };
 }
 
 /** Words of `text` in lines of at most `width` characters. */

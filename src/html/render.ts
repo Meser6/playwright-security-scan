@@ -4,6 +4,7 @@
 // script adds tabs, filters, sorting, the finding dialog, deep links and copying. Styles and script are build-time
 // constants with their SHA-256 hashes for the Content-Security-Policy. Structure copied from
 // playwright-performance-regression (src/html/render.ts, MIT, D-08).
+import { authzTab } from './authz.ts';
 import { context } from './context.ts';
 import type { Ctx, HtmlReportInput } from './context.ts';
 import { coverageTab, runTab } from './coverage.ts';
@@ -19,7 +20,7 @@ import { REPORTS_DOCS_URL, REPOSITORY_URL, badge, join } from './parts.ts';
 export const PACKAGE_NAME = 'playwright-security-scan';
 
 /** Tabs in their order (09-REQ-17, item 4). */
-export type TabId = 'findings' | 'coverage' | 'run';
+export type TabId = 'findings' | 'coverage' | 'authz' | 'run';
 
 interface Tab {
   id: TabId;
@@ -44,7 +45,7 @@ function header(ctx: Ctx): SafeHtml {
     html`<header class="appbar"><div class="wrap">`,
     html`<p class="brand">${logo()}<b>${PACKAGE_NAME}</b> <span class="ver">v${r.pkgVersion}</span></p>`,
     html`<div class="meta" role="group" aria-label="Run details" tabindex="0">`,
-    chip('play', html`mode <b>${r.mode}</b> · passive`),
+    chip('play', html`mode <b>${r.mode}</b> · ${r.authz == null ? 'passive' : 'passive + authz'}`),
     // A merged run (17-REQ-12, 09-REQ-22).
     r.shards == null
       ? null
@@ -95,6 +96,20 @@ function tabs(ctx: Ctx): Tab[] {
       note: 'What the scan saw, and what it could not check.',
       content: coverageTab(ctx),
     },
+    // Only with the authorization tests (18-REQ-21).
+    ...(r.authz == null
+      ? []
+      : [
+          {
+            id: 'authz' as const,
+            label: 'Authorization',
+            count: r.authz.matrix.filter((m) => m.result === 'bypassed').length,
+            tone: r.authz.matrix.some((m) => m.result === 'bypassed') ? 'bad' : '',
+            failing: 0,
+            note: 'GET/HEAD requests of the tests replayed as other roles and without a session.',
+            content: authzTab(ctx),
+          },
+        ]),
     {
       id: 'run',
       label: 'Run & config',

@@ -76,6 +76,7 @@ function baseReport(findings: ClassifiedFinding[]): RunReport {
     finishedAt: '2026-11-24T20:05:00.000Z',
     mode: 'scan',
     shards: null,
+    authz: null,
     pkgVersion: '0.2.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test', 'https://api.shop.test'] },

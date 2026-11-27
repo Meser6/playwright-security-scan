@@ -11,12 +11,23 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
+import {
+  authzBannerText,
+  authzCheckText,
+  decidedResult,
+  planReplays,
+  resultOf,
+  rolesOf,
+} from '../core/authz/plan.ts';
+import type { Plan, ProjectInfo, Role } from '../core/authz/plan.ts';
+import { TEMPLATES_ATTACHMENT } from '../core/authz/types.ts';
+import type { AuthzRunData, RequestTemplate, TemplatesAttachment } from '../core/authz/types.ts';
+import { authzHash } from '../collector/templates.ts';
 import { classify, parseBaseline } from '../core/baseline/index.ts';
 import { enabledCustomRuleCount, enabledRuleCount, resolveConfig } from '../core/config/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { addCoverage, emptyCoverage, sortCoverage } from '../core/coverage.ts';
 import { compareTests, dedupeRun } from '../core/fingerprint/index.ts';
-import { RULE_IDS } from '../core/manifest/rules.ts';
 import {
   asciiTerminal,
   colorEnabled,
@@ -34,7 +45,14 @@ import type {
   TestContextRef,
 } from '../core/types/index.ts';
 import { ATTACHMENT_NAME } from '../collector/test-collector.ts';
-import { CHECK_SKIP_REASON, readMaxTests, readMode, RUN_ID_ENV } from '../mode/index.ts';
+import {
+  CHECK_SKIP_REASON,
+  readAuthzEnv,
+  readMaxTests,
+  readMode,
+  RUN_ID_ENV,
+  SALT_ENV,
+} from '../mode/index.ts';
 import type { ScanMode } from '../mode/index.ts';
 import { removeCheckState } from '../collector/check-skip.ts';
 import { formatCheck } from '../core/report/check.ts';
@@ -42,7 +60,7 @@ import type { CheckOrigin } from '../core/report/check.ts';
 import { getRegistered } from '../registry/index.ts';
 import { VERSION } from '../version.ts';
 import { readCiInfo } from './ci-info.ts';
-import { finishRun, today } from './finish.ts';
+import { finishRun, KNOWN_RULE_IDS, today } from './finish.ts';
 import type { RunData } from './finish.ts';
 import { isPartialRun } from './partial.ts';
 import {
@@ -76,6 +94,8 @@ export default class SecurityReporter implements Reporter {
   /** Check (04-REQ-12): the last result of each test and the tests with API traffic. */
   readonly #results = new Map<string, { status: TestResult['status']; byCheck: boolean }>();
   readonly #withApi = new Set<string>();
+  /** Request templates of the authorization tests (18-REQ-13). */
+  readonly #templates: RequestTemplate[] = [];
 
   constructor(options: ReporterOptions = {}) {
     this.#write = options.write ?? ((line) => process.stdout.write(`${line}\n`));
@@ -137,6 +157,30 @@ export default class SecurityReporter implements Reporter {
     return isAbsolute(path) ? path : resolve(this.#configDir(), path);
   }
 
+  /** Projects of the Playwright config for the roles (18-REQ-07). */
+  #projects(): (ProjectInfo & { ignoreHTTPSErrors: boolean })[] {
+    const state = getRegistered();
+    const scanned = state?.scannedProjects;
+    const all = state === undefined || state.config.scope.projects === 'all';
+    return (this.#config?.projects ?? []).map((p) => {
+      const use = p.use as { storageState?: unknown; ignoreHTTPSErrors?: boolean };
+      return {
+        name: p.name,
+        storageState: typeof use.storageState === 'string' ? use.storageState : undefined,
+        scanned: all || (scanned ?? []).includes(p.name),
+        ignoreHTTPSErrors: use.ignoreHTTPSErrors === true,
+      };
+    });
+  }
+
+  /** The authorization tests of this run: null when authz.enabled is off (18-REQ-05). */
+  #authz(sec: ResolvedSecurityConfig): { on: boolean; offByEnv: boolean; roles: Role[] } | null {
+    if (!sec.authz.enabled) return null;
+    const env = readAuthzEnv(process.env);
+    const offByEnv = env.ok && env.off;
+    return { on: !offByEnv, offByEnv, roles: rolesOf(this.#projects(), sec.authz) };
+  }
+
   onBegin(config: FullConfig, suite: Suite): void {
     this.#config = config;
     this.#suite = suite;
@@ -179,6 +223,17 @@ export default class SecurityReporter implements Reporter {
           entries = 0;
         }
       }
+      const authz = this.#authz(sec);
+      if (authz?.on === true && authz.roles.length === 0) {
+        const w: Diagnostic = {
+          code: 'AUTHZ_NO_ROLES',
+          level: 'warn',
+          message:
+            'authz: no project with storageState: only unauthenticated access is tested (docs/authz.md)',
+        };
+        this.#diag(w);
+        notes.push(w);
+      }
       const shard = mode === 'check' ? null : config.shard;
       const reportFile =
         shard !== null ? shardFileName(shard) : sec.report.html ? 'report.html' : 'report.json';
@@ -196,6 +251,10 @@ export default class SecurityReporter implements Reporter {
           reportPath: `${sec.report.dir.replace(/[\\/]+$/, '')}/${reportFile}`,
           notes,
           shard,
+          authz:
+            authz === null
+              ? undefined
+              : { on: authz.on, text: authzBannerText(authz.roles, sec.authz, authz.offByEnv) },
         },
         this.#terminal,
       );
@@ -232,6 +291,10 @@ export default class SecurityReporter implements Reporter {
         byCheck: annotations.some((a) => a.description === CHECK_SKIP_REASON),
       });
       for (const a of result.attachments) {
+        if (a.name === TEMPLATES_ATTACHMENT) {
+          this.#readTemplates(a, test);
+          continue;
+        }
         if (a.name !== ATTACHMENT_NAME) continue;
         const text =
           a.body !== undefined
@@ -268,15 +331,80 @@ export default class SecurityReporter implements Reporter {
     }
   }
 
-  onEnd(result: FullResult): Promise<{ status?: FullResult['status'] } | undefined> {
+  /** Templates of one test attempt (02-REQ-07); a later attempt does not add a key twice. */
+  #readTemplates(a: TestResult['attachments'][number], test: TestCase): void {
     try {
-      return Promise.resolve(this.#finish(result));
+      const text =
+        a.body !== undefined
+          ? a.body.toString('utf8')
+          : a.path !== undefined
+            ? readFileSync(a.path, 'utf8')
+            : '';
+      const doc = JSON.parse(text) as TemplatesAttachment;
+      if (Array.isArray(doc.templates)) this.#templates.push(...doc.templates);
+    } catch {
+      this.#diag({
+        code: 'ATTACHMENT_INVALID',
+        level: 'warn',
+        message: `the request templates of "${test.title}" could not be read`,
+        testId: test.id,
+      });
+    }
+  }
+
+  async onEnd(result: FullResult): Promise<{ status?: FullResult['status'] } | undefined> {
+    try {
+      return await this.#finish(result);
     } catch (error) {
       this.#write(
         `pw-sec: internal error: ${error instanceof Error ? error.message : String(error)}`,
       );
-      return Promise.resolve({ status: 'failed' });
+      return { status: 'failed' };
     }
+  }
+
+  /** The replay plan of this run (18-REQ-14). */
+  #plan(sec: ResolvedSecurityConfig, roles: readonly Role[]): Plan {
+    return planReplays(this.#templates, roles, this.#coverage.authzObserved ?? {}, sec);
+  }
+
+  /**
+   * The replays after the tests (18, chapter 7): the module that sends requests is loaded only
+   * here (18-REQ-06). Null when the tests are off.
+   */
+  async #replay(sec: ResolvedSecurityConfig, result: FullResult): Promise<AuthzRunData | null> {
+    const authz = this.#authz(sec);
+    if (authz === null || !authz.on) return null;
+    const plan = this.#plan(sec, authz.roles);
+    const data: AuthzRunData = {
+      roles: authz.roles.map(({ headers: _h, ...r }) => r),
+      templates: plan.templates,
+      budget: { maxRequests: sec.authz.maxRequests, used: 0, exceeded: false },
+      results: [],
+      notes: plan.notes,
+    };
+    const toSend = plan.replays.filter((p) => p.decided === undefined).length;
+    if (result.status === 'interrupted' || toSend === 0) {
+      data.results = plan.replays.map(
+        (p) => decidedResult(p) ?? resultOf(p, { result: 'skipped', reason: 'interrupted' }),
+      );
+      return data;
+    }
+    const salt = process.env[SALT_ENV] ?? getRegistered()?.salt ?? '';
+    const { sendReplays } = await import('../active/index.ts');
+    const out = await sendReplays(plan, {
+      authz: sec.authz,
+      roles: authz.roles,
+      projects: this.#projects(),
+      runId: process.env[RUN_ID_ENV] ?? getRegistered()?.runId ?? '',
+      hash: authzHash(salt),
+      configDir: this.#configDir(),
+      maxBodyBytes: sec.limits.maxBodyBytes,
+      diagnostic: (d) => this.#diag(d),
+    });
+    data.results = out.results;
+    data.budget = { maxRequests: sec.authz.maxRequests, used: out.used, exceeded: out.exceeded };
+    return data;
   }
 
   /** A check (04, chapter 4c): no file is written and the exit code stays Playwright's. */
@@ -299,7 +427,7 @@ export default class SecurityReporter implements Reporter {
       const parsed = parseBaseline(
         readFileSync(baselinePath, 'utf8'),
         baselineName,
-        new Set(RULE_IDS),
+        KNOWN_RULE_IDS,
         enabled,
       );
       for (const d of parsed.diagnostics) this.#diag(d);
@@ -338,6 +466,12 @@ export default class SecurityReporter implements Reporter {
       documents: coverage.origins[origin]?.documents ?? 0,
     }));
     const max = readMaxTests(process.env);
+    // 18-REQ-19: the plan of the authorization tests, without sending a request.
+    const authz = this.#authz(sec);
+    const authzLine =
+      authz === null
+        ? undefined
+        : authzCheckText(authz.roles, sec.authz, this.#plan(sec, authz.roles), authz.offByEnv);
     const lines = formatCheck(
       {
         shard: this.#config?.shard ?? null,
@@ -357,21 +491,28 @@ export default class SecurityReporter implements Reporter {
         newAboveGate: classified.filter((f) => f.classification === 'new' && f.blocking).length,
         minSeverity: sec.gate.minSeverity,
         diagnostics: [...this.#diagnostics.values()].filter((d) => d.code !== 'SCOPE_EMPTY'),
+        authz: authzLine,
       },
       this.#terminal,
     );
     for (const line of lines) this.#write(line);
   }
 
-  #finish(result: FullResult): { status?: FullResult['status'] } | undefined {
+  async #finish(result: FullResult): Promise<{ status?: FullResult['status'] } | undefined> {
     const { config: sec, mode, scope } = this.#settings();
     if (mode === 'check') {
       this.#finishCheck(sec, scope);
       return undefined;
     }
+    let authz: AuthzRunData | null = null;
+    try {
+      authz = await this.#replay(sec, result);
+    } catch (error) {
+      this.#toolError('the authorization tests', error);
+    }
     const shard = this.#config?.shard ?? null;
-    if (shard !== null) return this.#finishShard(result, sec, mode, scope, shard);
-    const out = finishRun(this.#runData(result), {
+    if (shard !== null) return this.#finishShard(result, sec, mode, scope, shard, authz);
+    const out = finishRun(this.#runData(result, authz), {
       config: sec,
       mode,
       scope,
@@ -390,13 +531,14 @@ export default class SecurityReporter implements Reporter {
     return out.code === 0 ? undefined : { status: 'failed' };
   }
 
-  #runData(result: FullResult): RunData {
+  #runData(result: FullResult, authz: AuthzRunData | null): RunData {
     return {
       findings: this.#findings,
       coverage: this.#coverage,
       diagnostics: [...this.#diagnostics.values()],
       testsWithoutTraffic: [...this.#withoutTraffic.values()],
       testsPassed: result.status === 'passed',
+      authz,
     };
   }
 
@@ -410,6 +552,7 @@ export default class SecurityReporter implements Reporter {
     mode: 'scan' | 'baseline',
     scope: string[],
     shard: { current: number; total: number },
+    authz: AuthzRunData | null,
   ): { status?: FullResult['status'] } | undefined {
     const dir = this.#path(sec.report.dir);
     const file = join(dir, shardFileName(shard));
@@ -451,7 +594,7 @@ export default class SecurityReporter implements Reporter {
       coverage: sortCoverage(this.#coverage),
       testsWithoutTraffic: [...this.#withoutTraffic.values()].sort(compareTests),
       diagnostics: [...this.#diagnostics.values()],
-      authz: null,
+      authz,
     };
     let written = false;
     try {

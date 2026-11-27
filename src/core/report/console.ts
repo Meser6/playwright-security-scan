@@ -45,6 +45,8 @@ export interface BannerInput {
   notes: Diagnostic[];
   /** A shard run (17-REQ-04): the title says so and reportPath is the shard file. */
   shard?: { current: number; total: number } | null;
+  /** The Authz row (04-REQ-06, 18-REQ-05); unset when authz.enabled is off. */
+  authz?: { text: string; on: boolean } | undefined;
 }
 
 /** The box of errors (red) or warnings (yellow) with the count in the title (04-REQ-07). */
@@ -77,7 +79,10 @@ function issueBox(
 /** The start banner (04, chapter 3; 04-REQ-06), one string per line. */
 export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
   const rows: [string, string][] = [
-    ['Mode', `${b.mode} · passive only`],
+    [
+      'Mode',
+      `${b.mode} · ${b.authz?.on === true ? 'passive + authorization tests (GET/HEAD replays)' : 'passive only'}`,
+    ],
     [
       'Scope',
       b.scope.length === 0 ? '(none: set use.baseURL or scope.origins)' : b.scope.join(', '),
@@ -98,6 +103,7 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
       'Baseline',
       `${b.baselinePath} (${b.baselineEntries === null ? 'not found' : plural(b.baselineEntries, 'entry', 'entries')})`,
     ],
+    ...(b.authz === undefined ? [] : [['Authz', b.authz.text] as [string, string]]),
     ['Report', b.mode === 'check' ? 'nothing is written (check)' : b.reportPath],
   ];
   const icon = opts.ascii ? '' : '🔒 ';

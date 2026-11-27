@@ -36,6 +36,8 @@ in a light and a dark theme:
 - **Coverage**: responses in and out of scope, origins, endpoints, tests without traffic, rules
   that had nothing to check, resolved and not covered baseline entries, and what the scan does
   not cover;
+- **Authorization** (only with [authorization tests](authz.md)): roles, replays, the budget and a
+  matrix of endpoints by role pair; a `bypassed` cell opens its finding;
 - **Run & config**: the run, the enabled rules with their preset, the resolved configuration and
   the diagnostics.
 

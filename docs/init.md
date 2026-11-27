@@ -34,7 +34,13 @@ The wizard shows its steps as `[1/8]` to `[8/8]`.
 3. **Gate**: the lowest severity of a new finding that fails the scan (`medium`).
 4. **Origins of your app**: the scope is the origin of `use.baseURL`; the step shows it and the
    other `http(s)://` origins written in your sources (without analytics, fonts and CDNs) and
-   asks which ones to add to `scope.origins`, for example an API on another host.
+   asks which ones to add to `scope.origins`, for example an API on another host. Then it asks
+   whether to switch on the [authorization tests](authz.md) (default **no**; no question without a
+   terminal) and lists the projects with a literal `storageState` (your roles). "yes" writes
+   `authz.enabled: true` and `authz.allowedOrigins` with the origins of this step to a new
+   `pw-sec.config.*`, leaving out origins that look like production (`www.`, `prod`, a domain
+   without a subdomain), and prints a manual step for the second user of one role that the IDOR
+   test needs.
 5. **Test command**: the command you usually run your tests with (`npx playwright test` or the
    only script that runs `playwright test`). The wizard never changes it; it puts `PW_SEC_MODE`
    in front of it in the commands at the end and uses it for the check. `skip` keeps the

@@ -26,6 +26,7 @@ import { isAbsolute, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isLocalOrigin } from './scope.ts';
 import type { Scope } from './scope.ts';
+import type { TemplateCollector } from './templates.ts';
 
 export const ATTACHMENT_NAME = 'pw-sec-findings';
 /** Maximum attachment size (02-REQ-05). */
@@ -88,6 +89,8 @@ export class TestCollector {
   #jar: Omit<CookieView, 'value'>[] = [];
   #sequence = 0;
   readonly #loginPath: RegExp;
+  /** Request templates of the authorization tests (05-REQ-28); unset when they are off. */
+  templates: TemplateCollector | undefined;
 
   constructor(options: TestCollectorOptions) {
     this.options = options;
@@ -367,6 +370,32 @@ export class TestCollector {
 
   diagnostics(): Diagnostic[] {
     return [...this.#diagnostics.values()];
+  }
+
+  /**
+   * The templates attachment (02-REQ-07), or null; call it before attachment(), which carries
+   * its diagnostic and the observed map (18-REQ-13).
+   */
+  templatesAttachment(): string | null {
+    const templates = this.templates;
+    if (templates === undefined) return null;
+    const out = templates.attachment();
+    if (Object.keys(templates.observed).length > 0) {
+      this.coverage.authzObserved = Object.fromEntries(
+        Object.entries(templates.observed).map(([k, v]) => [
+          k,
+          { roles: [...v.roles].sort(), public: v.public },
+        ]),
+      );
+    }
+    if (out?.truncated === true) {
+      this.diagnostic(
+        'AUTHZ_TEMPLATES_TRUNCATED',
+        'info',
+        'authz: the request templates of this test exceeded 512 KB; the templates with the longest digests were dropped',
+      );
+    }
+    return out?.body ?? null;
   }
 
   /** The attachment (02-REQ-05): at most 256 KB, else one evidence item per finding. */

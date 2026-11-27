@@ -41,6 +41,8 @@ export interface CheckInput {
   newAboveGate: number;
   minSeverity: string;
   diagnostics: Diagnostic[];
+  /** The Authz line of 18-REQ-19; unset when authz.enabled is off. */
+  authz?: string | undefined;
 }
 
 function issueBox(level: 'error' | 'warn', list: Diagnostic[], opts: TerminalOptions): string[] {
@@ -162,6 +164,7 @@ export function formatCheck(c: CheckInput, opts: TerminalOptions): string[] {
       'Findings',
       `${c.findings} in this check; ${c.newAboveGate} new ≥ ${c.minSeverity} against the baseline`,
     ],
+    ...(c.authz === undefined ? [] : [['Authz', c.authz] as [string, string]]),
   ];
   lines.push(
     ...table(

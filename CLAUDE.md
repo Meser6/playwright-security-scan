@@ -11,8 +11,9 @@ Storage), with a catalog of passive security rules. Findings are deduplicated by
 compared with a baseline file committed to the user's repository (`security-baseline.json`), and
 only new findings above the gate fail the run. Reports: console, JSON, HTML, SARIF, JUnit XML.
 
-The MVP is strictly passive: the package never sends a request of its own and never modifies the
-test's requests (P-04).
+The package is passive by default: it never sends a request of its own and never modifies the
+test's requests (P-04). The only exception is opt-in: the authorization tests (`authz.enabled`)
+replay GET/HEAD requests after the tests, from `src/active/` (loaded with `import()` only then).
 
 ## Specification
 
@@ -43,8 +44,9 @@ test's requests (P-04).
 
 ## Hard constraints
 
-- No runtime dependencies, no telemetry, no network calls, no install/lifecycle scripts.
-- The package never sends requests and never calls `route()` (P-04).
+- No runtime dependencies, no telemetry, no install/lifecycle scripts.
+- The package never calls `route()` and sends requests only from `src/active/`, which is loaded
+  only with `authz.enabled` (P-04 v0.4): GET/HEAD to `authz.allowedOrigins`, never production.
 - `src/core/` is pure: no imports from Node built-ins or Playwright; deterministic output.
 - Response bodies never leave the worker; every evidence snippet is redacted (P-07). No cookie,
   token or secret value may reach any file.

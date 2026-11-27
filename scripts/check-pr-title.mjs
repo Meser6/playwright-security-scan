@@ -31,6 +31,7 @@ export const SCOPES = [
   'fixture',
   'api',
   'rules',
+  'authz',
   'baseline',
   'reporter',
   'console',

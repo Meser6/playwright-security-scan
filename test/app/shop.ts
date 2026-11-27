@@ -79,6 +79,26 @@ export const APP_RULES = [
  */
 export const CUSTOM_SWITCHES = ['custom.request-id-missing'] as const;
 
+/**
+ * Deliberate authorization bugs (18, chapter 11): an IDOR on GET /api/invoices/:id, GET
+ * /api/me/orders without a session and GET /api/admin/users for a customer. None = secure mode.
+ */
+export const AUTHZ_SWITCHES = [
+  'authz.unauthenticated-access',
+  'authz.horizontal',
+  'authz.vertical',
+] as const;
+
+/** Users of the authorization endpoints: session id → user (18, chapter 11). */
+export const AUTHZ_USERS = {
+  admin: { session: 'AdmS3ss10nV4lue8Hq2LxZp', email: 'admin@shop.example', role: 'admin' },
+  bob: { session: 'B0bS3ss10nV4lue5Kd9WmQr', email: 'bob@shop.example', role: 'customer' },
+  carol: { session: 'C4r0lS3ss10nV4lue2Np7Yt', email: 'carol@shop.example', role: 'customer' },
+} as const;
+
+/** Invoices: id → owner. */
+const INVOICES: Record<string, keyof typeof AUTHZ_USERS> = { '101': 'bob', '202': 'carol' };
+
 /** Rules that cannot be reproduced by the app, with the reason (06-AC-01 exceptions). */
 export const NOT_REPRODUCIBLE: Record<string, string> = {
   'transport.weak-tls':
@@ -96,6 +116,8 @@ export interface Shop {
   partnerUrl: string;
   /** A CDN: another origin whose script is not allowed (asset.unexpected-third-party). */
   cdnUrl: string;
+  /** Requests with the x-pw-sec-probe header per server (18-AC-04). */
+  probes: { app: number; partner: number };
   close(): Promise<void>;
 }
 
@@ -159,7 +181,12 @@ function escapeHtml(text: string): string {
 }
 
 /** The request handler of the app for one set of switches. */
-function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: string) {
+function appHandler(
+  vulns: ReadonlySet<string>,
+  ports: () => Ports,
+  build: string,
+  probes: { app: number; partner: number },
+) {
   // The bundle name carries a build hash, like a bundler output (07-AC-02).
   const bundle = `app.${createHash('sha256').update(build).digest('hex').slice(0, 8)}.js`;
   const on = (rule: AppRule): boolean => vulns.has(rule);
@@ -279,10 +306,84 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
     return h;
   };
 
+  /** The user of an authorization session cookie, if any (18, chapter 11). */
+  const userOf = (req: IncomingMessage): keyof typeof AUTHZ_USERS | undefined => {
+    const sid = /(?:^|;\s*)sid=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
+    return (Object.keys(AUTHZ_USERS) as (keyof typeof AUTHZ_USERS)[]).find(
+      (u) => AUTHZ_USERS[u].session === sid,
+    );
+  };
+  const authzOn = (s: string): boolean => vulns.has(s);
+
+  /** The authorization endpoints; true when the request was one of them. */
+  const authzRoute = (req: IncomingMessage, res: ServerResponse, path: string): boolean => {
+    if (path === '/api/authz/login' && req.method === 'POST') {
+      const user = new URL(req.url ?? '/', 'https://shop.test').searchParams.get('user');
+      const known = (Object.keys(AUTHZ_USERS) as string[]).includes(user ?? '');
+      if (!known) {
+        json(res, 400, { error: 'unknown user' });
+        return true;
+      }
+      const session = AUTHZ_USERS[user as keyof typeof AUTHZ_USERS].session;
+      json(
+        res,
+        200,
+        { ok: true },
+        {
+          'set-cookie': `sid=${session}; Path=/; Secure; HttpOnly; SameSite=Lax`,
+        },
+      );
+      return true;
+    }
+    const invoice = /^\/api\/invoices\/(\d+)$/.exec(path)?.[1];
+    if (invoice !== undefined && req.method === 'GET') {
+      const user = userOf(req);
+      const owner = INVOICES[invoice];
+      if (user === undefined) json(res, 401, { error: 'sign in' });
+      else if (owner === undefined || (owner !== user && !authzOn('authz.horizontal')))
+        json(res, 404, { error: 'not found' });
+      else
+        json(res, 200, {
+          id: Number(invoice),
+          owner: AUTHZ_USERS[owner].email,
+          total: 120,
+          lines: [{ sku: 'TEA-1', qty: 2 }],
+        });
+      return true;
+    }
+    if (path === '/api/me/orders' && req.method === 'GET') {
+      // The bug: without a session the endpoint falls back to the first customer.
+      const user = userOf(req) ?? (authzOn('authz.unauthenticated-access') ? 'bob' : undefined);
+      if (user === undefined) json(res, 401, { error: 'sign in' });
+      else
+        json(res, 200, {
+          email: AUTHZ_USERS[user].email,
+          orders: [{ id: user === 'bob' ? 7 : 9, status: 'shipped', total: 45 }],
+        });
+      return true;
+    }
+    if (path === '/api/admin/users' && req.method === 'GET') {
+      const user = userOf(req);
+      if (user === undefined) json(res, 401, { error: 'sign in' });
+      else if (AUTHZ_USERS[user].role !== 'admin' && !authzOn('authz.vertical'))
+        json(res, 403, { error: 'forbidden' });
+      else
+        json(res, 200, {
+          users: (Object.keys(AUTHZ_USERS) as (keyof typeof AUTHZ_USERS)[]).map((u) => ({
+            name: u,
+            role: AUTHZ_USERS[u].role,
+          })),
+        });
+      return true;
+    }
+    return false;
+  };
+
   return (req: IncomingMessage, res: ServerResponse): void => {
     const url = new URL(req.url ?? '/', 'https://shop.test');
     const path = url.pathname;
     const { partner, http, cdn } = ports();
+    if (req.headers['x-pw-sec-probe'] !== undefined) probes.app += 1;
     // For the custom rule of test/projects/shop (16-AC-01); no built-in rule reads it.
     if (
       path.startsWith('/api/') &&
@@ -297,6 +398,7 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
       res.end();
       return;
     }
+    if (authzRoute(req, res, path)) return;
     switch (path) {
       case '/favicon.ico':
         res.writeHead(204, common());
@@ -495,8 +597,9 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
 }
 
 /** The partner site: a page calling the app API cross-origin, a library and redirect targets. */
-function partnerHandler(ports: () => Ports) {
+function partnerHandler(ports: () => Ports, probes: { app: number; partner: number }) {
   return (req: IncomingMessage, res: ServerResponse): void => {
+    if (req.headers['x-pw-sec-probe'] !== undefined) probes.partner += 1;
     const path = new URL(req.url ?? '/', 'https://partner.test').pathname;
     const base = { 'x-content-type-options': 'nosniff' };
     if (path === '/lib.js') {
@@ -506,6 +609,17 @@ function partnerHandler(ports: () => Ports) {
         'access-control-allow-origin': '*',
       });
       res.end(LIB_JS);
+      return;
+    }
+    if (path === '/api/partner-data') {
+      // An in-scope GET of another origin for the origin checks of 18-AC-04.
+      res.writeHead(200, {
+        ...base,
+        'content-type': 'application/json',
+        'access-control-allow-origin': ports().app,
+        'access-control-allow-credentials': 'true',
+      });
+      res.end(JSON.stringify({ partner: true, items: [1, 2, 3] }));
       return;
     }
     if (path === '/partner') {
@@ -567,7 +681,8 @@ export async function startShop(
   for (const rule of set) {
     if (
       !(APP_RULES as readonly string[]).includes(rule) &&
-      !(CUSTOM_SWITCHES as readonly string[]).includes(rule)
+      !(CUSTOM_SWITCHES as readonly string[]).includes(rule) &&
+      !(AUTHZ_SWITCHES as readonly string[]).includes(rule)
     )
       throw new Error(`the test app has no switch ${rule}`);
   }
@@ -577,12 +692,13 @@ export async function startShop(
     cert: readFileSync(join(certs, 'cert.pem')),
   };
   let ports: Ports = { app: '', http: '', partner: '', cdn: '' };
-  const handler = appHandler(set, () => ports, options.build ?? '1');
+  const probes = { app: 0, partner: 0 };
+  const handler = appHandler(set, () => ports, options.build ?? '1', probes);
   const app = createHttpsServer(tls, handler);
   const plain = createServer(httpHandler(handler));
   const partner = createHttpsServer(
     tls,
-    partnerHandler(() => ports),
+    partnerHandler(() => ports, probes),
   );
   const cdn = createHttpsServer(tls, cdnHandler());
   const [appPort, httpPort, partnerPort, cdnPort] = await Promise.all([
@@ -604,6 +720,7 @@ export async function startShop(
     httpUrl: ports.http,
     partnerUrl: ports.partner,
     cdnUrl: ports.cdn,
+    probes,
     async close() {
       for (const s of servers) s.closeAllConnections();
       await Promise.all(servers.map((s) => new Promise((r) => s.close(r))));

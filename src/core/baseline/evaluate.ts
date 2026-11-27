@@ -129,6 +129,8 @@ export function resolveEntries(
   findings: readonly Finding[],
   coverage: Coverage,
   enabledRules: ReadonlySet<string>,
+  /** Authorization pairs replayed with a denial or another answer in this run (18-REQ-17). */
+  authzPassed: ReadonlySet<string> = new Set(),
 ): { resolved: EntryRef[]; notCovered: EntryRef[] } {
   const seen = new Set(findings.map((f) => f.fingerprint));
   const resolved: EntryRef[] = [];
@@ -139,6 +141,11 @@ export function resolveEntries(
     if (seen.has(fingerprint)) continue;
     const ref = { fingerprint, ruleId: entry.ruleId, subject: entry.subject };
     const { scope } = parseFingerprint(fingerprint);
+    if (entry.ruleId.startsWith('authz.')) {
+      if (enabledRules.has(entry.ruleId) && authzPassed.has(fingerprint)) resolved.push(ref);
+      else notCovered.push(ref);
+      continue;
+    }
     if (enabledRules.has(entry.ruleId) && covered(entry.subject, scope, coverage, entry.ruleId))
       resolved.push(ref);
     else notCovered.push(ref);

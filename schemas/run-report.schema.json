@@ -12,6 +12,7 @@
     "finishedAt",
     "mode",
     "shards",
+    "authz",
     "pkgVersion",
     "playwrightVersion",
     "scope",
@@ -71,6 +72,17 @@
               }
             }
           }
+        }
+      ]
+    },
+    "authz": {
+      "description": "Authorization tests of the run (18-REQ-21); null when they are off.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/authzSummary"
         }
       ]
     },
@@ -159,6 +171,73 @@
     }
   },
   "$defs": {
+    "authzSummary": {
+      "title": "AuthzSummary",
+      "description": "Roles, replays and the role matrix of the authorization tests (18-REQ-21).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roles", "templates", "replays", "budget", "skipped", "matrix"],
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "projects", "level"],
+            "properties": {
+              "name": { "type": "string" },
+              "projects": { "type": "array", "items": { "type": "string" } },
+              "level": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }] }
+            }
+          }
+        },
+        "templates": {
+          "description": "Request templates after the deduplication by endpoint key and project.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "replays": {
+          "description": "Requests sent.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxRequests", "used", "exceeded"],
+          "properties": {
+            "maxRequests": { "type": "integer", "minimum": 1 },
+            "used": { "type": "integer", "minimum": 0 },
+            "exceeded": { "type": "boolean" }
+          }
+        },
+        "skipped": {
+          "description": "Replays not sent, by reason (18, chapter 12a).",
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["endpointKey", "from", "as", "result"],
+            "properties": {
+              "endpointKey": { "type": "string" },
+              "from": { "description": "Role of the original request.", "type": "string" },
+              "as": {
+                "description": "Role of the replay; anonymous without a session.",
+                "type": "string"
+              },
+              "result": { "enum": ["enforced", "bypassed", "different", "public", "skipped"] },
+              "reason": { "type": "string" },
+              "similarity": { "type": "number", "minimum": 0, "maximum": 1 },
+              "fingerprint": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "classifiedFinding": {
       "title": "ClassifiedFinding",
       "description": "A finding of the run with its classification against the baseline (08, chapter 3).",
