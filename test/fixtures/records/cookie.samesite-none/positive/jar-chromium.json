@@ -1,0 +1,25 @@
+{
+  "title": "cookie jar of Chromium: None is set by the server",
+  "input": {
+    "kind": "cookie-jar",
+    "missingSameSite": "Lax",
+    "cookies": [
+      {
+        "name": "sid",
+        "value": "abc123",
+        "domain": "app.test",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "None",
+        "expires": -1,
+        "origin": "https://app.test"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "sid@app.test"
+    }
+  ]
+}

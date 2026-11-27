@@ -68,6 +68,15 @@ const sameSite = (value: string): CookieView['sameSite'] =>
   value === 'Strict' || value === 'None' ? value : 'Lax';
 
 /**
+ * What the jar of this engine says for a cookie without SameSite (05-REQ-23): Chromium applies
+ * Lax by default, Firefox and WebKit report None.
+ */
+export function missingSameSite(context: BrowserContext): 'Lax' | 'None' {
+  const engine = context.browser()?.browserType().name();
+  return engine === 'firefox' || engine === 'webkit' ? 'None' : 'Lax';
+}
+
+/**
  * End-of-test scan of one context before it closes (05-REQ-23 … 05-REQ-25): the cookie jar of
  * in-scope hosts and Web Storage of every open in-scope page. Values stay in the worker (P-07).
  */
@@ -95,7 +104,12 @@ export async function scanContext(
         expires: c.expires,
       }));
     if (cookies.length > 0) {
-      collector.analyzeEvent({ kind: 'cookie-jar', cookies, context: collector.test });
+      collector.analyzeEvent({
+        kind: 'cookie-jar',
+        cookies,
+        context: collector.test,
+        missingSameSite: missingSameSite(context),
+      });
     }
     if (!storageScan) return;
     const seen = new Set<string>();

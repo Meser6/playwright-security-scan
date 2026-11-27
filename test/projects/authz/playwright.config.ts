@@ -7,6 +7,8 @@ import type { SecurityConfigInput } from 'playwright-security-scan/config';
 // AUTHZ=1 turns the tests on; AUTHZ_MAX_REQUESTS sets the budget; PARTNER_URL is in the scan scope
 // but not in authz.allowedOrigins (18-AC-04).
 const app = process.env.APP_URL ?? '';
+// TEST_BROWSER: firefox or webkit in the informational browser cells of CI (10-AC-01).
+const browser = (process.env.TEST_BROWSER ?? 'chromium') as 'chromium' | 'firefox' | 'webkit';
 const authz: SecurityConfigInput['authz'] =
   process.env.AUTHZ === '1'
     ? {
@@ -36,7 +38,7 @@ export default withSecurity(
     testDir: './tests',
     workers: 2,
     reporter: [['json', { outputFile: 'results.json' }]],
-    use: { baseURL: app, ignoreHTTPSErrors: true },
+    use: { baseURL: app, ignoreHTTPSErrors: true, browserName: browser },
     projects: [
       { name: 'setup', testMatch: /auth\.setup\.ts/ },
       role('admin', 'admin'),

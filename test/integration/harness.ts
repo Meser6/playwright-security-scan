@@ -42,6 +42,8 @@ export interface TestResult {
   project: string;
   title: string;
   status: string;
+  /** First line of the first error of a failed attempt, for assertion messages. */
+  error?: string;
   /** The pw-sec-findings attachment, parsed; null when the test has none. */
   attachment: TestAttachment | null;
   /** The pw-perf-samples attachment of the perf package, parsed; null when none. */
@@ -117,7 +119,11 @@ interface JsonSuite {
     title: string;
     tests: {
       projectName: string;
-      results: { status: string; attachments: { name: string; body?: string; path?: string }[] }[];
+      results: {
+        status: string;
+        error?: { message?: string };
+        attachments: { name: string; body?: string; path?: string }[];
+      }[];
     }[];
   }[];
 }
@@ -151,6 +157,7 @@ function readResults(path: string): TestResult[] {
             project: t.projectName,
             title: spec.title,
             status: r.status,
+            ...(r.error?.message === undefined ? {} : { error: r.error.message.split('\n')[0] }),
             attachment,
             perf,
           });

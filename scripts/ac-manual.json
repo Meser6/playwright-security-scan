@@ -3,19 +3,19 @@
   "criteria": [
     {
       "id": "09-AC-01",
-      "how": "Schema validation is automatic (test/contract/sarif-junit.test.ts); the upload with github/codeql-action/upload-sarif is checked by hand before the release."
+      "how": "Schema validation is automatic (test/contract/sarif-junit.test.ts). The manual upload check with github/codeql-action/upload-sarif was dropped from the plan by the owner on 2026-11-27; covered by the automatic check only."
     },
     {
       "id": "09-AC-04",
-      "how": "Structure checked automatically; display in GitLab (artifacts:reports:junit) and Azure DevOps (PublishTestResults@2) checked by hand before the release, result in test/corpus/ci.md."
+      "how": "Structure checked automatically (test/contract/sarif-junit.test.ts). The manual display check in GitLab and Azure DevOps was dropped from the plan by the owner on 2026-11-27; covered by the automatic check only."
     },
     {
       "id": "11-AC-08",
-      "how": "Before releasing create-playwright-security-scan: in a clean Playwright project (npm and pnpm) run npm init playwright-security-scan@next and pnpm create playwright-security-scan@next; the package lands in devDependencies and the wizard starts. Needs the published packages; the create script itself is tested in test/integration/create.test.ts."
+      "how": "The create script is tested in test/integration/create.test.ts. The manual run of the published packages in a clean project was dropped from the plan by the owner on 2026-11-27."
     },
     {
       "id": "09-AC-10",
-      "how": "Side-by-side screenshots of the perf and the security HTML report on the example project, light and dark theme, attached to the pull request of the report work package."
+      "how": "Side-by-side screenshots of the perf and the security HTML report on the example project, light and dark theme, attached to the pull request of the report work package. Accepted by the owner on 2026-11-27."
     }
   ]
 }

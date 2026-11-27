@@ -1,0 +1,21 @@
+{
+  "title": "cookie jar of Firefox or WebKit: None is the default for a cookie without SameSite (05-REQ-23)",
+  "input": {
+    "kind": "cookie-jar",
+    "missingSameSite": "None",
+    "cookies": [
+      {
+        "name": "sid",
+        "value": "abc123",
+        "domain": "app.test",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "None",
+        "expires": -1,
+        "origin": "https://app.test"
+      }
+    ]
+  },
+  "expect": []
+}
