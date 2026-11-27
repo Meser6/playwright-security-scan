@@ -12,6 +12,10 @@
     {
       "id": "11-AC-08",
       "how": "Before releasing create-playwright-security-scan: in a clean Playwright project (npm and pnpm) run npm init playwright-security-scan@next and pnpm create playwright-security-scan@next; the package lands in devDependencies and the wizard starts. Needs the published packages; the create script itself is tested in test/integration/create.test.ts."
+    },
+    {
+      "id": "09-AC-10",
+      "how": "Side-by-side screenshots of the perf and the security HTML report on the example project, light and dark theme, attached to the pull request of the report work package."
     }
   ]
 }

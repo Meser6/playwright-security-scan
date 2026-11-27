@@ -101,6 +101,10 @@ describe('reporter (04, 08, 09)', () => {
       expect(fail.output).toContain('Next: PW_SEC_MODE=baseline npx playwright test');
       expect(fail.output).toContain('FAILED  NEW_FINDINGS (code 1)');
       expect(fail.output).toContain(`Report: ${join(dir, 'reports/pw-sec/report.html')}`);
+      // The HTML report lists the tests of a finding from the Playwright test tree (09, 3.7).
+      const html = readFileSync(join(dir, 'reports/pw-sec/report.html'), 'utf8');
+      expect(html).toContain('first seen');
+      expect(html).toMatch(/<code>tests\/(api|e2e)\.spec\.ts:\d+<\/code> › /u);
       const summary = fail.output.slice(fail.output.lastIndexOf('─'.repeat(40)));
       expect(summary.trim().split('\n').length).toBeLessThanOrEqual(30);
     },
