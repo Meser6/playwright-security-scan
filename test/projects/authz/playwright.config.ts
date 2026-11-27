@@ -6,6 +6,8 @@ import type { SecurityConfigInput } from 'playwright-security-scan/config';
 // users, the projects admin, customer and customer2 use their storageState, guest has none.
 // AUTHZ=1 turns the tests on; AUTHZ_MAX_REQUESTS sets the budget; PARTNER_URL is in the scan scope
 // but not in authz.allowedOrigins (18-AC-04).
+// TEST_BROWSER: firefox or webkit in the informational browser cells of CI (10-AC-01).
+const browser = (process.env.TEST_BROWSER ?? 'chromium') as 'chromium' | 'firefox' | 'webkit';
 const app = process.env.APP_URL ?? '';
 const authz: SecurityConfigInput['authz'] =
   process.env.AUTHZ === '1'
@@ -28,7 +30,7 @@ const role = (name: string, user: string) => ({
   name,
   testMatch: new RegExp(`${name}\\.spec\\.ts`),
   dependencies: ['setup'],
-  use: { storageState: `.auth/${user}.json` },
+  use: { browserName: browser, storageState: `.auth/${user}.json` },
 });
 
 export default withSecurity(
@@ -42,7 +44,7 @@ export default withSecurity(
       role('admin', 'admin'),
       role('customer', 'bob'),
       role('customer2', 'carol'),
-      { name: 'guest', testMatch: /guest\.spec\.ts/ },
+      { name: 'guest', testMatch: /guest\.spec\.ts/, use: { browserName: browser } },
     ],
   }),
   {
