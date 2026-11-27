@@ -62,7 +62,8 @@ describe('init wizard on a real project (11, chapter 7)', () => {
       const text = out.join('');
       expect(code, text).toBe(0);
       expect(runs).toBe(1);
-      expect(text).toContain('$ PW_SEC_MODE=check npx playwright test');
+      // On Windows the command is shown with npx cross-env in front.
+      expect(text).toMatch(/\$ (?:npx cross-env )?PW_SEC_MODE=check npx playwright test/u);
       expect(text).toMatch(/READY\b/u);
       expect(text).toContain('check run: exit code 0');
       expect(text).toContain("The scan sees your app's traffic.");
