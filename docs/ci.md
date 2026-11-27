@@ -140,6 +140,56 @@ on:
     - cron: '0 5 * * 1-5'
 ```
 
+## Nightly attack run
+
+The [attack mode](attack.md) sends attacks to your app, so it belongs in a nightly (or manual) job
+against an environment your team may attack, never in pull requests. On `ubuntu-latest` Docker is
+there and the ZAP container reaches the app the job starts on `localhost`:
+
+```yaml
+name: Nightly attack
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write # upload-sarif
+
+jobs:
+  attack:
+    runs-on: ubuntu-latest
+    # At least attack.maxDurationMinutes plus the time of the tests.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: docker pull zaproxy/zap-stable
+      - run: npm run start:test & npx wait-on http://localhost:3000
+      - run: npx playwright test
+        env:
+          PW_SEC_MODE: attack
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: reports/pw-sec/results.sarif
+          category: pw-sec-attack
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pw-sec-attack
+          path: reports/pw-sec/
+```
+
+`attack.allowedOrigins` in `pw-sec.config.ts` lists `http://localhost:3000`, the app of the job.
+Review new `zap.*` findings, then accept them with an `attack-baseline` run (or by hand in
+`security-baseline.json`) like any other finding.
+
 ## Sharded runs
 
 A large suite often runs on several machines with Playwright's `--shard=i/n`. Each shard then sees

@@ -9,8 +9,23 @@ export const REMOVED_ENV_ENV = 'PW_SEC_ENV';
 export const RUN_ID_ENV = 'PW_SEC_RUN_ID';
 export const SALT_ENV = 'PW_SEC_RUN_SALT';
 
-export type ScanMode = 'scan' | 'baseline' | 'check';
-const MODES = ['scan', 'baseline', 'check'] as const;
+export type ScanMode = 'scan' | 'baseline' | 'check' | 'attack' | 'attack-baseline';
+const MODES = ['scan', 'baseline', 'check', 'attack', 'attack-baseline'] as const;
+/** A mode that ends the run in finishRun(): every mode but check. */
+export type RunMode = Exclude<ScanMode, 'check'>;
+
+/** The ZAP API key of attack.zapUrl (19, chapter 4): never in the config, never in a report. */
+export const ZAP_API_KEY_ENV = 'PW_SEC_ZAP_API_KEY';
+
+/** attack and attack-baseline run the ZAP active scan after the tests (19-REQ-01). */
+export function isAttackMode(mode: ScanMode | null): mode is 'attack' | 'attack-baseline' {
+  return mode === 'attack' || mode === 'attack-baseline';
+}
+
+/** The passive mode an attack mode works like: attack → scan, attack-baseline → baseline. */
+export function passiveMode(mode: RunMode): 'scan' | 'baseline' {
+  return mode === 'attack' ? 'scan' : mode === 'attack-baseline' ? 'baseline' : mode;
+}
 /** Tests of a check (04-REQ-10). */
 export const MAX_TESTS_ENV = 'PW_SEC_MAX_TESTS';
 export const DEFAULT_MAX_TESTS = 10;

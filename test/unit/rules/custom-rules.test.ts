@@ -501,6 +501,7 @@ describe('baseline and reports (16-REQ-11, 16-REQ-12)', () => {
       mode: 'scan',
       shards: null,
       authz: null,
+      attack: null,
       pkgVersion: '0.0.0',
       playwrightVersion: '1.57.0',
       scope: { origins: ['https://app.test'] },

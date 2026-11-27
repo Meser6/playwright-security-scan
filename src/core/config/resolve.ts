@@ -1,4 +1,6 @@
 // Resolution of the package config: defaults, presets (06, chapter 3) and per-rule settings.
+import { resolveAttack } from '../attack/config.ts';
+import type { ResolvedAttack } from '../attack/config.ts';
 import { resolveAuthz } from '../authz/config.ts';
 import { AUTHZ_MANIFEST } from '../authz/manifest.ts';
 import { adaptCustomRule } from '../custom/adapt.ts';
@@ -16,7 +18,7 @@ import type {
   RuleSetting,
   SecurityConfigInput,
 } from './types.ts';
-import { validateConfig } from './validate.ts';
+import { validateConfig, ZAP_RULE_ID } from './validate.ts';
 
 /** Severity and enablement of a rule in a preset (06, chapter 3). */
 export function presetRule(rule: RuleManifest, preset: Preset): ResolvedRule {
@@ -72,6 +74,17 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
     };
     rules[rule.id] = setting === undefined ? base : applySetting(base, setting);
   }
+  // zap.<pluginId> settings (19-REQ-09): kept apart from the rules, the alert gives the defaults.
+  const zapRules: ResolvedAttack['rules'] = {};
+  for (const [id, setting] of Object.entries(i.rules ?? {})) {
+    if (!ZAP_RULE_ID.test(id) || setting === undefined) continue;
+    const s = setting as RuleSetting;
+    zapRules[id] = {
+      enabled: s !== 'off',
+      ...(typeof s === 'object' && s.severity !== undefined ? { severity: s.severity } : {}),
+      ...(typeof s === 'object' && s.confidence !== undefined ? { confidence: s.confidence } : {}),
+    };
+  }
   const reportDir = i.report?.dir ?? DEFAULTS.report.dir;
   return {
     ok: true,
@@ -91,6 +104,7 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
       },
       normalization: resolveNormalization(i.normalization),
       authz: resolveAuthz(i.authz),
+      attack: { ...resolveAttack(i.attack), rules: zapRules },
     },
   };
 }

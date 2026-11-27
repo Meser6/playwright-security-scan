@@ -1,6 +1,8 @@
 // The rules of a run: the built-in catalog, then the custom rules in the order of rules.custom
 // (16-REQ-07).
+import { zapRulesOf } from '../attack/rules.ts';
 import { AUTHZ_RULES } from '../authz/rules.ts';
+import type { AttackSummary } from '../types/index.ts';
 import type { ResolvedSecurityConfig } from '../config/index.ts';
 import { adaptCustomRule } from '../custom/adapt.ts';
 import type { Rule as CustomRule } from '../custom/define.ts';
@@ -33,7 +35,9 @@ export function rulesOf(
  */
 export function reportRulesOf(
   config: Pick<ResolvedSecurityConfig, 'customRules' | 'authz'>,
+  attack?: AttackSummary | null,
 ): readonly BuiltInRule[] {
   const rules = rulesOf(config);
-  return config.authz.enabled ? [...rules, ...AUTHZ_RULES] : rules;
+  // zap.* rules of an attack run (19-REQ-10): described by the alerts of the run.
+  return [...rules, ...(config.authz.enabled ? AUTHZ_RULES : []), ...zapRulesOf(attack)];
 }

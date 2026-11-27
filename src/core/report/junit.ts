@@ -16,6 +16,8 @@ const GROUPS: RuleGroup[] = [
   'auth',
   'cache',
   'custom',
+  'authz',
+  'zap',
 ];
 
 /** XML text: escapes markup and drops characters XML 1.0 does not allow. */

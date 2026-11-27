@@ -161,6 +161,18 @@ export class Redactor {
    * control characters are replaced; the result is at most MAX_SNIPPET characters.
    */
   text(input: string): string {
+    return truncate(this.#redact(input), MAX_SNIPPET);
+  }
+
+  /**
+   * The filter of text() without the length limit, for request bodies of attack templates
+   * (19 chapter 11a): they are sent to ZAP whole.
+   */
+  full(input: string): string {
+    return this.#redact(input);
+  }
+
+  #redact(input: string): string {
     const kept: string[] = [];
     // Protect placeholders written earlier.
     // Control characters first: the markers below are control characters themselves.
@@ -200,7 +212,7 @@ export class Redactor {
     );
     // eslint-disable-next-line no-control-regex
     text = text.replace(/\u0001(\d+)\u0001/g, (_m, i: string) => kept[Number(i)] ?? '');
-    return truncate(text, MAX_SNIPPET);
+    return text;
   }
 
   /** A snippet of `text` around [index, index + length) (07-REQ-14), redacted. */

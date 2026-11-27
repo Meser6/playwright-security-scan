@@ -38,8 +38,8 @@
       "description": "SHARD_WRITTEN: a shard run wrote its shard file (17-REQ-03)."
     },
     "mode": {
-      "description": "Mode of the run (scan or baseline; also of a shard or a merge).",
-      "enum": ["scan", "baseline"]
+      "description": "Mode of the run (scan, baseline, attack or attack-baseline; also of a shard or a merge).",
+      "enum": ["scan", "baseline", "attack", "attack-baseline"]
     },
     "shard": {
       "description": "Shard i/n of a shard run (17-REQ-03); null otherwise, also for a merge.",

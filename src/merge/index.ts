@@ -247,6 +247,7 @@ export function combineShards(shards: readonly ShardFile[]): {
       testsWithoutTraffic: [...withoutTraffic.values()],
       testsPassed: shards.every((s) => s.status === 'passed'),
       authz: combineAuthz(shards.map((s) => s.authz)),
+      attack: null,
     },
     tests,
     list: shards.map((s) => ({

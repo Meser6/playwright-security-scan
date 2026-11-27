@@ -2,6 +2,10 @@
 // authz.allowedOrigins with a 2xx answer, without credential values, and a salted digest of the
 // answer. Only made when the authorization tests are on; bodies never leave the worker (P-07).
 import { createHash } from 'node:crypto';
+import { BODY_METHODS, templateBody } from '../core/attack/body.ts';
+import { attackOriginAllowed } from '../core/attack/config.ts';
+import type { ResolvedAttack } from '../core/attack/config.ts';
+import type { AttackTemplate } from '../core/attack/types.ts';
 import { excludeMatcher, isLogoutPath } from '../core/authz/config.ts';
 import type { ResolvedAuthz } from '../core/authz/config.ts';
 import { digestResponse } from '../core/authz/digest.ts';
@@ -14,6 +18,7 @@ import {
 } from '../core/authz/types.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { isSensitiveHeader, SENSITIVE_PARAMS } from '../core/fingerprint/redact.ts';
+import type { Redactor } from '../core/fingerprint/redact.ts';
 import { NON_SESSION_COOKIES, SESSION_NAME_PATTERN } from '../core/manifest/rules.ts';
 import { SESSION_PARAM_NAMES } from '../core/manifest/rules.ts';
 import { isSessionCookie } from '../core/rules/cookies.ts';
@@ -166,23 +171,139 @@ export class TemplateCollector {
     });
   }
 
-  /**
-   * The pw-sec-templates attachment (02-REQ-07), at most 512 KB: the templates with the longest
-   * digests are dropped first (18-REQ-13). Null without templates.
-   */
-  attachment(): { body: string; truncated: boolean } | null {
-    const templates = [...this.#templates.values()];
-    if (templates.length === 0) return null;
-    const doc: TemplatesAttachment = { schemaVersion: 1, templates };
-    let body = JSON.stringify(doc);
-    if (Buffer.byteLength(body) <= MAX_TEMPLATES_BYTES) return { body, truncated: false };
-    const size = (t: RequestTemplate): number => JSON.stringify(t).length;
-    const kept = [...templates].sort((a, b) => size(a) - size(b));
-    while (kept.length > 0) {
-      kept.pop();
-      body = JSON.stringify({ schemaVersion: 1, templates: kept });
-      if (Buffer.byteLength(body) <= MAX_TEMPLATES_BYTES) break;
-    }
-    return { body, truncated: true };
+  list(): RequestTemplate[] {
+    return [...this.#templates.values()];
   }
+}
+
+export interface AttackTemplateOptions {
+  config: ResolvedSecurityConfig;
+  test: TestContextRef;
+  redactor: Redactor;
+}
+
+/**
+ * Request templates of the attack mode (19-REQ-03, 19 chapter 11a): methods of attack.methods,
+ * origins of attack.allowedOrigins, status < 400, without credentials and without digests; bodies
+ * of POST/PUT/PATCH/DELETE only of known types and redacted.
+ */
+export class AttackTemplateCollector {
+  readonly #attack: ResolvedAttack;
+  readonly #options: AttackTemplateOptions;
+  readonly #excluded: (key: string) => boolean;
+  readonly #tokenParams: Set<string>;
+  readonly #methods: Set<string>;
+  readonly #templates = new Map<string, AttackTemplate>();
+
+  constructor(options: AttackTemplateOptions) {
+    this.#options = options;
+    this.#attack = options.config.attack;
+    this.#excluded = excludeMatcher(this.#attack.exclude);
+    this.#methods = new Set(this.#attack.methods);
+    const paramNames = options.config.rules['data.token-in-url']?.options.paramNames;
+    this.#tokenParams = new Set(
+      [
+        ...SENSITIVE_PARAMS,
+        ...SESSION_PARAM_NAMES,
+        ...(Array.isArray(paramNames) ? (paramNames as string[]) : []),
+      ].map((n) => n.toLowerCase()),
+    );
+  }
+
+  /** A record the attack wants (19-REQ-03); the caller checked the scope. */
+  wants(
+    record: Pick<ResponseRecord, 'method' | 'status' | 'origin' | 'source' | 'resourceType'>,
+  ): boolean {
+    if (!this.#methods.has(record.method)) return false;
+    if (record.status < 200 || record.status >= 400) return false;
+    if (record.source === 'browser' && !BROWSER_TYPES.has(record.resourceType)) return false;
+    return attackOriginAllowed(record.origin, this.#attack);
+  }
+
+  /** Adds the record of a wanted request; `requestBody` is the body the test sent, if known. */
+  add(
+    record: ResponseRecord,
+    requestBody: string | null | undefined,
+    bodyType?: string | undefined,
+  ): void {
+    if (!this.wants(record) || this.#templates.has(record.endpointKey)) return;
+    let url: URL;
+    try {
+      url = new URL(record.url);
+    } catch {
+      return;
+    }
+    if (this.#excluded(record.endpointKey) || isLogoutPath(url.pathname)) return;
+    for (const name of url.searchParams.keys())
+      if (this.#tokenParams.has(name.toLowerCase())) return;
+    const headers = templateHeaders(record.requestHeaders);
+    const contentType =
+      record.requestHeaders.find((h) => h.name === 'content-type')?.value ?? bodyType;
+    const body = BODY_METHODS.has(record.method)
+      ? templateBody(requestBody, contentType, this.#options.config.limits.maxBodyBytes, {
+          redactor: this.#options.redactor,
+          names: this.#tokenParams,
+        })
+      : undefined;
+    this.#templates.set(record.endpointKey, {
+      method: record.method,
+      url: record.url,
+      // Without a kept body the content type would describe a body ZAP does not get.
+      headers:
+        body === undefined
+          ? headers.filter((h) => h.name !== 'content-type')
+          : headers.some((h) => h.name === 'content-type') || contentType === undefined
+            ? headers
+            : [...headers, { name: 'content-type', value: contentType }],
+      ...(body === undefined ? {} : { body }),
+      endpointKey: record.endpointKey,
+      origin: record.origin,
+      project: this.#options.test.project,
+      source: record.source,
+      context: this.#options.test,
+    });
+  }
+
+  list(): AttackTemplate[] {
+    return [...this.#templates.values()];
+  }
+}
+
+/**
+ * The pw-sec-templates attachment (02-REQ-07) of both lists, at most 512 KB together: the longest
+ * entries are dropped first (18-REQ-13, 19 chapter 11a). Null without templates.
+ */
+export function templatesAttachmentBody(
+  authz: readonly RequestTemplate[],
+  attack: readonly AttackTemplate[] | undefined,
+): { body: string; authzTruncated: boolean; attackTruncated: boolean } | null {
+  if (authz.length === 0 && (attack === undefined || attack.length === 0)) return null;
+  const doc = (a: readonly RequestTemplate[], b: readonly AttackTemplate[] | undefined): string =>
+    JSON.stringify({
+      schemaVersion: 1,
+      templates: a,
+      ...(b === undefined ? {} : { attack: b }),
+    } satisfies TemplatesAttachment);
+  let body = doc(authz, attack);
+  if (Buffer.byteLength(body) <= MAX_TEMPLATES_BYTES)
+    return { body, authzTruncated: false, attackTruncated: false };
+  type Entry = { kind: 'authz' | 'attack'; size: number; t: RequestTemplate | AttackTemplate };
+  const entries: Entry[] = [
+    ...authz.map((t) => ({ kind: 'authz' as const, size: JSON.stringify(t).length, t })),
+    ...(attack ?? []).map((t) => ({ kind: 'attack' as const, size: JSON.stringify(t).length, t })),
+  ].sort((a, b) => a.size - b.size);
+  let authzTruncated = false;
+  let attackTruncated = false;
+  while (entries.length > 0) {
+    const dropped = entries.pop() as Entry;
+    if (dropped.kind === 'authz') authzTruncated = true;
+    else attackTruncated = true;
+    const keep = new Set(entries.map((e) => e.t));
+    body = doc(
+      authz.filter((t) => keep.has(t)),
+      attack?.filter((t) => keep.has(t)),
+    );
+    if (Buffer.byteLength(body) <= MAX_TEMPLATES_BYTES) break;
+  }
+  return { body, authzTruncated, attackTruncated };
 }

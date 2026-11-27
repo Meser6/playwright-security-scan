@@ -89,6 +89,12 @@ export const AUTHZ_SWITCHES = [
   'authz.vertical',
 ] as const;
 
+/**
+ * Deliberate injection bugs for the ZAP attack mode (19-AC-01): GET /attack/search?q= reflects q without
+ * escaping, GET /api/items?id= answers a SQL syntax error for a quote. None = secure mode.
+ */
+export const ATTACK_SWITCHES = ['attack.xss', 'attack.sql'] as const;
+
 /** Users of the authorization endpoints: session id → user (18, chapter 11). */
 export const AUTHZ_USERS = {
   admin: { session: 'AdmS3ss10nV4lue8Hq2LxZp', email: 'admin@shop.example', role: 'admin' },
@@ -399,6 +405,26 @@ function appHandler(
       return;
     }
     if (authzRoute(req, res, path)) return;
+    // The attack mode endpoints (19-AC-01): escaped and validated without the switches.
+    if (path === '/attack/search' && req.method === 'GET') {
+      const q = url.searchParams.get('q') ?? '';
+      const shown = vulns.has('attack.xss') ? q : escapeHtml(q);
+      page(res, 'Search', `<h1>Results for ${shown}</h1><p>No products found.</p>`);
+      return;
+    }
+    if (path === '/api/items' && req.method === 'GET') {
+      const id = url.searchParams.get('id') ?? '';
+      if (/^\d+$/.test(id)) json(res, 200, { id: Number(id), name: 'Teapot' });
+      else if (vulns.has('attack.sql') && id.includes("'"))
+        send(
+          res,
+          500,
+          'text/plain',
+          `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '${id}' at line 1`,
+        );
+      else json(res, 400, { error: 'id must be a number' });
+      return;
+    }
     switch (path) {
       case '/favicon.ico':
         res.writeHead(204, common());
@@ -682,7 +708,8 @@ export async function startShop(
     if (
       !(APP_RULES as readonly string[]).includes(rule) &&
       !(CUSTOM_SWITCHES as readonly string[]).includes(rule) &&
-      !(AUTHZ_SWITCHES as readonly string[]).includes(rule)
+      !(AUTHZ_SWITCHES as readonly string[]).includes(rule) &&
+      !(ATTACK_SWITCHES as readonly string[]).includes(rule)
     )
       throw new Error(`the test app has no switch ${rule}`);
   }

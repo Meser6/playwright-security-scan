@@ -77,6 +77,7 @@ function baseReport(findings: ClassifiedFinding[]): RunReport {
     mode: 'scan',
     shards: null,
     authz: null,
+    attack: null,
     pkgVersion: '0.2.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test', 'https://api.shop.test'] },

@@ -102,7 +102,9 @@ subject: a document of the origin was loaded, the endpoint key was called, the o
 cookie responded, the asset was loaded, or the storage of the origin was scanned. Otherwise the
 entry is **not covered**: the tests did not go there, so the package cannot tell. An entry of an
 [authorization test](authz.md#results) (`authz.*`) is resolved only when the run replayed its role
-pair on its endpoint and got a denial or another answer.
+pair on its endpoint and got a denial or another answer. An entry of the
+[attack mode](attack.md#findings) (`zap.*`) is resolved only by an attack run whose ZAP scan
+completed within the budget and covered its endpoint; `scan` and `baseline` runs never remove it.
 
 - A `scan` run only reports resolved entries (`→ 1 baseline entry resolved — run baseline mode to
 remove it`); it never changes the file.
