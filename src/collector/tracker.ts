@@ -29,7 +29,8 @@ export class ResponseTracker {
   readonly #detach: (() => void)[] = [];
   /** Responses with headers but no requestfinished yet: their bodies are still arriving. */
   readonly #awaiting = new Set<Request>();
-  #nextId = 1;
+  /** Order of the responses within the test (06, chapter 4.14). */
+  readonly #order = new WeakMap<Request, number>();
   #accepting = true;
 
   constructor(context: BrowserContext, collector: TestCollector, keys: KeyBuilder) {
@@ -48,7 +49,9 @@ export class ResponseTracker {
       );
     };
     const onResponse = (response: Response): void => {
-      awaiting.add(response.request());
+      const request = response.request();
+      awaiting.add(request);
+      this.#order.set(request, this.#collector.nextSequence());
     };
     const onFinished = (request: Request): void => {
       awaiting.delete(request);
@@ -161,7 +164,7 @@ export class ResponseTracker {
     }
     const record: ResponseRecord = {
       kind: 'response',
-      id: this.#nextId++,
+      id: this.#order.get(request) ?? collector.nextSequence(),
       source: 'browser',
       method: request.method().toUpperCase(),
       url,
@@ -181,6 +184,16 @@ export class ResponseTracker {
     if (!inScope) {
       collector.analyzeOutOfScope(record);
       return;
+    }
+    // The end-of-test input (05-REQ-27): no values, only hashes and the CSRF signal.
+    if (collector.wantsTraffic) {
+      let postData: string | null;
+      try {
+        postData = request.postData();
+      } catch {
+        postData = null;
+      }
+      collector.addTraffic(record, postData);
     }
     if (resourceType === 'document' && url.startsWith('https:')) {
       const details = await response.securityDetails().catch(() => null);

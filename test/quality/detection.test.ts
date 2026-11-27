@@ -16,7 +16,28 @@ const COMPANIONS: Record<string, string[]> = {
   'cors.wildcard-credentials': ['cors.wildcard-sensitive'],
   // The stack trace comes with a 500.
   'disclosure.stack-trace': ['disclosure.server-error'],
+  // A session cookie without SameSite=Lax/Strict posts the subscribe form cross-site.
+  'cookie.samesite-missing': ['browser.csrf-missing'],
+  'cookie.samesite-none': ['browser.csrf-missing'],
+  'browser.csrf-missing': ['cookie.samesite-missing'],
+  // The JSON error has a Node stack and a 500 (10-REQ-08).
+  'disclosure.verbose-error-json': ['disclosure.server-error', 'disclosure.stack-trace'],
 };
+
+/** The rules of v3 (06, chapter 4.13). */
+const V3_RULES = [
+  'auth.session-fixation',
+  'auth.session-in-url',
+  'cache.sensitive-cacheable',
+  'browser.csrf-missing',
+  'asset.unexpected-third-party',
+  'data.pii-in-url',
+  'data.card-number',
+  'cookie.broad-domain',
+  'disclosure.internal-hostname',
+  'disclosure.verbose-error-json',
+  'browser.password-form-get',
+] as const;
 
 let harness: Harness;
 let run: ProjectRun;
@@ -51,7 +72,7 @@ const ruleIdsOf = (project: string): string[] =>
 
 describe('rule quality on the reference app (10, chapter 3)', () => {
   test('every test of every instance passes', () => {
-    expect(run.results.length, run.output.slice(-2000)).toBe(12 * (APP_RULES.length + 1));
+    expect(run.results.length, run.output.slice(-2000)).toBe(13 * (APP_RULES.length + 1));
     expect(
       run.results.filter((r) => r.status !== 'passed').map((r) => `${r.project}: ${r.title}`),
     ).toEqual([]);
@@ -75,7 +96,36 @@ describe('rule quality on the reference app (10, chapter 3)', () => {
     });
   });
 
-  test('07-AC-03 S-07 09-AC-03 no secret of the app is in any output file or attachment', () => {
+  describe('06-AC-04 every v3 rule gives its finding with its switch and none in the secure mode', () => {
+    test.each(V3_RULES.map((rule) => [rule]))('%s', (rule) => {
+      expect(ruleIdsOf(rule)).toContain(rule);
+      expect(ruleIdsOf('secure')).not.toContain(rule);
+    });
+  });
+
+  test('06-AC-05 auth.session-fixation: renewing the session id at login gives no finding, keeping it does (Chromium)', () => {
+    const fixation = findingsOf('auth.session-fixation').filter(
+      (f) => f.ruleId === 'auth.session-fixation',
+    );
+    expect(fixation.map((f) => f.fingerprint.split('|').slice(0, 2).join('|'))).toContain(
+      'auth.session-fixation|cookie',
+    );
+    expect(fixation[0]?.subject).toMatch(/^sid@/);
+    expect(findingsOf('secure').filter((f) => f.ruleId === 'auth.session-fixation')).toEqual([]);
+  });
+
+  test('07-AC-04 personal data is redacted in every evidence, also of rules unrelated to it', () => {
+    const stack = findingsOf('disclosure.stack-trace').find(
+      (f) => f.ruleId === 'disclosure.stack-trace',
+    );
+    expect(stack?.evidence.map((e) => e.snippet).join(' ')).toMatch(/\[email sha256:[0-9a-f]{6}\]/);
+    const card = findingsOf('data.card-number').find((f) => f.ruleId === 'data.card-number');
+    expect(card?.evidence.map((e) => e.snippet).join(' ')).toMatch(
+      /\[card visa sha256:[0-9a-f]{6}\]/,
+    );
+  });
+
+  test('07-AC-03 07-AC-04 S-07 09-AC-03 no secret or personal data of the app is in any output file or attachment', () => {
     const files = [
       ...filesUnder(join(run.dir, 'reports')),
       ...filesUnder(join(run.dir, 'test-results')),

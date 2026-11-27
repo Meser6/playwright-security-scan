@@ -1,0 +1,38 @@
+{
+  "title": "SameSite=Lax",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "POST /api/login",
+        "method": "POST",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token",
+            "secure": true,
+            "httpOnly": true,
+            "sameSite": "Lax"
+          }
+        ]
+      },
+      {
+        "endpointKey": "POST /subscribe",
+        "method": "POST",
+        "status": 303,
+        "contentType": "application/x-www-form-urlencoded",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": []
+}

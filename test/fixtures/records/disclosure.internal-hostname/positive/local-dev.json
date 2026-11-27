@@ -1,0 +1,23 @@
+{
+  "title": "on localhost the confidence is low",
+  "input": {
+    "url": "https://app.test/api/config",
+    "resourceType": "xhr",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"printer\":\"printer-2.corp\"}"
+  },
+  "context": {
+    "localDev": true
+  },
+  "expect": [
+    {
+      "discriminator": "corp",
+      "confidence": "low"
+    }
+  ]
+}

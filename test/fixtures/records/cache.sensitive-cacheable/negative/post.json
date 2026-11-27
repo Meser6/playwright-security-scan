@@ -1,0 +1,21 @@
+{
+  "title": "not a GET",
+  "input": {
+    "url": "https://app.test/api/order",
+    "method": "POST",
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "cookie",
+        "value": "sid=Zq8xK2mP9vL4tR7wY1nB3c; theme=dark"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": []
+}

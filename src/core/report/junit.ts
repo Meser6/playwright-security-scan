@@ -13,6 +13,8 @@ const GROUPS: RuleGroup[] = [
   'data',
   'disclosure',
   'browser',
+  'auth',
+  'cache',
   'custom',
 ];
 

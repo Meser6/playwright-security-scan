@@ -1,0 +1,12 @@
+{
+  "title": "e-mail in the query",
+  "input": {
+    "url": "https://app.test/account?email=alice%40example.com&tab=1"
+  },
+  "expect": [
+    {
+      "subject": "GET /account?email&tab",
+      "discriminator": "email"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "title": "Kubernetes service in a header",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      },
+      {
+        "name": "x-upstream",
+        "value": "orders-api.shop.svc.cluster.local:8080"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "GET /api/me",
+      "discriminator": "svc.cluster.local",
+      "location": {
+        "header": "x-upstream"
+      }
+    }
+  ]
+}

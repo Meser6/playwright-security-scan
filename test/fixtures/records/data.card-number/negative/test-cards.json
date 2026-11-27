@@ -1,0 +1,15 @@
+{
+  "title": "known test cards",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"a\":\"4242 4242 4242 4242\",\"b\":\"4111111111111111\",\"c\":\"5555555555554444\",\"d\":\"3782 822463 10005\"}"
+  },
+  "expect": []
+}

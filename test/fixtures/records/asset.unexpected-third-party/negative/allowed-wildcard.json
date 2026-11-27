@@ -1,0 +1,12 @@
+{
+  "title": "allowed by a wildcard pattern",
+  "input": {
+    "url": "https://js.partner.test/lib.js",
+    "resourceType": "script",
+    "frameUrl": "https://app.test/"
+  },
+  "options": {
+    "allowedScriptOrigins": ["https://*.partner.test"]
+  },
+  "expect": []
+}

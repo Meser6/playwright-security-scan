@@ -1,0 +1,15 @@
+{
+  "title": "the app itself is on an internal host",
+  "input": {
+    "url": "https://shop.internal/api/config",
+    "resourceType": "xhr",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"db\":\"db01.internal\"}"
+  },
+  "expect": []
+}

@@ -1,0 +1,16 @@
+{
+  "title": "empty values",
+  "input": {
+    "url": "https://app.test/api/x",
+    "resourceType": "fetch",
+    "status": 500,
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"error\":\"boom\",\"stack\":\"\",\"trace\":[]}"
+  },
+  "expect": []
+}

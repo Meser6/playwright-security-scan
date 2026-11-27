@@ -167,6 +167,8 @@ class TestScan {
   async finishAll(): Promise<void> {
     for (const context of this.#trackers.keys()) await this.finish(context);
     await drainApi(this.api);
+    // After the final sweep and the drain of every context (05-REQ-27).
+    this.collector.analyzeTestEnd();
   }
 }
 

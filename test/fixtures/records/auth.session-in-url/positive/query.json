@@ -1,0 +1,13 @@
+{
+  "title": "sid query parameter",
+  "input": {
+    "url": "https://app.test/account?sid=8f3a2c91d0e4b7a6",
+    "resourceType": "xhr"
+  },
+  "expect": [
+    {
+      "subject": "GET /account?sid",
+      "discriminator": "sid"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "JSON with a session cookie, no cache-control but last-modified",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "cookie",
+        "value": "sid=Zq8xK2mP9vL4tR7wY1nB3c; theme=dark"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      },
+      {
+        "name": "last-modified",
+        "value": "Wed, 25 Nov 2026 10:00:00 GMT"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "GET /api/me",
+      "confidence": "medium"
+    }
+  ]
+}

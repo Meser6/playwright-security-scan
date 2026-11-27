@@ -26,6 +26,7 @@ export type {
   BrowserEvent,
   BrowserEventKind,
   Confidence,
+  CookieValueClass,
   CookieView,
   Evidence,
   FindingScope,
@@ -36,6 +37,8 @@ export type {
   Severity,
   Source,
   TestContextRef,
+  TestTraffic,
+  TrafficRequest,
 } from '../core/types/index.ts';
 export { parseSetCookie } from '../core/rules/cookies.ts';
 export type { ParsedCookie } from '../core/rules/cookies.ts';

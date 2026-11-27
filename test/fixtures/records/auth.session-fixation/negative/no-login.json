@@ -1,0 +1,45 @@
+{
+  "title": "no login request in the test",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "GET /login",
+        "sentCookies": [],
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token",
+            "sameSite": "Lax",
+            "secure": true,
+            "httpOnly": true
+          }
+        ]
+      },
+      {
+        "endpointKey": "GET /api/me",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      },
+      {
+        "endpointKey": "GET /api/me",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": []
+}

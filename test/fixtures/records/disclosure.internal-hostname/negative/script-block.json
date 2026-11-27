@@ -1,0 +1,14 @@
+{
+  "title": "inline scripts and object properties",
+  "input": {
+    "url": "https://app.test/",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "text/html"
+      }
+    ],
+    "body": "<html><script>var a = config.internal; window.local = 1;</script><p>see config.local</p></html>"
+  },
+  "expect": []
+}

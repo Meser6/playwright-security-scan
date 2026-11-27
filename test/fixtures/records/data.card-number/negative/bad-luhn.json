@@ -1,0 +1,15 @@
+{
+  "title": "wrong check digit",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"card\":\"4539148803437771\"}"
+  },
+  "expect": []
+}

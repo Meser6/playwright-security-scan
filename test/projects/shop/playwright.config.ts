@@ -7,8 +7,16 @@ import { broken, loginCookies, requestId } from './security-rules';
 const browser = (process.env.TEST_BROWSER ?? 'chromium') as 'chromium' | 'firefox' | 'webkit';
 
 // Custom rules (16): SHOP_CUSTOM_RULES=1, with the broken one also SHOP_CUSTOM_THROW=1.
+// The partner script is expected (asset.unexpected-third-party); the CDN script is not.
 const rules: NonNullable<SecurityConfigInput['rules']> = {
   ...(process.env.PW_SEC_PRESET === 'strict' ? { preset: 'strict' as const } : {}),
+  ...(process.env.PARTNER_URL === undefined
+    ? {}
+    : {
+        'asset.unexpected-third-party': {
+          options: { allowedScriptOrigins: [process.env.PARTNER_URL] },
+        },
+      }),
   ...(process.env.SHOP_CUSTOM_RULES === '1'
     ? {
         custom: [

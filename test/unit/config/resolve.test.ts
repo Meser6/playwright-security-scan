@@ -25,10 +25,10 @@ describe('config resolution (03, chapter 4; 06, chapter 3)', () => {
     expect(c.scope.projects).toBe('all');
   });
 
-  test('recommended enables the 44 MVP rules; strict adds the 2 strict-only rules', () => {
-    expect(RULE_MANIFEST).toHaveLength(46);
-    expect(enabledRuleCount(resolved())).toBe(44);
-    expect(enabledRuleCount(resolved({ rules: { preset: 'strict' } }))).toBe(46);
+  test('recommended enables the 44 MVP rules and the 11 rules of v3; strict adds the 2 strict-only rules', () => {
+    expect(RULE_MANIFEST).toHaveLength(57);
+    expect(enabledRuleCount(resolved())).toBe(55);
+    expect(enabledRuleCount(resolved({ rules: { preset: 'strict' } }))).toBe(57);
   });
 
   test('strict raises info to low and low/high to medium; minimal keeps high-confidence rules', () => {

@@ -1,0 +1,12 @@
+{
+  "title": "jsessionid path parameter",
+  "input": {
+    "url": "https://app.test/shop;jsessionid=A1B2C3D4E5F6/cart"
+  },
+  "expect": [
+    {
+      "subject": "GET /shop/cart",
+      "discriminator": "jsessionid"
+    }
+  ]
+}

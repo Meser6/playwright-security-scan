@@ -1,0 +1,24 @@
+{
+  "title": "authorization without a shared-cache directive",
+  "input": {
+    "url": "https://app.test/assets/i18n/en.json",
+    "resourceType": "xhr",
+    "requestHeaders": [
+      {
+        "name": "authorization",
+        "value": "Bearer abc"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      },
+      {
+        "name": "last-modified",
+        "value": "Wed, 25 Nov 2026 10:00:00 GMT"
+      }
+    ]
+  },
+  "expect": []
+}

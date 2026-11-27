@@ -126,10 +126,60 @@ describe('defineRule() and the entry point (16-REQ-01 … 16-REQ-03)', () => {
     ]);
   });
 
-  test('the end-of-test input is not available yet (16, chapter 12a)', () => {
+  test('a custom rule with testEnd gets the end-of-test traffic once per test, without values (16, chapter 12a)', () => {
+    const inputs: string[] = [];
+    const rule = defineRule(
+      definition({
+        id: 'custom.login-count',
+        appliesTo: { testEnd: true },
+        check(input) {
+          inputs.push(input.kind);
+          if (input.kind !== 'test-end') return [];
+          const logins = input.requests.filter((r) => r.isLoginCandidate);
+          return logins.map((r) => ({ subject: r.endpointKey, message: `login ${r.endpointKey}` }));
+        },
+      }),
+    );
+    const c = collector(resolved({ rules: { custom: [rule] } }));
+    expect(c.wantsTraffic).toBe(true);
+    const login = record({
+      source: 'browser',
+      id: c.nextSequence(),
+      method: 'POST',
+      url: 'https://app.test/api/login',
+      endpointKey: 'POST /api/login',
+      resourceType: 'fetch',
+      requestHeaders: [{ name: 'cookie', value: 'sid=Zq8xK2mP9vL4tR7wY1nB3c' }],
+    });
+    c.analyzeRecord(login);
+    c.addTraffic(login, null);
+    expect(inputs).toEqual([]);
+    c.analyzeTestEnd();
+    expect(inputs).toEqual(['test-end']);
+    const found = custom(c);
+    expect(found.map((f) => [f.fingerprint, f.location.origin])).toEqual([
+      ['custom.login-count|endpoint|POST /api/login', 'https://app.test'],
+    ]);
+    // Run once: the traffic is consumed.
+    c.analyzeTestEnd();
+    expect(inputs).toEqual(['test-end']);
+  });
+
+  test('appliesTo.testEnd must be a boolean; testEnd alone is an input', () => {
     expect(() =>
-      defineRule(definition({ appliesTo: { testEnd: true } as RuleDefinition['appliesTo'] })),
+      defineRule(
+        definition({ appliesTo: { testEnd: 'yes' } as unknown as RuleDefinition['appliesTo'] }),
+      ),
     ).toThrow(/testEnd/);
+    expect(() =>
+      defineRule(definition({ appliesTo: { records: false, testEnd: true } })),
+    ).not.toThrow();
+    expect(
+      adaptCustomRule(defineRule(definition({ appliesTo: { testEnd: true } }))).appliesTo,
+    ).toEqual({
+      records: false,
+      testEnd: true,
+    });
   });
 
   test('helpers: headers of either side, Set-Cookie, JWT and the built-in ids', () => {

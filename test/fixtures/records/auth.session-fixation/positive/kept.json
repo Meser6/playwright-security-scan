@@ -1,0 +1,55 @@
+{
+  "title": "session cookie keeps its value across login",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "GET /login",
+        "sentCookies": [],
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token",
+            "sameSite": "Lax",
+            "secure": true,
+            "httpOnly": true
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "endpointKey": "POST /api/login",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      },
+      {
+        "endpointKey": "GET /api/me",
+        "resourceType": "fetch",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "sid@app.test",
+      "location": {
+        "origin": "https://app.test",
+        "endpointKey": "POST /api/login"
+      }
+    }
+  ]
+}

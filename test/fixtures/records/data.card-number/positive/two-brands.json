@@ -1,0 +1,22 @@
+{
+  "title": "Mastercard and Amex",
+  "input": {
+    "url": "https://app.test/api/cards",
+    "resourceType": "xhr",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "[{\"n\":5412751234777778},{\"n\":\"3714-496353-97771\"}]"
+  },
+  "expect": [
+    {
+      "discriminator": "mastercard"
+    },
+    {
+      "discriminator": "amex"
+    }
+  ]
+}

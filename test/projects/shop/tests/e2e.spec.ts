@@ -53,3 +53,27 @@ test('subscribe form', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#subscribe')).toBeVisible();
 });
+
+test('sign-in page, login and subscribe', async ({ page }) => {
+  await page.goto('/login');
+  await expect(page.locator('#login')).toBeVisible();
+  // The bodies are read: a body left unread is cancelled by the next navigation (05-REQ-09).
+  const status = await page.evaluate(async () => {
+    const login = await fetch('/api/login', { method: 'POST' });
+    await login.text();
+    await (await fetch('/api/me')).text();
+    return login.status;
+  });
+  expect(status).toBe(200);
+  await page.goto('/');
+  // The subscribe form posted with its fields (the CSRF token in the secure mode).
+  const subscribed = await page.evaluate(async () => {
+    const form = document.querySelector<HTMLFormElement>('#subscribe');
+    const body = new URLSearchParams();
+    for (const [name, value] of new FormData(form ?? undefined)) body.append(name, String(value));
+    const response = await fetch('/subscribe', { method: 'POST', body });
+    await response.text();
+    return response.ok;
+  });
+  expect(subscribed).toBe(true);
+});

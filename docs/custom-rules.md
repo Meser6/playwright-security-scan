@@ -72,7 +72,7 @@ The start banner then says `Rules  45 enabled (preset recommended, 1 custom)`.
 | `scope`             | yes      | `origin`, `endpoint`, `cookie`, `storage-key` or `asset`: what `subject` is                                          |
 | `check`             | yes      | `(input, ctx) => findings[]`, synchronous and pure                                                                   |
 | `docs`              | yes      | `title`, `why`, `fix`; optional `falsePositives` and `url` (shown in the HTML report and SARIF)                      |
-| `appliesTo`         | no       | `sources`, `resourceTypes`, `records`, `events`, `outOfScope` (below)                                                |
+| `appliesTo`         | no       | `sources`, `resourceTypes`, `records`, `events`, `outOfScope`, `testEnd` (below)                                     |
 | `needsBody`         | no       | `true` or resource types whose response body the rule reads                                                          |
 | `options`           | no       | defaults of the rule options                                                                                         |
 | `cwe`, `owasp`      | no       | e.g. `[200]`, `'A02:2025'`; shown as SARIF tags and in the report                                                    |
@@ -90,11 +90,19 @@ at once (`CONFIG_INVALID_RULE`).
   `requestHeaders`, `responseHeaders` (lowercase names) and `body` when `needsBody` asks for it.
 - `'cookie-jar'`, `'storage'`, `'csp-violation'`: browser events (`BrowserEvent`), only for rules
   with `appliesTo.events`.
+- `'test-end'`: the browser traffic of the whole test (`TestTraffic`), once at the end of the test,
+  only for rules with `appliesTo.testEnd: true`. `requests` lists the in-scope browser requests in
+  the order of their responses (`method`, `endpointKey`, `status`, `isLoginCandidate`,
+  `contentType`, `csrfSignal`, `hasAuthorization`) with the cookies sent and set; cookie values
+  are never there, only a salted `valueHash` (equal within one run) and a `valueClass`
+  (`token`, `words` or `other`). `jarCookies` has the attributes of the cookie jar. Use it for
+  rules about the order of requests, such as a session id that does not change at login.
 
 `appliesTo` selects the input:
 
 - `resourceTypes` and `sources` filter responses; without them a rule sees every response in scope.
 - `events: ['cookie-jar']` makes it an event rule; add `records: true` to also get responses.
+- `testEnd: true` alone makes it an end-of-test rule; add `records: true` to also get responses.
 - `outOfScope: true` also passes responses from origins outside the scan scope (never with a body),
   for example third-party scripts.
 

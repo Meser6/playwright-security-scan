@@ -1,0 +1,25 @@
+{
+  "title": "no cache-control and no freshness: low confidence",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "cookie",
+        "value": "sid=Zq8xK2mP9vL4tR7wY1nB3c"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "subject": "GET /api/me",
+      "confidence": "low"
+    }
+  ]
+}

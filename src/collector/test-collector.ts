@@ -5,9 +5,12 @@ import { dedupeTest, normalizeAssetUrl, toFinding } from '../core/fingerprint/in
 import type { Redactor } from '../core/fingerprint/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { CustomRuleAsyncError } from '../core/custom/adapt.ts';
-import type { BuiltInRule, RuleContext } from '../core/rules/index.ts';
+import { LOGIN_PATH_PATTERN } from '../core/manifest/rules.ts';
+import { cookieValueClass, isDeletion, parseSetCookie } from '../core/rules/cookies.ts';
+import type { BuiltInRule, RuleContext, RuleInput } from '../core/rules/index.ts';
 import type {
   BrowserEvent,
+  CookieView,
   Coverage,
   Diagnostic,
   Finding,
@@ -16,6 +19,8 @@ import type {
   Source,
   TestAttachment,
   TestContextRef,
+  TestTraffic,
+  TrafficRequest,
 } from '../core/types/index.ts';
 import { isAbsolute, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -77,6 +82,12 @@ export class TestCollector {
   readonly #enabled: BuiltInRule[];
   /** Resource types some enabled rule reads the body of (05-REQ-10). */
   readonly bodyTypes: ReadonlySet<string>;
+  /** Some enabled rule reads the end-of-test traffic (05-REQ-27). */
+  readonly wantsTraffic: boolean;
+  readonly #traffic: TrafficRequest[] = [];
+  #jar: Omit<CookieView, 'value'>[] = [];
+  #sequence = 0;
+  readonly #loginPath: RegExp;
 
   constructor(options: TestCollectorOptions) {
     this.options = options;
@@ -84,6 +95,18 @@ export class TestCollector {
       (r) => options.config.rules[r.id]?.enabled === true && !options.cache.offInWorker.has(r.id),
     );
     this.bodyTypes = new Set(this.#enabled.flatMap((r) => r.needsBody ?? []));
+    this.wantsTraffic = this.#enabled.some((r) => r.appliesTo.testEnd === true);
+    const pattern = options.config.rules['auth.session-fixation']?.options.loginPathPattern;
+    this.#loginPath = safeRegExp(
+      typeof pattern === 'string' ? pattern : LOGIN_PATH_PATTERN,
+      LOGIN_PATH_PATTERN,
+    );
+  }
+
+  /** Order of a response within the test, across contexts (06, chapter 4.14). */
+  nextSequence(): number {
+    this.#sequence += 1;
+    return this.#sequence;
   }
 
   get test(): TestContextRef {
@@ -123,7 +146,7 @@ export class TestCollector {
   }
 
   /** Runs one rule with error isolation (05-REQ-15, P-08) and redaction (05-REQ-16). */
-  #run(rule: BuiltInRule, input: ResponseRecord | BrowserEvent, ctx: RuleContext): RawFinding[] {
+  #run(rule: BuiltInRule, input: RuleInput, ctx: RuleContext): RawFinding[] {
     this.coverage.rulesRun[rule.id] = (this.coverage.rulesRun[rule.id] ?? 0) + 1;
     try {
       return rule.check(input, ctx).map((raw) => this.options.redactor.enforce(raw));
@@ -228,10 +251,96 @@ export class TestCollector {
     }
   }
 
+  /**
+   * Keeps an in-scope browser record for the end-of-test input (05-REQ-27): cookie values only as
+   * salted hashes and value classes, form field names only for the CSRF signal (06, chapter 4.14).
+   */
+  addTraffic(record: ResponseRecord, postData: string | null): void {
+    if (!this.wantsTraffic || record.source !== 'browser') return;
+    const redact = this.options.redactor;
+    const sentCookies: TrafficRequest['sentCookies'] = [];
+    for (const h of record.requestHeaders) {
+      if (h.name !== 'cookie') continue;
+      for (const pair of h.value.split(';')) {
+        const eq = pair.indexOf('=');
+        if (eq <= 0) continue;
+        const value = pair.slice(eq + 1).trim();
+        sentCookies.push({
+          name: pair.slice(0, eq).trim(),
+          valueHash: redact.hash(value),
+          valueClass: cookieValueClass(value),
+        });
+      }
+    }
+    const date = record.responseHeaders.find((h) => h.name === 'date')?.value;
+    const now = date === undefined ? Number.NaN : Date.parse(date);
+    const setCookies: TrafficRequest['setCookies'] = [];
+    for (const h of record.responseHeaders) {
+      if (h.name !== 'set-cookie') continue;
+      for (const line of h.value.split('\n')) {
+        const c = parseSetCookie(line);
+        if (c === null || isDeletion(c, Number.isFinite(now) ? now : undefined)) continue;
+        const sameSite = sameSiteOf(c.sameSite);
+        setCookies.push({
+          name: c.name,
+          valueHash: redact.hash(c.value),
+          valueClass: cookieValueClass(c.value),
+          ...(c.domain === undefined || c.domain === '' ? {} : { domain: c.domain }),
+          ...(sameSite === undefined ? {} : { sameSite }),
+          secure: c.secure,
+          httpOnly: c.httpOnly,
+        });
+      }
+    }
+    const requestType = record.requestHeaders.find((h) => h.name === 'content-type')?.value;
+    const contentType = requestType?.split(';')[0]?.trim().toLowerCase();
+    const path = URL.canParse(record.url) ? new URL(record.url).pathname : '';
+    this.#traffic.push({
+      id: record.id,
+      method: record.method,
+      endpointKey: record.endpointKey,
+      origin: record.origin,
+      status: record.status,
+      resourceType: record.resourceType,
+      isLoginCandidate:
+        record.method === 'POST' &&
+        record.status >= 200 &&
+        record.status < 400 &&
+        this.#loginPath.test(path),
+      ...(contentType === undefined || contentType === '' ? {} : { contentType }),
+      sentCookies,
+      setCookies,
+      hasAuthorization: record.requestHeaders.some((h) => h.name === 'authorization'),
+      csrfSignal: csrfSignal(record, contentType, postData),
+    });
+  }
+
+  /** Runs the rules with `appliesTo.testEnd` once, after the final sweep (05-REQ-27). */
+  analyzeTestEnd(): void {
+    if (!this.wantsTraffic || this.#traffic.length === 0) return;
+    const traffic: TestTraffic = {
+      kind: 'test-end',
+      context: this.options.test,
+      requests: [...this.#traffic].sort((a, b) => a.id - b.id),
+      jarCookies: this.#jar,
+    };
+    this.#traffic.length = 0;
+    const origin = traffic.requests[0]?.origin ?? '';
+    for (const rule of this.#enabled) {
+      if (this.#failed.has(rule.id) || rule.appliesTo.testEnd !== true) continue;
+      const ctx = this.#context(rule, origin, origin.startsWith('https:'));
+      this.#add(this.#run(rule, traffic, ctx), 'browser');
+    }
+  }
+
   /** Analyses a browser event (05, chapters 7 and 8). */
   analyzeEvent(event: BrowserEvent): void {
     if (event.kind === 'storage' && !this.coverage.storageOrigins.includes(event.origin)) {
       this.coverage.storageOrigins.push(event.origin);
+    }
+    if (event.kind === 'cookie-jar' && this.wantsTraffic) {
+      // Attributes only; values never reach the end-of-test input (07-REQ-13).
+      this.#jar = [...this.#jar, ...event.cookies.map(({ value: _value, ...rest }) => rest)];
     }
     const origin =
       event.kind === 'storage'
@@ -315,10 +424,65 @@ export function userStackLine(error: unknown): string | undefined {
   return `${head}${shown.split('\\').join('/')}${position}${tail}`;
 }
 
+function safeDecode(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
+function safeRegExp(pattern: string, fallback: string): RegExp {
+  try {
+    return new RegExp(pattern, 'i');
+  } catch {
+    return new RegExp(fallback, 'i');
+  }
+}
+
+function sameSiteOf(value: string | undefined): 'Strict' | 'Lax' | 'None' | undefined {
+  const lower = value?.trim().toLowerCase();
+  if (lower === 'strict') return 'Strict';
+  if (lower === 'lax') return 'Lax';
+  if (lower === 'none') return 'None';
+  return undefined;
+}
+
+const CSRF_NAME = /csrf|xsrf/i;
+const CSRF_FIELD = /csrf|xsrf|_token/i;
+
+/**
+ * A CSRF header (`csrf`/`xsrf` in the name, or x-requested-with) or form field (`csrf`, `xsrf`,
+ * `_token` in the name; names only) of a request (06, chapter 4.14).
+ */
+export function csrfSignal(
+  record: Pick<ResponseRecord, 'requestHeaders'>,
+  contentType: string | undefined,
+  postData: string | null,
+): boolean {
+  if (record.requestHeaders.some((h) => CSRF_NAME.test(h.name) || h.name === 'x-requested-with')) {
+    return true;
+  }
+  if (postData === null || postData === '') return false;
+  if (contentType === 'application/x-www-form-urlencoded') {
+    return postData.split('&').some((pair) => {
+      const name = (pair.split('=')[0] ?? '').replace(/\+/g, ' ');
+      return CSRF_FIELD.test(name) || CSRF_FIELD.test(safeDecode(name));
+    });
+  }
+  if (contentType === 'multipart/form-data') {
+    for (const m of postData.matchAll(/content-disposition:[^\r\n]*\bname="([^"]*)"/gi)) {
+      if (CSRF_FIELD.test(m[1] ?? '')) return true;
+    }
+  }
+  return false;
+}
+
 /** Whether a rule applies to a record (06, chapter 2). */
 export function applies(rule: BuiltInRule, record: ResponseRecord): boolean {
   const to = rule.appliesTo;
   if (to.events !== undefined && to.events.length > 0 && to.records !== true) return false;
+  if (to.testEnd === true && to.records !== true) return false;
   if (to.sources !== undefined && !to.sources.includes(record.source)) return false;
   if (!rule.manifest.sources.includes(record.source)) return false;
   return to.resourceTypes === undefined || to.resourceTypes.includes(record.resourceType);

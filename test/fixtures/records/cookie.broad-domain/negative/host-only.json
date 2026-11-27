@@ -1,0 +1,13 @@
+{
+  "title": "host-only cookie",
+  "input": {
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "set-cookie",
+        "value": "sid=8f3a2c91d0e4b7a6; Path=/; Secure; HttpOnly; SameSite=Lax"
+      }
+    ]
+  },
+  "expect": []
+}

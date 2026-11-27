@@ -89,7 +89,16 @@ export function parseFingerprint(print: string): {
  * endpoint key, a response of an origin the cookie belongs to, the asset, a Web Storage scan of the
  * origin.
  */
-export function covered(entrySubject: string, scope: string, coverage: Coverage): boolean {
+export function covered(
+  entrySubject: string,
+  scope: string,
+  coverage: Coverage,
+  ruleId?: string,
+): boolean {
+  // The subject is a third-party origin; the run covered it with any in-scope document (06, 4.14).
+  if (ruleId === 'asset.unexpected-third-party') {
+    return Object.values(coverage.origins).some((c) => c.documents > 0);
+  }
   switch (scope) {
     case 'origin':
       return (coverage.origins[entrySubject]?.documents ?? 0) > 0;
@@ -130,7 +139,7 @@ export function resolveEntries(
     if (seen.has(fingerprint)) continue;
     const ref = { fingerprint, ruleId: entry.ruleId, subject: entry.subject };
     const { scope } = parseFingerprint(fingerprint);
-    if (enabledRules.has(entry.ruleId) && covered(entry.subject, scope, coverage))
+    if (enabledRules.has(entry.ruleId) && covered(entry.subject, scope, coverage, entry.ruleId))
       resolved.push(ref);
     else notCovered.push(ref);
   }

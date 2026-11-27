@@ -26,9 +26,15 @@ export default withSecurity(
     })),
   }),
   {
-    // Every instance is its own origin; the strict preset reports the strict-only rules too.
+    // Every instance is its own origin; the strict preset reports the strict-only rules too. The
+    // partner scripts are expected, the CDN script is not (asset.unexpected-third-party).
     scope: { origins: instances.map((i) => i.url) },
-    rules: { preset: 'strict' },
+    rules: {
+      preset: 'strict',
+      'asset.unexpected-third-party': {
+        options: { allowedScriptOrigins: instances.map((i) => i.partner) },
+      },
+    },
     gate: { failOnNoTraffic: false },
   },
 );

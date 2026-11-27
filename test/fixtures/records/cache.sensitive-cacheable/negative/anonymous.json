@@ -1,0 +1,20 @@
+{
+  "title": "no credentials",
+  "input": {
+    "url": "https://app.test/api/products",
+    "resourceType": "fetch",
+    "requestHeaders": [
+      {
+        "name": "cookie",
+        "value": "theme=dark"
+      }
+    ],
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "expect": []
+}

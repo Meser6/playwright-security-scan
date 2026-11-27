@@ -1,0 +1,15 @@
+{
+  "title": "masked number",
+  "input": {
+    "url": "https://app.test/api/me",
+    "resourceType": "fetch",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"card\":\"**** **** **** 1111\"}"
+  },
+  "expect": []
+}

@@ -1,0 +1,21 @@
+{
+  "title": "500 with a stack key",
+  "input": {
+    "url": "https://app.test/api/fail",
+    "resourceType": "fetch",
+    "status": 500,
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"error\":\"boom\",\"stack\":\"Error: boom\\n    at handler (/srv/app.js:10:5)\"}"
+  },
+  "expect": [
+    {
+      "subject": "GET /api/fail",
+      "discriminator": "stack"
+    }
+  ]
+}

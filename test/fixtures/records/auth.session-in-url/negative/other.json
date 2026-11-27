@@ -1,0 +1,7 @@
+{
+  "title": "other parameters",
+  "input": {
+    "url": "https://app.test/search?q=session"
+  },
+  "expect": []
+}

@@ -3,6 +3,14 @@
 import { sha256 } from '../hash/index.ts';
 import { entropy } from '../patterns/entropy.ts';
 import { decodeJwt, JWT_IN_TEXT } from '../patterns/jwt.ts';
+import {
+  CARD_IN_TEXT,
+  cardNumber,
+  EMAIL_IN_TEXT,
+  isPesel,
+  PESEL_IN_TEXT,
+  PHONE_IN_TEXT,
+} from '../patterns/pii.ts';
 import { SECRET_PATTERNS } from '../patterns/secrets.ts';
 import type { Evidence, RawFinding } from '../types/index.ts';
 
@@ -28,6 +36,9 @@ export const SENSITIVE_PARAMS: readonly string[] = [
   'auth',
 ];
 
+/** Session parameters of auth.session-in-url, redacted too (07-REQ-13, v0.4). */
+export const SESSION_PARAMS: readonly string[] = ['sid', 'jsessionid', 'phpsessid', 'session_id'];
+
 /** Headers whose values are always redacted (07-REQ-13). */
 const SENSITIVE_HEADER =
   /^(?:cookie|set-cookie|authorization|proxy-authorization|x-api-key|x-auth-token)$/i;
@@ -39,7 +50,8 @@ export function isSensitiveHeader(name: string): boolean {
 }
 
 // Placeholders the redactor writes; never redacted again.
-const PLACEHOLDER = /\[(?:redacted |jwt [^\]]*|)sha256:[0-9a-f]{6}\]/g;
+const PLACEHOLDER =
+  /\[(?:redacted |jwt [^\]]*|email |pesel |phone |card [a-z]+ |)sha256:[0-9a-f]{6}\]/g;
 // Long base64/hex-like runs: candidates for the entropy check of the final filter.
 const TOKEN_RUN = /[A-Za-z0-9+/_=-]{24,}/g;
 // eslint-disable-next-line no-control-regex
@@ -63,7 +75,9 @@ export class Redactor {
 
   constructor(options: RedactorOptions) {
     this.#salt = options.salt;
-    const names = [...new Set([...SENSITIVE_PARAMS, ...(options.paramNames ?? [])])];
+    const names = [
+      ...new Set([...SENSITIVE_PARAMS, ...SESSION_PARAMS, ...(options.paramNames ?? [])]),
+    ];
     this.#params = new RegExp(
       `([?&;#]|\\b)(${names.map(escapeRegex).join('|')})=([^&#\\s"'<>;]+)`,
       'gi',
@@ -91,6 +105,16 @@ export class Redactor {
   /** The first 4 characters and `…[sha256:xxxxxx]` (07-REQ-13). */
   secret(match: string): string {
     return `${match.slice(0, 4)}…[sha256:${this.hash(match)}]`;
+  }
+
+  /** `[email sha256:xxxxxx]`, `[pesel …]`, `[phone …]` (07-REQ-13, v3). */
+  pii(kind: 'email' | 'pesel' | 'phone', value: string): string {
+    return `[${kind} sha256:${this.hash(value)}]`;
+  }
+
+  /** `[card visa sha256:xxxxxx]`: the brand without any digit of the number (07-REQ-13). */
+  card(brand: string, digits: string): string {
+    return `[card ${brand} sha256:${this.hash(digits)}]`;
   }
 
   /** A header value as it may appear in evidence (07-REQ-13). */
@@ -155,6 +179,15 @@ export class Redactor {
         keep(this.secret(m)),
       );
     }
+    // Personal data and card numbers in any evidence (07-REQ-13, v3).
+    text = text.replace(EMAIL_IN_TEXT, (m) => keep(this.pii('email', m)));
+    text = text.replace(CARD_IN_TEXT, (m) => {
+      const digits = m.replace(/[ -]/g, '');
+      const brand = cardNumber(digits);
+      return brand === undefined ? m : keep(this.card(brand, digits));
+    });
+    text = text.replace(PESEL_IN_TEXT, (m) => (isPesel(m) ? keep(this.pii('pesel', m)) : m));
+    text = text.replace(PHONE_IN_TEXT, (m) => keep(this.pii('phone', m)));
     text = text.replace(
       /\b(Bearer|Basic)\s+([A-Za-z0-9._~+/=-]{8,})/g,
       (_m, scheme: string, value: string) => keep(`${scheme} ${this.value(value)}`),

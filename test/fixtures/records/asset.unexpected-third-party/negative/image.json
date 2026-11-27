@@ -1,0 +1,9 @@
+{
+  "title": "not a script",
+  "input": {
+    "url": "https://cdn.other.test/pixel.png",
+    "resourceType": "image",
+    "frameUrl": "https://app.test/"
+  },
+  "expect": []
+}

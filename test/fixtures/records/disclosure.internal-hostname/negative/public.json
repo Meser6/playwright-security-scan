@@ -1,0 +1,15 @@
+{
+  "title": "public host names",
+  "input": {
+    "url": "https://app.test/api/config",
+    "resourceType": "xhr",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"cdn\":\"cdn.example.com\",\"host\":\"app.localhost.dev\"}"
+  },
+  "expect": []
+}

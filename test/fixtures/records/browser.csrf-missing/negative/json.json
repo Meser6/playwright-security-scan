@@ -1,0 +1,37 @@
+{
+  "title": "JSON requests cannot be sent by a cross-site form",
+  "input": {
+    "kind": "test-end",
+    "requests": [
+      {
+        "endpointKey": "POST /api/login",
+        "method": "POST",
+        "resourceType": "fetch",
+        "isLoginCandidate": true,
+        "setCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token",
+            "secure": true,
+            "httpOnly": true
+          }
+        ]
+      },
+      {
+        "endpointKey": "POST /subscribe",
+        "method": "POST",
+        "status": 303,
+        "contentType": "application/json",
+        "sentCookies": [
+          {
+            "name": "sid",
+            "valueHash": "aaaaaa",
+            "valueClass": "token"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": []
+}

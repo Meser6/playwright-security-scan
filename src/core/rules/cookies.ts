@@ -1,6 +1,8 @@
 // Set-Cookie parsing and the session cookie heuristic (06, chapter 4.2).
 import { NON_SESSION_COOKIES } from '../manifest/rules.ts';
 import { looksLikeJwt, looksLikeToken } from '../patterns/entropy.ts';
+import type { CookieValueClass } from '../types/index.ts';
+import type { RuleContext } from './types.ts';
 
 export interface ParsedCookie {
   name: string;
@@ -70,6 +72,39 @@ const WORDS = /^[A-Za-z]+(?:[ _.-]+[A-Za-z]+)*$/;
 const OPAQUE = /^[A-Za-z0-9+/=_%-]+$/;
 
 /**
+ * What a cookie value looks like (06, chapter 4.14): `token` (a JWT or an opaque high-entropy
+ * token), `words` (plain words: letters only with a separator, or shorter than a random
+ * identifier, 06, chapter 4.12) or `other`.
+ */
+export function cookieValueClass(value: string): CookieValueClass {
+  if (looksLikeJwt(value) || (OPAQUE.test(value) && looksLikeToken(value))) return 'token';
+  if (WORDS.test(value) && (/[ _.-]/.test(value) || value.length < 16)) return 'words';
+  return 'other';
+}
+
+/**
+ * Session cookie by name and value class (06, chapters 4.2, 4.11, 4.12, 4.14): not a known
+ * analytics or consent cookie, and the value is a token, or the name matches the pattern and the
+ * value is not plain words.
+ */
+export function isSessionCookieClass(
+  name: string,
+  valueClass: CookieValueClass,
+  pattern: string,
+  nonSession: readonly string[] = NON_SESSION_NAMES,
+): boolean {
+  if (matchesName(name, nonSession)) return false;
+  if (valueClass === 'token') return true;
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern, 'i');
+  } catch {
+    re = /(sess|sid|auth|token|jwt)/i;
+  }
+  return re.test(name) && valueClass !== 'words';
+}
+
+/**
  * Session cookie (06, chapters 4.2, 4.11, 4.12): not a known analytics or consent cookie, and the
  * value is a JWT or an opaque high-entropy token, or the name matches the pattern and the value
  * is not plain words.
@@ -80,16 +115,19 @@ export function isSessionCookie(
   pattern: string,
   nonSession: readonly string[] = NON_SESSION_NAMES,
 ): boolean {
-  if (matchesName(name, nonSession)) return false;
-  let re: RegExp;
-  try {
-    re = new RegExp(pattern, 'i');
-  } catch {
-    re = /(sess|sid|auth|token|jwt)/i;
-  }
-  if (looksLikeJwt(value) || (OPAQUE.test(value) && looksLikeToken(value))) return true;
-  // A name like a session but a value of plain words is not an identifier (06, chapter 4.12):
-  // letters only with a separator, or shorter than a random identifier.
-  const words = WORDS.test(value) && (/[ _.-]/.test(value) || value.length < 16);
-  return re.test(name) && !words;
+  return isSessionCookieClass(name, cookieValueClass(value), pattern, nonSession);
+}
+
+/** The session cookie test of 06, chapter 4.2 on a name and value class (06, chapter 4.14). */
+export function sessionTest(
+  ctx: Pick<RuleContext, 'options'>,
+): (cookie: { name: string; valueClass: CookieValueClass }) => boolean {
+  const pattern =
+    typeof ctx.options.sessionNamePattern === 'string'
+      ? ctx.options.sessionNamePattern
+      : 'sess|sid|auth|token';
+  const nonSession = Array.isArray(ctx.options.nonSessionNames)
+    ? (ctx.options.nonSessionNames as string[])
+    : undefined;
+  return (c) => isSessionCookieClass(c.name, c.valueClass, pattern, nonSession);
 }

@@ -1,0 +1,19 @@
+{
+  "title": ".internal host in JSON",
+  "input": {
+    "url": "https://app.test/api/config",
+    "resourceType": "xhr",
+    "responseHeaders": [
+      {
+        "name": "content-type",
+        "value": "application/json"
+      }
+    ],
+    "body": "{\"db\":\"postgres://db01.internal:5432/shop\"}"
+  },
+  "expect": [
+    {
+      "discriminator": "internal"
+    }
+  ]
+}
