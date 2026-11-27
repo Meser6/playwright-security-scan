@@ -4,9 +4,10 @@
 // ZAP_APP_HOST=host.docker.internal runs the ZAP tests on macOS: the app stays on this machine.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createServer } from 'node:net';
-import { dirname, join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { ATTACK_SWITCHES, AUTHZ_USERS, startShop } from '../app/shop.ts';
 import type { Shop } from '../app/shop.ts';
@@ -94,7 +95,19 @@ describe('attack mode without Docker (19)', () => {
     '19-AC-02 without Docker the attack fails with instructions, the passive report is written',
     async () => {
       const s = await shop([]);
-      const r = await run(s, 'attack', { env: { PATH: dirname(process.execPath) } });
+      // A docker command that fails like one without a running daemon, first on PATH: the
+      // browsers keep the system tools they need.
+      const bin = mkdtempSync(join(tmpdir(), 'pw-sec-no-docker-'));
+      writeFileSync(
+        join(bin, 'docker'),
+        '#!/bin/sh\necho "Cannot connect to the Docker daemon" >&2\nexit 1\n',
+        {
+          mode: 0o755,
+        },
+      );
+      const r = await run(s, 'attack', {
+        env: { PATH: `${bin}${delimiter}${process.env.PATH ?? ''}` },
+      });
       passed(r);
       expect(r.outcome?.code, r.output).toBe(3);
       expect(r.output).toContain('ATTACK_DOCKER_MISSING');
