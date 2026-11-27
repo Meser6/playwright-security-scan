@@ -57,6 +57,7 @@ function report(
     mode: 'scan',
     shards: null,
     authz: null,
+    attack: null,
     pkgVersion: '0.1.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test'] },

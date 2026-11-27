@@ -24,6 +24,16 @@ import { TEMPLATES_ATTACHMENT } from '../core/authz/types.ts';
 import type { AuthzRunData, RequestTemplate, TemplatesAttachment } from '../core/authz/types.ts';
 import { authzHash } from '../collector/templates.ts';
 import { classify, parseBaseline } from '../core/baseline/index.ts';
+import type { AttackRole } from '../active/zap.ts';
+import {
+  attackBannerText,
+  attackRole,
+  emptyAttackSummary,
+  MUTATING_METHODS,
+} from '../core/attack/config.ts';
+import type { AttackRunData, AttackTemplate } from '../core/attack/types.ts';
+import { Redactor } from '../core/fingerprint/index.ts';
+import { canonicalOrigin, createKeyBuilder } from '../core/normalize/index.ts';
 import { enabledCustomRuleCount, enabledRuleCount, resolveConfig } from '../core/config/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { addCoverage, emptyCoverage, sortCoverage } from '../core/coverage.ts';
@@ -47,11 +57,14 @@ import type {
 import { ATTACHMENT_NAME } from '../collector/test-collector.ts';
 import {
   CHECK_SKIP_REASON,
+  isAttackMode,
+  passiveMode,
   readAuthzEnv,
   readMaxTests,
   readMode,
   RUN_ID_ENV,
   SALT_ENV,
+  ZAP_API_KEY_ENV,
 } from '../mode/index.ts';
 import type { ScanMode } from '../mode/index.ts';
 import { removeCheckState } from '../collector/check-skip.ts';
@@ -60,7 +73,7 @@ import type { CheckOrigin } from '../core/report/check.ts';
 import { getRegistered } from '../registry/index.ts';
 import { VERSION } from '../version.ts';
 import { readCiInfo } from './ci-info.ts';
-import { finishRun, KNOWN_RULE_IDS, today } from './finish.ts';
+import { EnabledRules, finishRun, KNOWN_RULE_IDS, today } from './finish.ts';
 import type { RunData } from './finish.ts';
 import { isPartialRun } from './partial.ts';
 import {
@@ -96,11 +109,16 @@ export default class SecurityReporter implements Reporter {
   readonly #withApi = new Set<string>();
   /** Request templates of the authorization tests (18-REQ-13). */
   readonly #templates: RequestTemplate[] = [];
+  /** Request templates of the attack mode (19-REQ-03). */
+  readonly #attackTemplates: AttackTemplate[] = [];
+  /** stdout is a terminal: the attack progress overwrites one line (19-REQ-07). */
+  readonly #tty: boolean;
 
   constructor(options: ReporterOptions = {}) {
     this.#write = options.write ?? ((line) => process.stdout.write(`${line}\n`));
     const out = options.stdout ?? process.stdout;
     const env = options.env ?? process.env;
+    this.#tty = options.write === undefined && out.isTTY === true;
     this.#terminal = {
       width:
         out.isTTY === true && out.columns !== undefined && out.columns > 0
@@ -234,6 +252,21 @@ export default class SecurityReporter implements Reporter {
         this.#diag(w);
         notes.push(w);
       }
+      let attackRow: string | undefined;
+      if (isAttackMode(mode)) {
+        const roles = rolesOf(this.#projects(), sec.authz).map((r) => r.name);
+        attackRow = attackBannerText(sec.attack, attackRole(sec.attack, roles));
+        const mutating = sec.attack.methods.filter((m) => MUTATING_METHODS.includes(m));
+        if (mutating.length > 0) {
+          const w: Diagnostic = {
+            code: 'ATTACK_MUTATING_METHODS',
+            level: 'warn',
+            message: `attack.methods has ${mutating.join(', ')}: ZAP sends attacks with methods that change data; use an environment whose data may be changed (docs/attack.md)`,
+          };
+          this.#diag(w);
+          notes.push(w);
+        }
+      }
       const shard = mode === 'check' ? null : config.shard;
       const reportFile =
         shard !== null ? shardFileName(shard) : sec.report.html ? 'report.html' : 'report.json';
@@ -255,6 +288,7 @@ export default class SecurityReporter implements Reporter {
             authz === null
               ? undefined
               : { on: authz.on, text: authzBannerText(authz.roles, sec.authz, authz.offByEnv) },
+          attack: attackRow,
         },
         this.#terminal,
       );
@@ -342,6 +376,7 @@ export default class SecurityReporter implements Reporter {
             : '';
       const doc = JSON.parse(text) as TemplatesAttachment;
       if (Array.isArray(doc.templates)) this.#templates.push(...doc.templates);
+      if (Array.isArray(doc.attack)) this.#attackTemplates.push(...doc.attack);
     } catch {
       this.#diag({
         code: 'ATTACHMENT_INVALID',
@@ -414,11 +449,7 @@ export default class SecurityReporter implements Reporter {
     if (runId !== '') removeCheckState(runId);
     const coverage = sortCoverage(this.#coverage);
     const findings = dedupeRun(this.#findings);
-    const enabled = new Set(
-      Object.entries(sec.rules)
-        .filter(([, r]) => r.enabled)
-        .map(([id]) => id),
-    );
+    const enabled = new EnabledRules(sec);
     const baselineName = sec.baseline.path;
     const baselinePath = this.#path(baselineName);
     let baseline: BaselineFile | undefined;
@@ -510,9 +541,16 @@ export default class SecurityReporter implements Reporter {
     } catch (error) {
       this.#toolError('the authorization tests', error);
     }
+    let attack: AttackRunData | null = null;
+    try {
+      attack = await this.#attack(sec, mode, result);
+    } catch (error) {
+      this.#toolError('the attack', error);
+    }
     const shard = this.#config?.shard ?? null;
-    if (shard !== null) return this.#finishShard(result, sec, mode, scope, shard, authz);
-    const out = finishRun(this.#runData(result, authz), {
+    if (shard !== null)
+      return this.#finishShard(result, sec, passiveMode(mode), scope, shard, authz);
+    const out = finishRun(this.#runData(result, authz, attack), {
       config: sec,
       mode,
       scope,
@@ -531,7 +569,7 @@ export default class SecurityReporter implements Reporter {
     return out.code === 0 ? undefined : { status: 'failed' };
   }
 
-  #runData(result: FullResult, authz: AuthzRunData | null): RunData {
+  #runData(result: FullResult, authz: AuthzRunData | null, attack: AttackRunData | null): RunData {
     return {
       findings: this.#findings,
       coverage: this.#coverage,
@@ -539,7 +577,110 @@ export default class SecurityReporter implements Reporter {
       testsWithoutTraffic: [...this.#withoutTraffic.values()],
       testsPassed: result.status === 'passed',
       authz,
+      attack,
     };
+  }
+
+  /**
+   * The ZAP active scan after the tests (19, chapter 5): the module that drives ZAP is loaded only
+   * here (P-04). Null outside the attack modes.
+   */
+  async #attack(
+    sec: ResolvedSecurityConfig,
+    mode: ScanMode,
+    result: FullResult,
+  ): Promise<AttackRunData | null> {
+    if (!isAttackMode(mode)) return null;
+    const a = sec.attack;
+    const roles = rolesOf(this.#projects(), sec.authz);
+    const roleName = attackRole(
+      a,
+      roles.map((r) => r.name),
+    );
+    if (result.status === 'interrupted') {
+      this.#diag({
+        code: 'ATTACK_INTERRUPTED',
+        level: 'warn',
+        message: 'attack: the run was interrupted, so ZAP did not scan',
+      });
+      return { summary: emptyAttackSummary(a, roleName), findings: [], coveredKeys: [] };
+    }
+    // One template per endpoint key, the first in the order of the tests (19 chapter 11a).
+    const templates: AttackTemplate[] = [];
+    const seen = new Set<string>();
+    for (const t of [...this.#attackTemplates].sort(
+      (x, y) =>
+        compareTests(x.context, y.context) ||
+        (x.endpointKey < y.endpointKey ? -1 : x.endpointKey > y.endpointKey ? 1 : 0),
+    )) {
+      if (seen.has(t.endpointKey)) continue;
+      seen.add(t.endpointKey);
+      templates.push(t);
+    }
+    const zap = await import('../active/zap.ts');
+    let role: AttackRole | null = null;
+    const found = roles.find((r) => r.name === roleName);
+    if (found !== undefined) {
+      const project = this.#projects().find((p) => p.name === found.projects[0]);
+      const state = project?.storageState;
+      const candidates =
+        state === undefined
+          ? []
+          : isAbsolute(state)
+            ? [state]
+            : [resolve(this.#configDir(), state), resolve(process.cwd(), state)];
+      const cookies = candidates.map((c) => zap.readStorageCookies(c)).find((c) => c !== null);
+      if (cookies === undefined) {
+        this.#diag({
+          code: 'ATTACK_STATE_MISSING',
+          level: 'warn',
+          message: `attack: the storageState file of project ${found.projects[0] ?? ''} does not exist; ZAP scanned without a session`,
+        });
+      } else {
+        role = {
+          name: roleName,
+          cookies,
+          headers: {
+            ...found.headers,
+            ...(sec.authz.roles[found.projects[0] ?? '']?.headers ?? {}),
+          },
+        };
+      }
+    }
+    const state = getRegistered();
+    const keys = createKeyBuilder(sec.normalization, { baseOrigins: state?.baseOrigins ?? [] });
+    const paramNames = sec.rules['data.token-in-url']?.options.paramNames;
+    const redactor = new Redactor({
+      salt: process.env[SALT_ENV] ?? state?.salt ?? '',
+      paramNames: Array.isArray(paramNames) ? (paramNames as string[]) : [],
+    });
+    let lastLine = 0;
+    let progressShown = false;
+    const out = await zap.runAttack({
+      attack: a,
+      templates,
+      runId: process.env[RUN_ID_ENV] ?? state?.runId ?? '',
+      role,
+      keyOf: (method, url) => {
+        const origin = canonicalOrigin(url);
+        const key = keys({ method, url, resourceType: 'xhr' });
+        return origin === null || !key.ok ? null : { origin, key: key.key };
+      },
+      redact: (text) => redactor.text(text),
+      diagnostic: (d) => this.#diag(d),
+      progress: (line) => {
+        if (this.#tty) {
+          process.stdout.write(`\r${line}\u001b[K`);
+          progressShown = true;
+        } else if (Date.now() - lastLine >= zap.CI_PROGRESS_MS) {
+          lastLine = Date.now();
+          this.#write(line);
+        }
+      },
+      zapApiKey: process.env[ZAP_API_KEY_ENV],
+    });
+    if (progressShown) process.stdout.write('\n');
+    return out;
   }
 
   /**

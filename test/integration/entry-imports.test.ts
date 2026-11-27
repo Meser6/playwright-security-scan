@@ -76,14 +76,15 @@ function staticGraph(entry: string): string[] {
 
 describe('01-AC-03 18-AC-06 the code that sends requests is loaded only with import()', () => {
   test.skipIf(!built)(
-    'active/ is a chunk of its own, imported dynamically by the reporter only',
+    'active/ (replays and the ZAP driver) are chunks of their own, imported dynamically by the reporter only',
     () => {
       const files = readdirSync(DIST).filter((f) => /\.(c?js)$/.test(f));
       const active = files.filter((f) =>
         readFileSync(join(DIST, f), 'utf8').includes('"x-pw-sec-probe"'),
       );
-      expect(active.sort()).toEqual(files.filter((f) => f.startsWith('active-')).sort());
-      expect(active).toHaveLength(2);
+      // src/active/index.ts → active-*, src/active/zap.ts → zap-* (19, P-04).
+      expect(active.sort()).toEqual(files.filter((f) => /^(?:active|zap)-/.test(f)).sort());
+      expect(active).toHaveLength(4);
       for (const entry of ['config', 'fixture', 'reporter', 'rules', 'test']) {
         for (const ext of ['js', 'cjs']) {
           const reached = staticGraph(`${entry}.${ext}`).map((f) => f.split(/[\\/]/).pop());

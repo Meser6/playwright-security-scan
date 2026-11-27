@@ -10,7 +10,9 @@ import type { ReportWriter } from './writers.ts';
 
 export const writeSarif: ReportWriter = (report, config, paths) => {
   if (!config.report.sarif) return null;
-  const enabled = reportRulesOf(config).filter((r) => config.rules[r.id]?.enabled === true);
+  const enabled = reportRulesOf(config, report.attack).filter(
+    (r) => r.manifest.group === 'zap' || config.rules[r.id]?.enabled === true,
+  );
   const path = join(paths.reportDir, 'results.sarif');
   const log = buildSarif(report, enabled, {
     version: VERSION,
@@ -29,7 +31,7 @@ export const writeJunit: ReportWriter = (report, config, paths) => {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
-    buildJunit(report, reportRulesOf(config), {
+    buildJunit(report, reportRulesOf(config, report.attack), {
       includeAccepted: config.report.junitIncludeAccepted,
       failOnExpired: config.gate.failOnExpired,
     }),
@@ -45,7 +47,7 @@ export const writeHtml: ReportWriter = (report, config, paths) => {
     path,
     renderHtmlReport({
       report,
-      rules: reportRulesOf(config),
+      rules: reportRulesOf(config, report.attack),
       config,
       ...(paths.tests === undefined ? {} : { tests: paths.tests }),
     }),

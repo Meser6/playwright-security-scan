@@ -185,6 +185,16 @@ export class ResponseTracker {
       collector.analyzeOutOfScope(record);
       return;
     }
+    // Attack templates keep the request body the test sent (19-REQ-03).
+    if (collector.attackTemplates?.wants(record) === true) {
+      let sent: string | null;
+      try {
+        sent = request.postData();
+      } catch {
+        sent = null;
+      }
+      collector.attackTemplates.add(record, sent);
+    }
     // The end-of-test input (05-REQ-27): no values, only hashes and the CSRF signal.
     if (collector.wantsTraffic) {
       let postData: string | null;

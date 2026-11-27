@@ -17,13 +17,19 @@ run exactly as before: the package adds no listener, no script and no reporter.
 
 ## Modes
 
-| `PW_SEC_MODE` | Tests run      | Analysis | Files written                        | Fails the run on              |
-| ------------- | -------------- | -------- | ------------------------------------ | ----------------------------- |
-| (unset)       | all            | no       | none                                 | —                             |
-| `check`       | first per file | yes      | none                                 | — (Playwright's exit code)    |
-| `baseline`    | all            | yes      | reports and `security-baseline.json` | tool errors, no traffic       |
-| `scan`        | all            | yes      | reports                              | new findings, expired entries |
-| `merge`       | none           | no       | reports (and the baseline)           | like the shards' mode         |
+| `PW_SEC_MODE`     | Tests run      | Analysis  | Files written                        | Fails the run on              |
+| ----------------- | -------------- | --------- | ------------------------------------ | ----------------------------- |
+| (unset)           | all            | no        | none                                 | —                             |
+| `check`           | first per file | yes       | none                                 | — (Playwright's exit code)    |
+| `baseline`        | all            | yes       | reports and `security-baseline.json` | tool errors, no traffic       |
+| `scan`            | all            | yes       | reports                              | new findings, expired entries |
+| `attack`          | all            | yes + ZAP | reports                              | new findings, expired entries |
+| `attack-baseline` | all            | yes + ZAP | reports and `security-baseline.json` | tool errors, no traffic       |
+| `merge`           | none           | no        | reports (and the baseline)           | like the shards' mode         |
+
+`attack` and `attack-baseline` work like `scan` and `baseline` and then run the ZAP active scan on
+the requests of the tests; see [Attack mode](attack.md). They need `attack.allowedOrigins` and do not
+run with `--shard`.
 
 The value is case-insensitive. `active` is reserved for the active scan of later versions and
 stops the run with [`MODE_NOT_AVAILABLE`](troubleshooting.md#mode_not_available); any other value
@@ -42,14 +48,15 @@ result code below. See [Sharded runs](ci.md#sharded-runs).
 
 ## Variables
 
-| Variable           | Meaning                                                                                                           |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `PW_SEC_MODE`      | `check`, `baseline` or `scan`; the package is off when it is unset or empty; `merge` for `npx pw-sec` only        |
-| `PW_SEC_MAX_TESTS` | in a check: tests to run, 1 to 1000 (default 10)                                                                  |
-| `PW_SEC_CONFIG`    | path of a package config file (`.json`, or a module with a default export); wins over `withSecurity()`'s argument |
-| `PW_SEC_AUTHZ`     | `0` switches the [authorization tests](authz.md) off for one run; it never switches them on                       |
-| `PW_SEC_RUN_ID`    | id of the run, set by the package for the workers; do not set it yourself                                         |
-| `PW_SEC_RUN_SALT`  | redaction salt of the run, set by the package; do not set it yourself                                             |
+| Variable             | Meaning                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `PW_SEC_MODE`        | `check`, `baseline`, `scan`, `attack` or `attack-baseline`; the package is off when it is unset or empty; `merge` for `npx pw-sec` only |
+| `PW_SEC_MAX_TESTS`   | in a check: tests to run, 1 to 1000 (default 10)                                                                                        |
+| `PW_SEC_CONFIG`      | path of a package config file (`.json`, or a module with a default export); wins over `withSecurity()`'s argument                       |
+| `PW_SEC_AUTHZ`       | `0` switches the [authorization tests](authz.md) off for one run; it never switches them on                                             |
+| `PW_SEC_ZAP_API_KEY` | API key of the ZAP of `attack.zapUrl` ([attack mode](attack.md)); never written anywhere                                                |
+| `PW_SEC_RUN_ID`      | id of the run, set by the package for the workers; do not set it yourself                                                               |
+| `PW_SEC_RUN_SALT`    | redaction salt of the run, set by the package; do not set it yourself                                                                   |
 
 An invalid `PW_SEC_MAX_TESTS` stops a check before the tests with
 [`MAX_TESTS_INVALID`](troubleshooting.md#max_tests_invalid), another `PW_SEC_AUTHZ` value than `0`

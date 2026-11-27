@@ -82,7 +82,7 @@ function baselineState(ctx: Ctx, f: ClassifiedFinding): SafeHtml {
     return toneBox(
       't-warn',
       'warn',
-      html`<p><b>New, not blocking</b>: not in the baseline; ${ctx.report.mode === 'baseline' ? 'this baseline run wrote it to the baseline (the gate is off).' : `below the gate (${gateText}).`}</p>`,
+      html`<p><b>New, not blocking</b>: not in the baseline; ${ctx.report.mode === 'baseline' || ctx.report.mode === 'attack-baseline' ? 'this baseline run wrote it to the baseline (the gate is off).' : `below the gate (${gateText}).`}</p>`,
     );
   }
   const entry: [string, HtmlValue][] =
@@ -175,9 +175,10 @@ function testsPart(ctx: Ctx, f: ClassifiedFinding): SafeHtml {
   );
 }
 
-/** The "custom" badge of a custom rule (16-REQ-12). */
+/** The origin badge: "custom" of a custom rule (16-REQ-12), "ZAP" of an alert (19-REQ-10). */
 function customBadge(rule: BuiltInRule | undefined): SafeHtml | null {
-  return rule?.manifest.group === 'custom' ? html` <span class="src">custom</span>` : null;
+  if (rule?.manifest.group === 'custom') return html` <span class="src">custom</span>`;
+  return rule?.manifest.group === 'zap' ? html` <span class="src">ZAP</span>` : null;
 }
 
 function referencesPart(ctx: Ctx, ruleId: string): SafeHtml {

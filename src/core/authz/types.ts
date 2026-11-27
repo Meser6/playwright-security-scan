@@ -1,5 +1,6 @@
 // Data of the authorization tests (02, chapter 2a; 18): request templates of the worker, raw replay
 // results of the reporter (also in the shard file, 18-REQ-20).
+import type { AttackTemplate } from '../attack/types.ts';
 import type { Header, Source, TestContextRef } from '../types/index.ts';
 import type { DigestKind, ResponseDigest } from './digest.ts';
 import type { AuthzTest } from './manifest.ts';
@@ -25,7 +26,9 @@ export interface RequestTemplate {
 /** The pw-sec-templates attachment (02-REQ-07). */
 export interface TemplatesAttachment {
   schemaVersion: 1;
-  templates: RequestTemplate[];
+  templates: readonly RequestTemplate[];
+  /** Templates of the attack mode (19 chapter 11a). */
+  attack?: readonly AttackTemplate[];
 }
 
 export const TEMPLATES_ATTACHMENT = 'pw-sec-templates';

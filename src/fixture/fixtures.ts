@@ -14,12 +14,13 @@ import type { ApiSink } from '../collector/api.ts';
 import { instrumentContext, scanContext } from '../collector/browser.ts';
 import { Scope } from '../collector/scope.ts';
 import { AnalysisCache, ATTACHMENT_NAME, TestCollector } from '../collector/test-collector.ts';
-import { TemplateCollector } from '../collector/templates.ts';
+import { AttackTemplateCollector, TemplateCollector } from '../collector/templates.ts';
 import { TEMPLATES_ATTACHMENT } from '../core/authz/types.ts';
 import { ResponseTracker } from '../collector/tracker.ts';
 import type { KeyBuilder } from '../collector/tracker.ts';
 import {
   authzOn,
+  isAttackMode,
   CHECK_SKIP_REASON,
   readMaxTests,
   readMode,
@@ -66,6 +67,8 @@ interface WorkerState {
   salt: string;
   /** The authorization tests run (18-REQ-05): templates are made (05-REQ-28). */
   authz: boolean;
+  /** An attack run (19-REQ-01): attack templates are made (05-REQ-28). */
+  attack: boolean;
   scannedProjects: string[] | 'all';
   /** withSecurity() was not applied in this process (01-REQ-06). */
   configMissing: boolean;
@@ -99,6 +102,7 @@ function workerState(baseURL: string | undefined): WorkerState {
     binding: `__pwSec_${salt.slice(0, 8)}`,
     salt,
     authz: authzOn(config.authz.enabled),
+    attack: isAttackMode(registered?.mode ?? null),
     scannedProjects: registered?.scannedProjects ?? 'all',
     configMissing: registered === undefined,
   };
@@ -227,6 +231,13 @@ function openBuffer(baseURL: string | undefined, testInfo: TestInfo): SecBuffer 
       apiCredentials:
         use.storageState !== undefined ||
         Object.keys(use.extraHTTPHeaders ?? {}).some((h) => h.toLowerCase() === 'authorization'),
+    });
+  }
+  if (state.attack) {
+    collector.attackTemplates = new AttackTemplateCollector({
+      config: state.config,
+      test: collector.test,
+      redactor: state.redactor,
     });
   }
   const scan = new TestScan(collector, state);

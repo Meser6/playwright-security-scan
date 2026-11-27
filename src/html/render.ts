@@ -4,6 +4,7 @@
 // script adds tabs, filters, sorting, the finding dialog, deep links and copying. Styles and script are build-time
 // constants with their SHA-256 hashes for the Content-Security-Policy. Structure copied from
 // playwright-performance-regression (src/html/render.ts, MIT, D-08).
+import { attackTab } from './attack.ts';
 import { authzTab } from './authz.ts';
 import { context } from './context.ts';
 import type { Ctx, HtmlReportInput } from './context.ts';
@@ -20,7 +21,7 @@ import { REPORTS_DOCS_URL, REPOSITORY_URL, badge, join } from './parts.ts';
 export const PACKAGE_NAME = 'playwright-security-scan';
 
 /** Tabs in their order (09-REQ-17, item 4). */
-export type TabId = 'findings' | 'coverage' | 'authz' | 'run';
+export type TabId = 'findings' | 'coverage' | 'authz' | 'attack' | 'run';
 
 interface Tab {
   id: TabId;
@@ -45,7 +46,10 @@ function header(ctx: Ctx): SafeHtml {
     html`<header class="appbar"><div class="wrap">`,
     html`<p class="brand">${logo()}<b>${PACKAGE_NAME}</b> <span class="ver">v${r.pkgVersion}</span></p>`,
     html`<div class="meta" role="group" aria-label="Run details" tabindex="0">`,
-    chip('play', html`mode <b>${r.mode}</b> · ${r.authz == null ? 'passive' : 'passive + authz'}`),
+    chip(
+      'play',
+      html`mode <b>${r.mode}</b> · ${r.authz == null ? 'passive' : 'passive + authz'}${r.attack == null ? '' : ' + ZAP'}`,
+    ),
     // A merged run (17-REQ-12, 09-REQ-22).
     r.shards == null
       ? null
@@ -108,6 +112,20 @@ function tabs(ctx: Ctx): Tab[] {
             failing: 0,
             note: 'GET/HEAD requests of the tests replayed as other roles and without a session.',
             content: authzTab(ctx),
+          },
+        ]),
+    // Only in an attack run (19-REQ-10).
+    ...(r.attack == null
+      ? []
+      : [
+          {
+            id: 'attack' as const,
+            label: 'Attack',
+            count: r.findings.filter((f) => f.ruleId.startsWith('zap.')).length,
+            tone: r.attack.completed ? '' : 'warn',
+            failing: 0,
+            note: 'The ZAP active scan on the requests of the tests, after the tests.',
+            content: attackTab(ctx),
           },
         ]),
     {

@@ -130,7 +130,9 @@ export function buildSarif(
               properties: {
                 tags: [
                   'security',
-                  ...(r.manifest.group === 'custom' ? ['custom'] : []),
+                  ...(r.manifest.group === 'custom' || r.manifest.group === 'zap'
+                    ? [r.manifest.group]
+                    : []),
                   ...r.manifest.cwe.map((n) => `CWE-${n}`),
                   ...(r.manifest.owasp === undefined ? [] : [`OWASP-${r.manifest.owasp}`]),
                 ],
@@ -145,8 +147,11 @@ export function buildSarif(
             })),
           },
         },
-        // GitHub takes the part before the last "/" as the category: pw-sec (D-17).
-        automationDetails: { id: `pw-sec/${report.runId}` },
+        // GitHub takes the part before the last "/" as the category: pw-sec (D-17); the attack
+        // mode has its own, so the nightly alerts do not replace those of the PRs (09-REQ-22).
+        automationDetails: {
+          id: `${report.attack == null ? 'pw-sec' : 'pw-sec-attack'}/${report.runId}`,
+        },
         results,
         properties: {
           outcome: report.outcome.name,

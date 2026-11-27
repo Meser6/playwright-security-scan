@@ -140,6 +140,12 @@ Endpoint keys group findings of API rules and appear in the reports; they never 
 default; `authz.allowedOrigins` is required when `authz.enabled` is `true`). Their findings take
 `rules['authz.<test>']` settings like rules; presets do not change them.
 
+## Attack mode
+
+`attack.*` options configure the ZAP active scan of `PW_SEC_MODE=attack` and `attack-baseline`
+([Attack mode](attack.md)); other modes ignore them. `attack.allowedOrigins` is required in these
+modes and has no default. `rules['zap.<pluginId>']` takes `'off'` or `{ severity, confidence }`.
+
 ## Contexts created by hand
 
 The fixtures scan the `context`, `page` and `request` fixtures. Other contexts need one line:

@@ -41,7 +41,7 @@ function callString(target: unknown, name: string): string | undefined {
 export function describeApiCall(
   name: string,
   args: readonly unknown[],
-): { method: string; headers: Header[] } | undefined {
+): { method: string; headers: Header[]; body?: string; bodyType?: string } | undefined {
   const [target, options] = args;
   const opts =
     typeof options === 'object' && options !== null ? (options as Record<string, unknown>) : {};
@@ -60,7 +60,28 @@ export function describeApiCall(
       if (typeof value === 'string') headers.push({ name: key.toLowerCase(), value });
     }
   }
-  return { method, headers };
+  return { method, headers, ...requestBody(opts) };
+}
+
+/** The body of a call as Playwright sends it (data, form), for attack templates (19-REQ-03). */
+function requestBody(opts: Record<string, unknown>): { body?: string; bodyType?: string } {
+  const { data, form } = opts;
+  if (typeof data === 'string') return { body: data };
+  if (data !== undefined && data !== null && !Buffer.isBuffer(data) && typeof data !== 'function') {
+    try {
+      return { body: JSON.stringify(data), bodyType: 'application/json' };
+    } catch {
+      return {};
+    }
+  }
+  if (typeof form === 'object' && form !== null && !(form instanceof FormData)) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(form as Record<string, unknown>))
+      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+        params.append(k, String(v));
+    return { body: params.toString(), bodyType: 'application/x-www-form-urlencoded' };
+  }
+  return {};
 }
 
 function isPromise(value: unknown): value is Promise<unknown> {
@@ -89,7 +110,7 @@ export function isApiRequestContext(value: unknown): boolean {
 /** Builds and analyses the record of one API response (15, chapter 4). */
 async function analyze(
   sink: ApiSink,
-  call: { method: string; headers: Header[] },
+  call: { method: string; headers: Header[]; body?: string; bodyType?: string },
   response: APIResponse,
 ): Promise<void> {
   const { collector, keys } = sink;
@@ -159,6 +180,7 @@ async function analyze(
     collector.skipBody(skip);
   }
   template?.add(record, record.body?.text);
+  collector.attackTemplates?.add(record, call.body, call.bodyType);
   if (!ruleWantsBody) delete record.body;
   collector.analyzeRecord(record);
   delete record.body;

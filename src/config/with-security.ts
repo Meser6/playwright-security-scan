@@ -4,12 +4,19 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { extname, isAbsolute, resolve } from 'node:path';
 import type { PlaywrightTestConfig, ReporterDescription } from '@playwright/test';
+import { attackModeIssues } from '../core/attack/config.ts';
+import { rolesOf } from '../core/authz/plan.ts';
 import { ConfigError, resolveConfig } from '../core/config/index.ts';
-import type { ConfigIssue, SecurityConfigInput } from '../core/config/index.ts';
+import type {
+  ConfigIssue,
+  ResolvedSecurityConfig,
+  SecurityConfigInput,
+} from '../core/config/index.ts';
 import { canonicalOrigin } from '../core/normalize/index.ts';
 import type { Diagnostic } from '../core/types/index.ts';
 import {
   CONFIG_ENV,
+  isAttackMode,
   readAuthzEnv,
   REMOVED_ENV_ENV,
   readMaxTests,
@@ -130,6 +137,30 @@ export function reporterFlagIssue(argv: readonly string[]): ConfigIssue | undefi
   };
 }
 
+/** `--shard` on the command line of `playwright test` (17-REQ-14). */
+export function shardFlag(argv: readonly string[]): boolean {
+  const start = argv.indexOf('test');
+  return (start < 0 ? [] : argv.slice(start + 1)).some(
+    (a) => a === '--shard' || a.startsWith('--shard='),
+  );
+}
+
+/** Roles of the Playwright config (18-REQ-07), for attack.role. */
+export function configRoles(
+  config: PlaywrightTestConfig,
+  sec: ResolvedSecurityConfig,
+): ReturnType<typeof rolesOf> {
+  const projects = (config.projects ?? []).map((p) => {
+    const state = (p.use as { storageState?: unknown } | undefined)?.storageState;
+    return {
+      name: p.name ?? '',
+      storageState: typeof state === 'string' ? state : undefined,
+      scanned: sec.scope.projects === 'all' || sec.scope.projects.includes(p.name ?? ''),
+    };
+  });
+  return rolesOf(projects, sec.authz);
+}
+
 /** Main process only (TEST_WORKER_INDEX unset): one run id and one salt for every worker. */
 function mainProcessSetup(): void {
   if (process.env.TEST_WORKER_INDEX !== undefined) return;
@@ -176,6 +207,17 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   if (process.env.TEST_WORKER_INDEX === undefined) {
     const flag = reporterFlagIssue(process.argv);
     if (flag !== undefined) throw new ConfigError([flag]);
+  }
+  // The attack mode (19-REQ-02, 19-REQ-05, 17-REQ-14): before any test, in every process.
+  if (isAttackMode(mode.mode)) {
+    const attackIssues = attackModeIssues(resolved.config.attack, {
+      platform: process.platform,
+      sharded:
+        config.shard != null ||
+        (process.env.TEST_WORKER_INDEX === undefined && shardFlag(process.argv)),
+      roles: configRoles(config, resolved.config).map((r) => r.name),
+    });
+    if (attackIssues.length > 0) throw new ConfigError(attackIssues);
   }
   mainProcessSetup();
   const { names, baseOrigins } = scannedProjects(config, resolved.config.scope.projects);

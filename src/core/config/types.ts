@@ -1,4 +1,5 @@
 // Package config (03, chapter 4): what users write and the resolved form.
+import type { AttackInput, ResolvedAttack } from '../attack/config.ts';
 import type { AuthzInput, ResolvedAuthz } from '../authz/config.ts';
 import type { Rule as CustomRule } from '../custom/define.ts';
 import type { NormalizationConfig, NormalizationInput } from '../normalize/index.ts';
@@ -52,6 +53,8 @@ export interface SecurityConfigInput {
   normalization?: NormalizationInput;
   /** Authorization tests (18-REQ-01); off by default. */
   authz?: AuthzInput;
+  /** Attack mode with ZAP (19, chapter 4); used only with PW_SEC_MODE=attack or attack-baseline. */
+  attack?: AttackInput;
 }
 
 export interface ResolvedRule {
@@ -94,6 +97,7 @@ export interface ResolvedSecurityConfig {
   };
   normalization: NormalizationConfig;
   authz: ResolvedAuthz;
+  attack: ResolvedAttack;
 }
 
 /** A config problem; `path` is the option path, e.g. "rules.cookie.no-htponly". */

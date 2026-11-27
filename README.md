@@ -19,7 +19,8 @@ scanning) and JUnit XML (any CI).
   requests. So it does not test for injection or other issues that need attacks. The only
   exception is opt-in: the [authorization tests](docs/authz.md) (`authz.enabled`) replay the GET
   and HEAD requests of your tests as other users and without a session, only to the origins you
-  allow and never to production.
+  allow and never to production. The optional [attack mode](docs/attack.md)
+  (`PW_SEC_MODE=attack`) runs a ZAP active scan on those requests for a nightly job.
 - It only sees what your tests visit. Endpoints no test calls are not checked.
 - WebSockets, Server-Sent Events and service worker traffic are not analysed.
 - It does **not** replace a penetration test or a dependency (SCA) scan. A green run means "nothing
@@ -112,6 +113,7 @@ Any code other than 0 makes the Playwright command exit with 1.
 - [Rules](docs/rules/README.md): what each rule checks, how to fix it, false positives
 - [Custom rules](docs/custom-rules.md): your own rules with `defineRule()` (experimental)
 - [Authorization tests](docs/authz.md): opt-in replays as other roles and without a session (IDOR)
+- [Attack mode](docs/attack.md): optional ZAP active scan of the requests of your tests, for a nightly job
 - [Reports](docs/reports.md): HTML, JSON, SARIF, JUnit, privacy of the evidence
 - [CI](docs/ci.md): GitHub Actions, GitLab, Azure DevOps, Jenkins
 - [Adoption](docs/adoption.md): existing fixtures, setups and the perf package

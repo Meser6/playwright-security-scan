@@ -43,7 +43,12 @@ function results(report: RunReport): SafeHtml {
   const warnings = report.diagnostics.filter((d) => d.level === 'warn').length;
   const security =
     o.code === 0
-      ? result('Security', 'd-ok', 'passed', report.mode === 'baseline' ? 'baseline run' : null)
+      ? result(
+          'Security',
+          'd-ok',
+          'passed',
+          report.mode === 'baseline' || report.mode === 'attack-baseline' ? 'baseline run' : null,
+        )
       : o.code === 3
         ? result('Security', 'd-bad', 'error', 'not trustworthy')
         : result(
@@ -111,7 +116,8 @@ export function kpis(ctx: Ctx): SafeHtml {
     {
       label: 'New, blocking',
       value: count((c, b) => c === 'new' && b),
-      note: r.mode === 'baseline' ? 'gate off (baseline run)' : gate,
+      note:
+        r.mode === 'baseline' || r.mode === 'attack-baseline' ? 'gate off (baseline run)' : gate,
       tone: 'bad',
       href: '#tab-findings',
       filter: 'blocking',

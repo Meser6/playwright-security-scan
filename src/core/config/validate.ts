@@ -1,5 +1,6 @@
 // Validation of the package config (03-REQ-02): unknown options and rule ids with the closest
 // known name, wrong types and values with the allowed ones. Every problem is reported (P-12).
+import { ATTACK_LEVELS, ATTACK_METHODS } from '../attack/config.ts';
 import { deniedReason, resolveAuthz } from '../authz/config.ts';
 import { AUTHZ_RULE_IDS } from '../authz/manifest.ts';
 import { canonicalOrigin, parseHostPattern } from '../normalize/index.ts';
@@ -215,10 +216,11 @@ function rules(c: Collector, value: unknown): void {
       continue;
     }
     if (key === 'custom') continue;
+    // zap.<pluginId>: the manifest of ZAP alerts is dynamic (19-REQ-09), without options.
     const defaults =
       custom.get(key) ??
       ruleManifest(key)?.options ??
-      (AUTHZ_RULE_IDS.includes(key) ? {} : undefined);
+      (AUTHZ_RULE_IDS.includes(key) || ZAP_RULE_ID.test(key) ? {} : undefined);
     if (defaults === undefined) {
       const suggestion = closest(key, ids);
       c.add(
@@ -329,6 +331,48 @@ function authz(c: Collector, value: unknown): void {
   });
 }
 
+/** Rule id of a ZAP alert (19-REQ-08): zap.<pluginId>. */
+export const ZAP_RULE_ID = /^zap\.\d+$/;
+
+function attack(c: Collector, value: unknown): void {
+  section(c, 'attack', value, {
+    engine: enumOf(['zap']),
+    allowedOrigins: exactOriginList,
+    denyOrigins: exactOriginList,
+    iUnderstandThisIsNotProduction: bool,
+    zapUrl: (cc, p, v) => {
+      if (
+        typeof v !== 'string' ||
+        !/^https?:\/\/[^/?#]+\/?$/.test(v) ||
+        canonicalOrigin(v) === null
+      )
+        cc.add(
+          'CONFIG_INVALID_VALUE',
+          p,
+          `${show(v)} is not the address of a ZAP`,
+          'Use scheme://host:port of a running ZAP, e.g. "http://127.0.0.1:8090".',
+        );
+    },
+    image: nonEmptyString,
+    role: nonEmptyString,
+    methods: (cc, p, v) => {
+      if (
+        !Array.isArray(v) ||
+        v.length === 0 ||
+        v.some((m) => typeof m !== 'string' || !(ATTACK_METHODS as readonly string[]).includes(m))
+      )
+        cc.oneOf(p, v, ATTACK_METHODS);
+    },
+    strength: enumOf(ATTACK_LEVELS),
+    threshold: enumOf(ATTACK_LEVELS),
+    maxDurationMinutes: positiveNumber,
+    maxRequests: positiveInt,
+    maxRps: positiveNumber,
+    exclude: stringList,
+    probeHeader: bool,
+  });
+}
+
 function normalization(c: Collector, value: unknown): void {
   section(c, 'normalization', value, {
     origins: (cc, p, v) => {
@@ -422,6 +466,7 @@ export function validateConfig(input: unknown): ConfigIssue[] {
       }),
     normalization: (cc, _p, v) => normalization(cc, v),
     authz: (cc, _p, v) => authz(cc, v),
+    attack: (cc, _p, v) => attack(cc, v),
   };
   section(c, '', input, top);
   // section() prefixes top-level paths with '.'; strip it.
