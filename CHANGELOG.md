@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- The check of the guided setup (`npx pw-sec`) is one quick trial run with `PW_SEC_MODE=check` (up to 10 tests, nothing written) instead of three runs (`check`, `baseline`, `scan` with a temporary baseline). Its result is read from the check output: "The scan sees your app's traffic." or the cause (no traffic in scope with the origins seen outside it, or the first error). The internal `PW_SEC_BASELINE_DIR` variable is gone.
+
 ## [0.2.0-beta.0] - 2026-11-26
 
 ### Fixed

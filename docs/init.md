@@ -57,11 +57,12 @@ default answers, shows the planned changes and writes nothing.
    paste ([`INIT_MANUAL_STEP`](troubleshooting.md#init_manual_step),
    [`INIT_TEST_OBJECT_MANUAL`](troubleshooting.md#init_test_object_manual)).
 
-8. **Check** (optional): your test command runs three times, as real runs:
-   `PW_SEC_MODE=check`, then `baseline` and `scan` with the baseline in a temporary folder that is
-   removed afterwards, so your project's baseline is not created yet. A failure is explained:
-   no response in scope (with the fix in the config), a tool error, or new findings right after
-   the baseline (traffic that differs between runs).
+8. **Check** (optional): one quick trial run — your test command runs once with
+   `PW_SEC_MODE=check` ([check](cli.md#dry-run-check)): at most 10 tests, nothing is written (no baseline, no
+   reports). It answers one question: does the scan see your app's traffic? On success the wizard
+   prints "The scan sees your app's traffic."; otherwise it explains the cause: no response in
+   scope (with the fix in the config and the origins seen outside the scope) or the first error.
+   The baseline is the first step of the summary, not part of the check.
 9. **Summary** with an IMPORTANT box: the exact commands for your project to accept the baseline
    (one per environment label), what to review, what to commit, and the scan to run in CI. On
    Windows the commands start with `npx cross-env`; see [Windows](cli.md#windows).

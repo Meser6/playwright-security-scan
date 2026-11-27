@@ -19,14 +19,16 @@ import { formatIssues, infoLine } from '../output.ts';
 import type { OutputStyle } from '../output.ts';
 import {
   chainsCommands,
-  checkRuns,
+  checkRun,
   commandProblem,
   commandSpawn,
   defaultTestCommand,
   runCommands,
   scriptHints,
 } from './commands.ts';
-import type { CheckRun, RunCommands } from './commands.ts';
+import type { RunCommands } from './commands.ts';
+import { readCheckOutput } from './check-output.ts';
+import type { CheckOutput } from './check-output.ts';
 import { importantBox } from './next-steps.ts';
 import { detectProject, originOf } from './detect.ts';
 import type { ProjectInfo } from './detect.ts';
@@ -497,58 +499,41 @@ async function applyChanges(
   return written;
 }
 
-/** Exit code of one run of the wizard's check, with the cause it translates (11-REQ-11). */
+/** Exit code of the wizard's check, with the cause it translates (11-REQ-11). */
 interface CheckResult {
-  mode: CheckRun['mode'];
   code: number;
+  /** The scan sees the app's traffic (verdict READY or READY WITH WARNINGS). */
+  ready: boolean;
   cause: string | null;
 }
 
+/** Output of the check kept for its result (11-REQ-11); the check output is short. */
+const MAX_CHECK_OUTPUT = 1_000_000;
+
 /**
- * The cause of a failed baseline or scan run of the check, from report.json of that run (11-REQ-11):
- * no traffic, the first error, or new findings right after the baseline.
+ * The cause of a check that is not ready, from its output (11-REQ-11): the first error, or no
+ * traffic in scope with the origins outside the scope.
  */
-async function checkCause(
-  dialog: Dialog,
-  host: CliHost,
-  run: CheckRun,
-  since: string,
-  configFile: string,
-): Promise<string | null> {
-  if (run.mode === 'check') return null;
-  const text = await host.readText(host.paths.join(host.cwd, `${REPORT_DIR}/report.json`));
-  if (text === null) return null;
-  try {
-    const report = JSON.parse(text) as {
-      startedAt?: string;
-      outcome?: { code?: number };
-      diagnostics?: { code: string; level: string; message: string }[];
-    };
-    if ((report.startedAt ?? '') < since) return null;
-    const diags = report.diagnostics ?? [];
-    const code = report.outcome?.code;
-    if (code === 4 || diags.some((d) => d.code === 'NO_TRAFFIC' || d.code === 'SCOPE_EMPTY'))
-      return dialog.t('checkNoTraffic', { configFile });
-    const error = diags.find((d) => d.level === 'error');
-    if (error !== undefined) return `${error.code}: ${error.message}`;
-    if (code === 1 && run.mode === 'scan') return dialog.t('checkUnstable');
-    return null;
-  } catch {
-    return null;
-  }
+function checkCause(dialog: Dialog, output: CheckOutput | null, configFile: string): string | null {
+  if (output === null || output.verdict !== 'not-ready') return null;
+  if (output.firstError !== null) return `${output.firstError.code}: ${output.firstError.message}`;
+  if (!output.noTraffic) return null;
+  const cause = dialog.t('checkNoTraffic', { configFile });
+  return output.outOfScope.length === 0
+    ? cause
+    : `${cause} ${dialog.t('checkOutOfScope', { origins: output.outOfScope.join(', ') })}`;
 }
 
 /**
- * Step 8 (11-REQ-10): the test command three times as a child process with the terminal: check,
- * then baseline and scan with the baseline in a temporary directory removed afterwards. The scan
- * does not start after a failed baseline run; Ctrl+C (130) stops the check.
+ * Step 8 (11-REQ-10): the test command once as a child process with PW_SEC_MODE=check. Its output
+ * goes to the terminal and is read for the result (the check writes no file); Ctrl+C (130) stops it.
  */
 async function runCheck(
   dialog: Dialog,
   host: CliHost,
   info: ProjectInfo,
   commands: RunCommands,
-): Promise<CheckResult[]> {
+): Promise<CheckResult | null> {
   const spec = commandSpawn({
     command: commands.base,
     nodePath: host.execPath,
@@ -559,45 +544,45 @@ async function runCheck(
   });
   if (!spec.ok) {
     dialog.line(dialog.t('checkManual', { command: commands.check }), 'yellow');
-    return [];
+    return null;
   }
   const inherited: Record<string, string> = {};
   for (const [name, value] of Object.entries(host.env))
     if (value !== undefined && !name.startsWith('PW_SEC_')) inherited[name] = value;
-  const results: CheckResult[] = [];
-  const dir = await host.makeTempDir('pw-sec-init-');
+  // The output goes through a pipe: colors stay when the wizard has them.
+  if (dialog.colors && host.env.FORCE_COLOR === undefined) inherited.FORCE_COLOR = '1';
+  const run = checkRun(commands.base, host.platform);
   // Ctrl+C goes to the whole process group: the run stops and the wizard reports 130.
   const stop = host.onSignal('SIGINT', () => undefined);
+  let text = '';
   try {
-    for (const run of checkRuns(commands.base, host.platform, dir)) {
-      dialog.line(`$ ${run.shown}`, 'dim');
-      const since = new Date().toISOString();
-      const child = host.spawnProcess(spec.value.file, spec.value.args, {
-        cwd: host.cwd,
-        env: { ...inherited, ...run.env },
-        stdio: 'inherit',
-        shell: spec.value.shell,
-      });
-      const code = await new Promise<number>((resolve) => {
-        child.once('exit', (exit, signal) => resolve(signal === 'SIGINT' ? 130 : (exit ?? 1)));
-        child.once('error', () => resolve(1));
-      });
-      if (code === 130) {
-        results.push({ mode: run.mode, code, cause: null });
-        break;
-      }
-      const cause =
-        code === 0 ? null : await checkCause(dialog, host, run, since, configFileName(info));
-      results.push({ mode: run.mode, code, cause });
-      dialog.line(dialog.t('checkExit', { mode: run.mode, code }), code === 0 ? 'green' : 'yellow');
-      if (cause !== null) dialog.line(dialog.t('checkCause', { cause }), 'yellow');
-      if (run.mode === 'baseline' && code !== 0) break;
-    }
+    dialog.line(`$ ${run.shown}`, 'dim');
+    const child = host.spawnProcess(spec.value.file, spec.value.args, {
+      cwd: host.cwd,
+      env: { ...inherited, ...run.env },
+      stdio: ['inherit', 'pipe', 'pipe'],
+      shell: spec.value.shell,
+    });
+    child.stdout?.on('data', (chunk) => {
+      const part = String(chunk);
+      host.stdout.write(part);
+      text = (text + part).slice(-MAX_CHECK_OUTPUT);
+    });
+    child.stderr?.on('data', (chunk) => host.stderr.write(String(chunk)));
+    const code = await new Promise<number>((resolve) => {
+      child.once('close', (exit, signal) => resolve(signal === 'SIGINT' ? 130 : (exit ?? 1)));
+      child.once('error', () => resolve(1));
+    });
+    if (code === 130) return { code, ready: false, cause: null };
+    const output = readCheckOutput(text);
+    const ready = output !== null && output.verdict !== 'not-ready';
+    const cause = checkCause(dialog, output, configFileName(info));
+    dialog.line(dialog.t('checkExit', { mode: 'check', code }), code === 0 ? 'green' : 'yellow');
+    if (cause !== null) dialog.line(dialog.t('checkCause', { cause }), 'yellow');
+    return { code, ready, cause };
   } finally {
     stop();
-    await host.removeDir(dir);
   }
-  return results;
 }
 
 /** Baseline files to review and commit: one per environment label, else the default one. */
@@ -710,18 +695,17 @@ export async function runInit(
     const configPath = info.playwrightConfig.path;
     const wrapped = info.existing.wrappedConfig || written.includes(configPath);
     const setUp = written.length > 0 || plan.changes.length === 0;
-    let checkResults: CheckResult[] | null = null;
+    let checkResult: CheckResult | null = null;
     dialog.stepOf(8, 'stepCheck', 'checkLesson');
     if (answers.runCheck && write && setUp && wrapped && testObject === null) {
       if (await dialog.confirm(t('checkQuestion'), true)) {
         prompt?.close();
-        checkResults = await runCheck(dialog, host, info, commands);
-        if (checkResults.some((r) => r.code === 130)) {
+        checkResult = await runCheck(dialog, host, info, commands);
+        if (checkResult?.code === 130) {
           host.stderr.write(infoLine(t('interrupted')));
           return 130;
         }
-        if (checkResults.length === 3 && checkResults.every((r) => r.code === 0))
-          dialog.line(`✔ ${t('checkPassed')}`, 'green');
+        if (checkResult?.ready === true) dialog.line(`✔ ${t('checkPassed')}`, 'green');
       }
     } else {
       dialog.line(t('skipped'), 'dim');
@@ -743,10 +727,10 @@ export async function runInit(
     if (plan.manualSteps.length > 0)
       dialog.line(`⚠ ${t('manualSteps', { count: plan.manualSteps.length })}`, 'yellow');
     if (redBox !== null) host.stdout.write(redBox);
-    for (const r of checkResults ?? []) {
-      if (r.code !== 0) dialog.say(`  ${t('checkExit', { mode: r.mode, code: r.code })}`);
-      if (r.code !== 0 && r.cause !== null) dialog.say(`  ${t('checkCause', { cause: r.cause })}`);
-    }
+    if (checkResult !== null && checkResult.code !== 0)
+      dialog.say(`  ${t('checkExit', { mode: 'check', code: checkResult.code })}`);
+    if (checkResult?.cause != null)
+      dialog.say(`  ${t('checkCause', { cause: checkResult.cause })}`);
     // After a write the IMPORTANT box has the commands; without one the Run line (11-REQ-13).
     const done = write && setUp;
     if (!done) {
@@ -754,7 +738,7 @@ export async function runInit(
       dialog.line(t('runLesson'), 'dim');
       if (host.platform === 'win32') dialog.line(t('windowsNote'), 'dim');
       dialog.say(`  ${paint(t('nextSteps'), 'bold')}`, `    1. ${t('nextApply')}`);
-    } else if (checkResults === null || checkResults.length === 0) {
+    } else if (checkResult === null) {
       dialog.say('', `  ${t('tryCheck', { command: paint(commands.check, 'cyan') })}`);
     }
     if (commands.base.includes('&&') || commands.base.includes(';'))

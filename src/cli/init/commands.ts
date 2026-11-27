@@ -1,6 +1,6 @@
 // Run commands of the init wizard (11, chapters 4, 7 and 8): the test command C (the answer of
 // step 6, by default the command of the detected package manager), the commands of every mode
-// shown by the wizard (no CI jobs), and the runs and process of the wizard's check. Nothing is
+// shown by the wizard (no CI jobs), and the run and process of the wizard's check. Nothing is
 // executed here. Pure. After the perf package; perf spec IDs are marked "perf".
 import type { CliIssue, Result } from '../constants.ts';
 import type { PackageManager } from './detect.ts';
@@ -104,31 +104,20 @@ export function runCommands(
   };
 }
 
-/** Internal variable of the wizard's check (11-REQ-10): the directory of the baseline file. */
-export const BASELINE_DIR_ENV = 'PW_SEC_BASELINE_DIR';
-
 export interface CheckRun {
-  mode: 'check' | 'baseline' | 'scan';
   env: Record<string, string>;
   /** The command as shown, with the mode variable in front. */
   shown: string;
 }
 
 /**
- * The three runs of the check (11-REQ-10): check, then baseline and scan with the baseline in
- * `baselineDir`. The variables go to the environment of the child process, not in front of the
- * command, so no cross-env is needed and chains get them too.
+ * The one run of the check (11-REQ-10): `PW_SEC_MODE=check`. The variable goes to the
+ * environment of the child process, not in front of the command, so no cross-env is needed and
+ * chains get it too.
  */
-export function checkRuns(command: string, platform: string, baselineDir: string): CheckRun[] {
+export function checkRun(command: string, platform: string): CheckRun {
   const prefix = platform === 'win32' ? 'npx cross-env ' : '';
-  return (['check', 'baseline', 'scan'] as const).map((mode): CheckRun => ({
-    mode,
-    env:
-      mode === 'check'
-        ? { PW_SEC_MODE: mode }
-        : { PW_SEC_MODE: mode, [BASELINE_DIR_ENV]: baselineDir },
-    shown: `${prefix}PW_SEC_MODE=${mode} ${command}`,
-  }));
+  return { env: { PW_SEC_MODE: 'check' }, shown: `${prefix}PW_SEC_MODE=check ${command}` };
 }
 
 export function commandProblem(command: string): 'variable' | null {

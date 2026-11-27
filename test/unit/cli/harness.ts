@@ -1,7 +1,6 @@
 // Fake wizard host: captured streams, a scripted check child process and signal handlers.
 import { EventEmitter } from 'node:events';
-import { mkdir, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type {
   ChildProcessLike,
@@ -13,14 +12,21 @@ import type {
 
 export class FakeChild extends EventEmitter implements ChildProcessLike {
   readonly kills: (NodeJS.Signals | undefined)[] = [];
+  readonly stdout = new EventEmitter();
+  readonly stderr = new EventEmitter();
 
   kill(signal?: NodeJS.Signals): boolean {
     this.kills.push(signal);
     return true;
   }
 
+  /** Prints `text` on stdout of the run. */
+  print(text: string): void {
+    this.stdout.emit('data', Buffer.from(text));
+  }
+
   exit(code: number | null, signal: NodeJS.Signals | null = null): void {
-    this.emit('exit', code, signal);
+    this.emit('close', code, signal);
   }
 }
 
@@ -37,9 +43,6 @@ export interface FakeHost {
   resolvedFrom?: string;
   /** Files written through the host, in order. */
   written: string[];
-  /** Temporary directories made and removed through the host. */
-  tempDirs: string[];
-  removedDirs: string[];
 }
 
 export interface FakeHostOptions {
@@ -69,8 +72,6 @@ export function fakeCliHost(options: FakeHostOptions): FakeHost {
     },
     host: undefined as unknown as CliHost,
     written: [],
-    tempDirs: [],
-    removedDirs: [],
   };
   fake.host = {
     cwd: options.cwd,
@@ -136,15 +137,6 @@ export function fakeCliHost(options: FakeHostOptions): FakeHost {
       fake.written.push(path);
       await mkdir(dirname(path), { recursive: true });
       await writeFile(path, text);
-    },
-    makeTempDir: async (prefix) => {
-      const dir = await mkdtemp(join(tmpdir(), prefix));
-      fake.tempDirs.push(dir);
-      return dir;
-    },
-    removeDir: async (path) => {
-      fake.removedDirs.push(path);
-      await rm(path, { recursive: true, force: true });
     },
     createPrompt: () => {
       if (options.prompt === undefined) throw new Error('no terminal');

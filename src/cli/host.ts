@@ -10,11 +10,22 @@ export interface Stream {
 
 export type ForwardedSignal = 'SIGINT' | 'SIGTERM';
 
-/** The check child process as the wizard uses it (perf 04-REQ-58). */
+/** An output stream of the check child process. */
+export interface ChildOutput {
+  on(event: 'data', listener: (chunk: Buffer | string) => void): unknown;
+}
+
+/**
+ * The check child process as the wizard uses it (perf 04-REQ-58). Its stdout and stderr are pipes:
+ * the wizard shows them and reads the result of the check from stdout (11-REQ-11).
+ */
 export interface ChildProcessLike {
+  stdout: ChildOutput | null;
+  stderr: ChildOutput | null;
   kill(signal?: NodeJS.Signals): boolean;
+  /** After the exit and the end of stdout and stderr. */
   once(
-    event: 'exit',
+    event: 'close',
     listener: (code: number | null, signal: NodeJS.Signals | null) => void,
   ): unknown;
   once(event: 'error', listener: (error: Error) => void): unknown;
@@ -23,7 +34,7 @@ export interface ChildProcessLike {
 export interface ProcessOptions {
   cwd: string;
   env: Record<string, string>;
-  stdio: 'inherit';
+  stdio: ['inherit', 'pipe', 'pipe'];
   shell: boolean | string;
 }
 
@@ -80,10 +91,6 @@ export interface CliHost {
   listDir(path: string): Promise<DirEntry[]>;
   /** Writes a UTF-8 file, creating its directory. */
   writeText(path: string, text: string): Promise<void>;
-  /** A new empty directory in the temporary directory of the system (the wizard's check, perf 04-REQ-58). */
-  makeTempDir(prefix: string): Promise<string>;
-  /** Removes a directory with its content; nothing when it does not exist. */
-  removeDir(path: string): Promise<void>;
   /** Terminal questions on stdin and stdout (init). */
   createPrompt(): Prompt;
 }
