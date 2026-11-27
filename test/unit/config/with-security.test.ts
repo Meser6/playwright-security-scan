@@ -6,6 +6,7 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 import { reporterFlagIssue } from '../../../src/config/with-security.ts';
 import { ConfigError, withSecurity } from '../../../src/entries/config.ts';
 import { getRegistered, resetRegistryForTests } from '../../../src/registry/index.ts';
+import type { SecurityConfigInput } from '../../../src/core/config/index.ts';
 
 const ENV = [
   'PW_SEC_MODE',
@@ -56,27 +57,36 @@ describe('withSecurity() (01, chapter 7; 04)', () => {
     expect(() => withSecurity(base)).toThrow(/MODE|not available/);
   });
 
-  test('08-AC-05 an invalid environment label fails before tests start', () => {
+  test('08-AC-07 run.env is an unknown option before tests start; PW_SEC_ENV only warns (D-17)', () => {
     process.env.PW_SEC_MODE = 'scan';
-    process.env.PW_SEC_ENV = 'QA_1';
-    expect(() => withSecurity(base)).toThrow(ConfigError);
-    expect(() => withSecurity(base)).toThrow(/ENV|lowercase letters, digits and "-"/);
-    try {
-      withSecurity(base);
-    } catch (error) {
-      expect((error as ConfigError).issues.map((i) => i.code)).toEqual(['ENV_INVALID']);
-    }
-    Reflect.deleteProperty(process.env, 'PW_SEC_ENV');
     let thrown: unknown;
     try {
-      withSecurity(base, { run: { env: 'x'.repeat(33) } });
+      withSecurity(base, { run: { env: 'qa' } } as unknown as SecurityConfigInput);
     } catch (error) {
       thrown = error;
     }
+    expect(thrown).toBeInstanceOf(ConfigError);
     expect((thrown as ConfigError).issues.map((i) => [i.code, i.path])).toEqual([
-      ['CONFIG_INVALID_VALUE', 'run.env'],
+      ['CONFIG_UNKNOWN_OPTION', 'run'],
     ]);
-    expect((thrown as Error).message).toMatch(/lowercase letters, digits and "-"/);
+    process.env.PW_SEC_ENV = 'qa';
+    try {
+      expect(() => withSecurity(base, { scope: { origins: ['https://a.test'] } })).not.toThrow();
+      const state = getRegistered();
+      expect(state?.config.baseline.path).toBe('security-baseline.json');
+      expect(state?.warnings).toEqual([
+        {
+          code: 'ENV_REMOVED',
+          level: 'warn',
+          message: 'PW_SEC_ENV is no longer supported; see docs/faq.md',
+        },
+      ]);
+      process.env.PW_SEC_ENV = '  ';
+      withSecurity(base, { scope: { origins: ['https://a.test'] } });
+      expect(getRegistered()?.warnings).toEqual([]);
+    } finally {
+      Reflect.deleteProperty(process.env, 'PW_SEC_ENV');
+    }
   });
 
   test('04-AC-08 an invalid PW_SEC_MAX_TESTS fails a check before tests start', () => {
@@ -92,18 +102,6 @@ describe('withSecurity() (01, chapter 7; 04)', () => {
     process.env.PW_SEC_MODE = 'scan';
     process.env.PW_SEC_MAX_TESTS = 'abc';
     expect(() => withSecurity(base)).not.toThrow();
-  });
-
-  test('08-REQ-13 PW_SEC_ENV overrides run.env; an empty variable does not', () => {
-    process.env.PW_SEC_MODE = 'scan';
-    withSecurity(base, { run: { env: 'staging' } });
-    expect(getRegistered()?.config.run.env).toBe('staging');
-    process.env.PW_SEC_ENV = 'qa';
-    withSecurity(base, { run: { env: 'staging' } });
-    expect(getRegistered()?.config.run.env).toBe('qa');
-    process.env.PW_SEC_ENV = '';
-    withSecurity(base);
-    expect(getRegistered()?.config.run.env).toBeNull();
   });
 
   test('04-REQ-01 unknown modes list the values; values are case-insensitive', () => {

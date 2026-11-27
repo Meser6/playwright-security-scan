@@ -30,7 +30,7 @@ npm init playwright-security-scan@next
 ```
 
 This installs the package as a dev dependency and starts a short guided setup: it asks for the
-rule preset, the gate, the origins of your app, environments and your test command, shows a diff
+rule preset, the gate, the origins of your app and your test command, shows a diff
 of every change before writing it, offers a check run and ends with the exact commands for your
 project. See [Guided setup](docs/init.md). To set it up by hand instead:
 
@@ -106,7 +106,7 @@ Any code other than 0 makes the Playwright command exit with 1.
 - [Guided setup](docs/init.md): `npm init playwright-security-scan`
 - [Running the scan](docs/cli.md): modes, variables, Windows, the check, exit codes, colors
 - [Configuration](docs/configuration.md): every option
-- [The baseline](docs/baseline.md): workflow, statuses, expiry, partial runs, environments
+- [The baseline](docs/baseline.md): workflow, statuses, expiry, partial runs
 - [Rules](docs/rules/README.md): what each rule checks, how to fix it, false positives
 - [Reports](docs/reports.md): HTML, JSON, SARIF, JUnit, privacy of the evidence
 - [CI](docs/ci.md): GitHub Actions, GitLab, Azure DevOps, Jenkins

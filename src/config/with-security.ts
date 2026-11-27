@@ -10,7 +10,7 @@ import { canonicalOrigin } from '../core/normalize/index.ts';
 import type { Diagnostic } from '../core/types/index.ts';
 import {
   CONFIG_ENV,
-  readEnvLabel,
+  REMOVED_ENV_ENV,
   readMaxTests,
   readMode,
   RUN_ID_ENV,
@@ -142,16 +142,12 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   const fromEnv = (process.env[CONFIG_ENV] ?? '').trim();
   const input = fromEnv === '' ? securityConfig : (loadConfigFile(fromEnv) as SecurityConfigInput);
   const resolved = resolveConfig(input);
-  const label = readEnvLabel(process.env);
   const maxTests = mode.mode === 'check' ? readMaxTests(process.env) : undefined;
   const issues = [
     ...(resolved.ok ? [] : resolved.issues),
-    ...(label.ok ? [] : label.issues),
     ...(maxTests === undefined || maxTests.ok ? [] : maxTests.issues),
   ];
-  if (!resolved.ok || !label.ok || issues.length > 0) throw new ConfigError(issues);
-  // PW_SEC_ENV overrides run.env of the config (08-REQ-13).
-  if (label.env !== undefined) resolved.config.run.env = label.env;
+  if (!resolved.ok || issues.length > 0) throw new ConfigError(issues);
 
   if (process.env.TEST_WORKER_INDEX === undefined) {
     const flag = reporterFlagIssue(process.argv);
@@ -160,6 +156,14 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   mainProcessSetup();
   const { names, baseOrigins } = scannedProjects(config, resolved.config.scope.projects);
   const warnings: Diagnostic[] = [];
+  // Environment labels are removed (D-17): the value is ignored, with a warning (08-AC-07).
+  if ((process.env[REMOVED_ENV_ENV] ?? '').trim() !== '') {
+    warnings.push({
+      code: 'ENV_REMOVED',
+      level: 'warn',
+      message: `${REMOVED_ENV_ENV} is no longer supported; see docs/faq.md`,
+    });
+  }
   if (
     (baseOrigins.length === 0 || !resolved.config.scope.includeBaseURL) &&
     resolved.config.scope.origins.length === 0

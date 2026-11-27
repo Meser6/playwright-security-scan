@@ -65,7 +65,6 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
       browser: { ...DEFAULTS.browser, ...i.browser },
       gate: { ...DEFAULTS.gate, ...i.gate },
       baseline: { ...DEFAULTS.baseline, ...i.baseline },
-      run: { env: i.run?.env ?? DEFAULTS.run.env },
       report: {
         ...DEFAULTS.report,
         ...i.report,

@@ -199,7 +199,8 @@ export interface BaselineFile {
    */
   generatedBy?: string;
   /**
-   * Environment label of the run that wrote the file (08-REQ-15).
+   * @deprecated
+   * Removed (D-17): environment label of files written by 0.2.x; ignored when read and dropped by the next baseline run (08-AC-08).
    */
   env?: string;
   /**
@@ -237,15 +238,14 @@ export interface Entry {
  * reports/pw-sec/report.json (02, chapter 6): the full result of one run, redacted (P-07).
  */
 export interface RunReport {
-  schemaVersion: 1;
+  /**
+   * Version 2 (02-REQ-06): without the env field of version 1.
+   */
+  schemaVersion: 2;
   runId: string;
   startedAt: string;
   finishedAt: string;
   mode: 'scan' | 'baseline';
-  /**
-   * Environment label of the run, or null (08-REQ-16).
-   */
-  env: null | string;
   pkgVersion: string;
   playwrightVersion: string;
   scope: {
@@ -349,16 +349,15 @@ export interface EntryRef {
  * reports/pw-sec/outcome.json (02, chapter 7): the result code of the scan for CI, separate from the result of the functional tests (P-08).
  */
 export interface OutcomeFile {
-  schemaVersion: 1;
+  /**
+   * Version 2 (02-REQ-06): without the env field of version 1.
+   */
+  schemaVersion: 2;
   /**
    * 00, chapter 11.
    */
   code: 0 | 1 | 2 | 3 | 4;
   name: 'OK' | 'NEW_FINDINGS' | 'BASELINE_EXPIRED' | 'TOOL_ERROR' | 'NO_TRAFFIC';
-  /**
-   * Environment label of the run, or null (08-REQ-16).
-   */
-  env: null | string;
   /**
    * True when the functional tests passed.
    */

@@ -178,53 +178,40 @@ describe('reporter (04, 08, 09)', () => {
     RUN_TIMEOUT,
   );
   test(
-    '08-AC-04 and 08-AC-06 PW_SEC_ENV=qa writes and reads security-baseline.qa.json and labels every report',
+    '08-AC-07 and 08-AC-08 PW_SEC_ENV only warns; baseline writes security-baseline.json without env',
     async () => {
       const dir = harness.copy('shop');
       const s = await shop(['header.csp-unsafe']);
-      const qa = { ...env(s, 'baseline'), PW_SEC_ENV: 'qa' };
-      const generic = await harness.run(dir, { env: env(s, 'baseline') });
-      expect(generic.outcome?.code, generic.output).toBe(0);
-      const before = generic.baseline;
-
-      const baseline = await harness.run(dir, { env: qa });
-      expect(baseline.outcome, baseline.output).toMatchObject({ code: 0, env: 'qa' });
-      // The file without a label is not touched (08-REQ-14).
-      expect(readFileSync(join(dir, 'security-baseline.json'), 'utf8')).toBe(before);
-      const file = JSON.parse(readFileSync(join(dir, 'security-baseline.qa.json'), 'utf8')) as {
-        env?: string;
-        findings: object;
-      };
-      expect(file.env).toBe('qa');
+      // A baseline file of 0.2.x with an environment label (08-AC-08).
+      writeFileSync(
+        join(dir, 'security-baseline.json'),
+        `${JSON.stringify({ schemaVersion: 1, generatedBy: 'x@0.2.0', env: 'qa', findings: {} }, null, 2)}\n`,
+      );
+      const baseline = await harness.run(dir, { env: { ...env(s, 'baseline'), PW_SEC_ENV: 'qa' } });
+      expect(baseline.outcome, baseline.output).toMatchObject({ schemaVersion: 2, code: 0 });
+      expect(baseline.outcome).not.toHaveProperty('env');
+      expect(baseline.output).toContain('ENV_REMOVED');
+      expect(baseline.output).toContain('PW_SEC_ENV is no longer supported; see docs/faq.md');
+      expect(baseline.report?.schemaVersion).toBe(2);
+      expect(baseline.report).not.toHaveProperty('env');
+      expect(baseline.report?.diagnostics.map((d) => d.code)).toContain('ENV_REMOVED');
+      expect(existsSync(join(dir, 'security-baseline.qa.json'))).toBe(false);
+      const file = JSON.parse(baseline.baseline ?? '{}') as { env?: string; findings: object };
+      expect(file).not.toHaveProperty('env');
       expect(Object.keys(file.findings).length).toBeGreaterThan(0);
-      expect(baseline.output).toContain('security-baseline.qa.json');
 
-      const scan = await harness.run(dir, { env: { ...qa, PW_SEC_MODE: 'scan' } });
-      expect(scan.outcome, scan.output).toMatchObject({ code: 0, name: 'OK', env: 'qa' });
-      expect(scan.report?.env).toBe('qa');
-      expect(scan.report?.findings.every((f) => f.classification === 'accepted')).toBe(true);
-      expect(scan.output).toMatch(/│ Env\s+│ qa/);
-      expect(scan.output).toContain('mode: scan · env: qa');
+      const scan = await harness.run(dir, { env: { ...env(s, 'scan'), PW_SEC_ENV: 'qa' } });
+      expect(scan.outcome, scan.output).toMatchObject({ code: 0, name: 'OK' });
+      expect(scan.output).not.toMatch(/│ Env\s/);
       const out = join(dir, 'reports/pw-sec');
       const sarif = JSON.parse(readFileSync(join(out, 'results.sarif'), 'utf8')) as {
-        runs: { automationDetails: { id: string } }[];
+        runs: { automationDetails: { id: string }; properties: object }[];
       };
-      expect(sarif.runs[0]?.automationDetails.id).toMatch(/^pw-sec\/qa\/.+/);
-      expect(readFileSync(join(out, 'junit.xml'), 'utf8')).toContain(
-        '<testsuites name="pw-sec (qa)"',
-      );
-      expect(readFileSync(join(out, 'report.html'), 'utf8')).toContain('"env":"qa"');
-
-      // Without a label: env is null; another label without its file warns.
-      const plain = await harness.run(dir, { env: env(s, 'scan') });
-      expect(plain.outcome?.env, plain.output).toBeNull();
-      expect(plain.report?.env).toBeNull();
-      const staging = await harness.run(dir, {
-        env: { ...env(s, 'scan'), PW_SEC_ENV: 'staging' },
-      });
-      expect(staging.report?.diagnostics.map((d) => d.code)).toContain('BASELINE_ENV_MISSING');
+      expect(sarif.runs[0]?.automationDetails.id).toBe(`pw-sec/${scan.report?.runId ?? ''}`);
+      expect(sarif.runs[0]?.properties).not.toHaveProperty('env');
+      expect(readFileSync(join(out, 'junit.xml'), 'utf8')).toContain('<testsuites name="pw-sec" ');
     },
-    RUN_TIMEOUT * 5,
+    RUN_TIMEOUT * 3,
   );
   test(
     '04-AC-06 and 04-AC-07 a check runs the first test of each file up to PW_SEC_MAX_TESTS and writes nothing',

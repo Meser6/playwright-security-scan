@@ -18,7 +18,6 @@ const DEFAULTS: InitAnswers = {
   preset: 'recommended',
   minSeverity: 'medium',
   origins: [],
-  envs: [],
   command: 'npx playwright test',
   runCheck: false,
 };

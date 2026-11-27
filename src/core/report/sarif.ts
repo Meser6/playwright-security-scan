@@ -133,16 +133,12 @@ export function buildSarif(
             })),
           },
         },
-        // GitHub takes the part before the last "/" as the category: one per environment (09-REQ-15).
-        automationDetails: {
-          id:
-            report.env === null ? `pw-sec/${report.runId}` : `pw-sec/${report.env}/${report.runId}`,
-        },
+        // GitHub takes the part before the last "/" as the category: pw-sec (D-17).
+        automationDetails: { id: `pw-sec/${report.runId}` },
         results,
         properties: {
           outcome: report.outcome.name,
           mode: report.mode,
-          ...(report.env === null ? {} : { env: report.env }),
         },
       },
     ],

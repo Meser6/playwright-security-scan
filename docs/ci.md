@@ -4,7 +4,7 @@ Run your usual test command with `PW_SEC_MODE=scan` and keep `reports/pw-sec/` a
 Upload `results.sarif` where your security dashboard reads it, and `junit.xml` where your CI shows
 test results. The examples run the scan in its own job, next to your normal e2e job.
 
-Commit `security-baseline.json` (one file per [environment](#environments)); CI only reads it.
+Commit `security-baseline.json`; CI only reads it.
 
 ## GitHub Actions
 
@@ -125,31 +125,9 @@ baseline file), 4 no traffic in scope. See [Exit code and result](cli.md#exit-co
 
 ## Environments
 
-When the same tests run against several environments, give each one its own baseline with
-`PW_SEC_ENV`:
-
-```yaml
-# GitHub Actions
-strategy:
-  matrix:
-    env: [qa, staging]
-steps:
-  # …
-  - run: npx playwright test
-    env:
-      PW_SEC_MODE: scan
-      PW_SEC_ENV: ${{ matrix.env }}
-      BASE_URL: ${{ vars[format('BASE_URL_{0}', matrix.env)] }}
-  - uses: github/codeql-action/upload-sarif@v3
-    if: always()
-    with:
-      sarif_file: reports/pw-sec/results.sarif
-      category: playwright-security-scan-${{ matrix.env }}
-```
-
-Each job reads `security-baseline.<env>.json`. Use a separate SARIF category per environment, so
-one environment's upload does not close the alerts of another. See
-[One baseline per environment](baseline.md#one-baseline-per-environment).
+One job scans one environment with one baseline file. To scan several environments with their own
+baselines, set `baseline.path` from your own variable and give each SARIF upload its own
+`category`; see [Several environments](faq.md#several-environments).
 
 ## Schedule
 

@@ -1,7 +1,6 @@
 {
   "$comment": "Acceptance criteria checked by scripts/check-ac-coverage.mjs: spec file prefixes (\"07\") or single AC IDs. Each work package adds the criteria it implements.",
   "inScope": [
-    "07-AC-02",
     "01-AC-01",
     "03-AC-02",
     "04-AC-01",
@@ -22,15 +21,14 @@
     "09-AC-04",
     "06-AC-01",
     "06-AC-02",
-    "07",
+    "07-AC-01",
+    "07-AC-02",
+    "07-AC-03",
     "09-AC-03",
     "09-AC-02",
     "04-AC-03",
     "04-AC-04",
     "04-AC-05",
-    "08-AC-04",
-    "08-AC-05",
-    "08-AC-06",
     "04-AC-06",
     "04-AC-07",
     "04-AC-08",
@@ -44,6 +42,9 @@
     "11-AC-02",
     "11-AC-09",
     "11-AC-04",
-    "11-AC-08"
+    "11-AC-08",
+    "08-AC-07",
+    "08-AC-08",
+    "11-AC-10"
   ]
 }

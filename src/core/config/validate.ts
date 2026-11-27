@@ -100,21 +100,6 @@ const positiveInt: Check = (c, p, v) => {
 const nonEmptyString: Check = (c, p, v) => {
   if (typeof v !== 'string' || v.trim() === '') c.type(p, v, 'a non-empty string');
 };
-/** Environment label (08-REQ-13), as PW_PERF_ENV in the perf package. */
-export const ENV_LABEL = /^[a-z0-9][a-z0-9-]{0,31}$/;
-export const ENV_LABEL_HINT =
-  'Use 1 to 32 lowercase letters, digits and "-", starting with a letter or a digit (e.g. "qa", "staging-eu").';
-const envLabel: Check = (c, p, v) => {
-  if (typeof v !== 'string') c.type(p, v, 'a string');
-  else if (!ENV_LABEL.test(v)) {
-    c.add(
-      'CONFIG_INVALID_VALUE',
-      p,
-      `${JSON.stringify(v)} is not an environment label`,
-      ENV_LABEL_HINT,
-    );
-  }
-};
 const stringList: Check = (c, p, v) => {
   if (!Array.isArray(v) || v.some((x) => typeof x !== 'string' || x === '')) {
     c.type(p, v, 'an array of non-empty strings');
@@ -306,7 +291,6 @@ export function validateConfig(input: unknown): ConfigIssue[] {
       }),
     baseline: (cc, p, v) =>
       section(cc, p, v, { path: nonEmptyString, pruneResolved: bool, requireNote: bool }),
-    run: (cc, p, v) => section(cc, p, v, { env: envLabel }),
     report: (cc, p, v) =>
       section(cc, p, v, {
         dir: nonEmptyString,

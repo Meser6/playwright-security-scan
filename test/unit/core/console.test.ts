@@ -50,12 +50,11 @@ function report(
   const coverage = emptyCoverage();
   coverage.responses = 12;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     runId: 'r1',
     startedAt: '2026-11-25T10:00:00.000Z',
     finishedAt: '2026-11-25T10:01:00.000Z',
     mode: 'scan',
-    env: null,
     pkgVersion: '0.1.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test'] },
@@ -67,9 +66,8 @@ function report(
     gate: { minSeverity: 'medium', minConfidence: 'medium', failed: code !== 0, blocking: [] },
     diagnostics,
     outcome: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       code,
-      env: null,
       name: NAMES[code],
       testsPassed: true,
       newBlocking: findings.filter((f) => f.classification === 'new' && f.blocking).length,
@@ -201,7 +199,6 @@ describe('console (04, chapter 4b)', () => {
 
 describe('check output (04, chapter 4c)', () => {
   const input = (over: Partial<CheckInput> = {}): CheckInput => ({
-    env: null,
     tests: { ran: 2, selected: 9, passed: 2, failed: 0, skipped: 7 },
     maxTests: 10,
     origins: [
@@ -244,11 +241,12 @@ describe('check output (04, chapter 4c)', () => {
     expect(stripAnsi(formatCheck(input(), COLOR).join('\n'))).toBe(text);
   });
 
-  test('04-REQ-12 the verdict: READY, NOT READY without traffic, Next with the env label', () => {
-    const ready = input({ origins: input().origins.slice(0, 1), env: 'qa' });
+  test('04-REQ-12 the verdict: READY, NOT READY without traffic, Next without PW_SEC_ENV', () => {
+    const ready = input({ origins: input().origins.slice(0, 1) });
     const text = formatCheck(ready, PLAIN).join('\n');
     expect(text).toMatch(/✅ {2}READY {2}the scan sees 14 responses/);
-    expect(text).toContain('PW_SEC_MODE=baseline PW_SEC_ENV=qa npx playwright test');
+    expect(text).toContain('Next: PW_SEC_MODE=baseline npx playwright test');
+    expect(text).not.toContain('PW_SEC_ENV');
     const none = formatCheck(input({ responses: 0 }), PLAIN).join('\n');
     expect(none).toContain('NOT READY');
     expect(none).toContain('NO_TRAFFIC');

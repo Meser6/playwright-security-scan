@@ -11,4 +11,4 @@ export type {
   RuleSetting,
   SecurityConfigInput,
 } from './types.ts';
-export { closest, editDistance, ENV_LABEL, ENV_LABEL_HINT, validateConfig } from './validate.ts';
+export { closest, editDistance, validateConfig } from './validate.ts';

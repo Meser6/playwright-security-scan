@@ -1,5 +1,5 @@
-// The IMPORTANT box of the wizard (11-REQ-13, 11-AC-09): commands from the test command and the
-// environment labels, cross-env on Windows, golden text per platform and width limits.
+// The IMPORTANT box of the wizard (11-REQ-13, 11-AC-09): commands from the test command, without
+// PW_SEC_ENV (D-17), cross-env on Windows, golden text per platform and width limits.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
@@ -20,8 +20,8 @@ function render(platform: string, lang: (typeof LANGUAGES)[number] = 'en'): stri
   return importantBox(
     {
       t: translator(lang),
-      commands: runCommands('npm run e2e', platform, ['qa', 'staging']),
-      files: ['security-baseline.qa.json', 'security-baseline.staging.json'],
+      commands: runCommands('npm run e2e', platform),
+      files: ['security-baseline.json'],
       reportDir: 'reports/pw-sec',
       fixFirst: false,
       windows: platform === 'win32',
@@ -32,13 +32,15 @@ function render(platform: string, lang: (typeof LANGUAGES)[number] = 'en'): stri
 }
 
 describe('IMPORTANT box (11-REQ-13)', () => {
-  test('11-AC-09 commands with the test command and every label; golden text on linux and win32', () => {
+  test('11-AC-09 commands with the test command, without PW_SEC_ENV; golden text on linux and win32', () => {
     const linux = render('linux');
-    expect(linux).toContain('PW_SEC_MODE=baseline PW_SEC_ENV=qa npm run e2e');
-    expect(linux).toContain('PW_SEC_MODE=scan PW_SEC_ENV=staging npm run e2e');
+    expect(linux).toContain('PW_SEC_MODE=baseline npm run e2e');
+    expect(linux).toContain('PW_SEC_MODE=scan npm run e2e');
+    expect(linux).not.toContain('PW_SEC_ENV');
     golden('important.linux.txt', linux);
     const win = render('win32');
-    expect(win).toContain('npx cross-env PW_SEC_MODE=baseline PW_SEC_ENV=qa npm run e2e');
+    expect(win).toContain('npx cross-env PW_SEC_MODE=baseline npm run e2e');
+    expect(win).not.toContain('PW_SEC_ENV');
     expect(win).toContain('docs/cli.md (Windows)');
     golden('important.win32.txt', win);
   });
@@ -53,13 +55,13 @@ describe('IMPORTANT box (11-REQ-13)', () => {
     expect(importantBoxWidth(20)).toBe(40);
   });
 
-  test('11-REQ-13 without labels one baseline and one scan command', () => {
+  test('11-REQ-13 one baseline and one scan command', () => {
     const c = runCommands('npx playwright test', 'linux');
     expect(c).toEqual({
       base: 'npx playwright test',
       check: 'PW_SEC_MODE=check npx playwright test',
-      baseline: ['PW_SEC_MODE=baseline npx playwright test'],
-      scan: ['PW_SEC_MODE=scan npx playwright test'],
+      baseline: 'PW_SEC_MODE=baseline npx playwright test',
+      scan: 'PW_SEC_MODE=scan npx playwright test',
     });
   });
 });

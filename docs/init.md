@@ -21,6 +21,8 @@ default answers, shows the planned changes and writes nothing.
 
 ## The steps
 
+The wizard shows its steps as `[1/8]` to `[8/8]`.
+
 0. **Tutorial and language.** "No" prints the two manual changes and ends without touching a
    file.
 1. **The package and how to use it**: what the scan does and does not do, the commands
@@ -33,14 +35,11 @@ default answers, shows the planned changes and writes nothing.
 4. **Origins of your app**: the scope is the origin of `use.baseURL`; the step shows it and the
    other `http(s)://` origins written in your sources (without analytics, fonts and CDNs) and
    asks which ones to add to `scope.origins`, for example an API on another host.
-5. **Environments**: when the same tests run against several environments, the labels for
-   [one baseline per environment](baseline.md#one-baseline-per-environment). They only change the
-   commands at the end, not the config.
-6. **Test command**: the command you usually run your tests with (`npx playwright test` or the
+5. **Test command**: the command you usually run your tests with (`npx playwright test` or the
    only script that runs `playwright test`). The wizard never changes it; it puts `PW_SEC_MODE`
    in front of it in the commands at the end and uses it for the check. `skip` keeps the
    suggestion and skips the check. A chain (`a && b`) or `--reporter` gets a warning.
-7. **Changes**, each shown as a diff and applied only after your "yes":
+6. **Changes**, each shown as a diff and applied only after your "yes":
    - a short `pw-sec.config.ts` (in a JavaScript project `.js`, `.mjs` or `.cjs` in the module
      system of your Playwright config) with the most important options and a comment on each;
      an existing package config is never rewritten;
@@ -57,14 +56,14 @@ default answers, shows the planned changes and writes nothing.
    paste ([`INIT_MANUAL_STEP`](troubleshooting.md#init_manual_step),
    [`INIT_TEST_OBJECT_MANUAL`](troubleshooting.md#init_test_object_manual)).
 
-8. **Check** (optional): one quick trial run — your test command runs once with
-   `PW_SEC_MODE=check` ([check](cli.md#dry-run-check)): at most 10 tests, nothing is written (no baseline, no
-   reports). It answers one question: does the scan see your app's traffic? On success the wizard
-   prints "The scan sees your app's traffic."; otherwise it explains the cause: no response in
-   scope (with the fix in the config and the origins seen outside the scope) or the first error.
-   The baseline is the first step of the summary, not part of the check.
-9. **Summary** with an IMPORTANT box: the exact commands for your project to accept the baseline
-   (one per environment label), what to review, what to commit, and the scan to run in CI. On
-   Windows the commands start with `npx cross-env`; see [Windows](cli.md#windows).
+7. **Check** (optional): one quick trial run — your test command runs once with
+   `PW_SEC_MODE=check` ([check](cli.md#dry-run-check)): at most 10 tests, nothing is written (no
+   baseline, no reports). It answers one question: does the scan see your app's traffic? On
+   success the wizard prints "The scan sees your app's traffic."; otherwise it explains the cause:
+   no response in scope (with the fix in the config and the origins seen outside the scope) or the
+   first error. The baseline is the first step of the summary, not part of the check.
+8. **Summary** with an IMPORTANT box: the exact commands for your project to accept the baseline,
+   what to review, what to commit, and the scan to run in CI. On Windows the commands start with
+   `npx cross-env`; see [Windows](cli.md#windows).
 
 Then copy a [CI recipe](ci.md) and put your scan command in it.

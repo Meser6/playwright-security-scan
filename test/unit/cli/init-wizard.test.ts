@@ -115,7 +115,7 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
     const fake = fakeCliHost({ cwd: project({ 'playwright.config.ts': CONFIG }) });
     expect(await main([], fake.host)).toBe(0);
     expect(out(fake.stderr)).toContain('no terminal');
-    expect(out(fake.stdout)).toContain('[1/9] The package and how to use it');
+    expect(out(fake.stdout)).toContain('[1/8] The package and how to use it');
     expect(out(fake.stdout)).toContain('PW_SEC_MODE=check <your test command>');
     expect(fake.written).toEqual([]);
   });
@@ -141,8 +141,8 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'pw-sec init-'));
     dirs.push(dir);
     cpSync(join(import.meta.dirname, '../../projects/init-ts-fixtures'), dir, { recursive: true });
-    // tutorial, language, Enter after step 1, preset, gate, origins, environments, command,
-    // then "yes" to every change.
+    // tutorial, language, Enter after step 1, preset, gate, origins, command, then "yes" to every
+    // change.
     const first = fakeCliHost({
       cwd: dir,
       prompt: answers(
@@ -152,7 +152,6 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
         'strict',
         'high',
         'https://api.example.test',
-        'n',
         'skip',
         'y',
         'y',
@@ -162,7 +161,7 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
     });
     expect(await main([], first.host)).toBe(0);
     const text = out(first.stdout);
-    expect(text).toContain('[7/9] Changes');
+    expect(text).toContain('[6/8] Changes');
     expect(text).toContain('Setup finished.');
     const config = readFileSync(join(dir, 'pw-sec.config.ts'), 'utf8');
     expect(config).toContain("preset: 'strict',");
@@ -178,14 +177,14 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
 
     const second = fakeCliHost({
       cwd: dir,
-      prompt: answers('y', 'en', '', '', '', '', 'n', 'skip'),
+      prompt: answers('y', 'en', '', '', '', '', 'skip'),
     });
     expect(await main([], second.host)).toBe(0);
     expect(out(second.stdout)).toContain('Nothing to change: the project is already set up.');
     expect(second.written).toEqual([]);
   });
 
-  test('11-REQ-08 an invalid origin or environment label is asked again', async () => {
+  test('11-REQ-08 an invalid origin is asked again', async () => {
     const dir = project({ 'playwright.config.ts': CONFIG });
     const fake = fakeCliHost({
       cwd: dir,
@@ -197,9 +196,6 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
         '',
         'api.example.test',
         'https://api.example.test',
-        'y',
-        'QA',
-        'qa, staging',
         'skip',
         'n',
         'n',
@@ -209,7 +205,29 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
     expect(await main([], fake.host)).toBe(0);
     const text = out(fake.stdout);
     expect(text).toContain('"api.example.test" is not an origin');
-    expect(text).toContain('"QA" is not a label');
     expect(fake.written).toEqual([]);
+  });
+
+  describe('11-AC-10 eight steps [1/8] to [8/8] and no question about environments', () => {
+    test.each(LANGUAGES.map((lang) => [lang]))('%s', async (lang) => {
+      const dir = project({ 'playwright.config.ts': CONFIG });
+      const asked: string[] = [];
+      const list = ['y', lang, '', '', '', '', 'skip', 'n', 'n', 'n'];
+      const fake = fakeCliHost({
+        cwd: dir,
+        prompt: () => ({
+          ask: (question: string) => {
+            asked.push(question);
+            return Promise.resolve(list.shift() ?? '');
+          },
+          close: () => undefined,
+        }),
+      });
+      expect(await main([], fake.host)).toBe(0);
+      const text = out(fake.stdout);
+      const steps = [...text.matchAll(/\[(\d)\/(\d)\]/gu)].map((m) => `${m[1]}/${m[2]}`);
+      expect(steps).toEqual(['0/8', '1/8', '2/8', '3/8', '4/8', '5/8', '6/8', '7/8', '8/8']);
+      expect(`${text}\n${asked.join('\n')}`).not.toMatch(/PW_SEC_ENV|qa, staging/u);
+    });
   });
 });
