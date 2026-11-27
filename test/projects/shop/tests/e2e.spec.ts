@@ -1,9 +1,9 @@
-import { expect, test } from '../fixtures';
+import { expect, open, test } from '../fixtures';
 
 const PARTNER = process.env.PARTNER_URL ?? '';
 
 test('home page and navigation', async ({ page }) => {
-  await page.goto('/');
+  await open(page, '/');
   await expect(page.locator('h1')).toHaveText('Shop');
   await page.waitForLoadState('networkidle');
   await page.click('#account');
@@ -11,7 +11,7 @@ test('home page and navigation', async ({ page }) => {
 });
 
 test('login, profile and token in the browser', async ({ page }) => {
-  await page.goto('/account');
+  await open(page, '/account');
   const status = await page.evaluate(async () => {
     const login = await fetch('/api/login', { method: 'POST' });
     await fetch('/api/me');
@@ -22,18 +22,18 @@ test('login, profile and token in the browser', async ({ page }) => {
 });
 
 test('search', async ({ page }) => {
-  await page.goto('/');
+  await open(page, '/');
   await page.click('#search');
   await expect(page.locator('p')).toBeVisible();
 });
 
 test('redirect after login', async ({ page }) => {
-  await page.goto(`/redirect?next=${encodeURIComponent(`${PARTNER}/landing`)}`);
+  await open(page, `/redirect?next=${encodeURIComponent(`${PARTNER}/landing`)}`);
   await expect(page.locator('body')).toBeVisible();
 });
 
 test('partner page calls the API', async ({ page }) => {
-  await page.goto(`${PARTNER}/partner`);
+  await open(page, `${PARTNER}/partner`);
   await page.waitForFunction(
     () => (window as unknown as { done?: Promise<boolean> }).done !== undefined,
   );
@@ -41,7 +41,7 @@ test('partner page calls the API', async ({ page }) => {
 });
 
 test('error page and static directory', async ({ page }) => {
-  await page.goto('/account');
+  await open(page, '/account');
   const statuses = await page.evaluate(async () => [
     (await fetch('/api/fail')).status,
     (await fetch('/static/')).status,
@@ -50,12 +50,12 @@ test('error page and static directory', async ({ page }) => {
 });
 
 test('subscribe form', async ({ page }) => {
-  await page.goto('/');
+  await open(page, '/');
   await expect(page.locator('#subscribe')).toBeVisible();
 });
 
 test('sign-in page, login and subscribe', async ({ page }) => {
-  await page.goto('/login');
+  await open(page, '/login');
   await expect(page.locator('#login')).toBeVisible();
   // No navigation after the calls: it would drop bodies the collector still reads (05-REQ-09).
   const result = await page.evaluate(async () => {
