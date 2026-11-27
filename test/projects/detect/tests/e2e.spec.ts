@@ -71,7 +71,7 @@ test('sign-in page, login and subscribe', async ({ page }) => {
     const form = document.querySelector<HTMLFormElement>('#subscribe');
     const body = new URLSearchParams();
     for (const [name, value] of new FormData(form ?? undefined)) body.append(name, String(value));
-    const response = await fetch('/subscribe', { method: 'POST', body });
+    const response = await fetch('/subscribe?ajax=1', { method: 'POST', body });
     await response.text();
     return response.ok;
   });

@@ -383,6 +383,12 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
         return;
       }
       case '/subscribe':
+        // A scripted submit gets 204: a redirect body cannot always be read (stable coverage).
+        if (url.searchParams.has('ajax')) {
+          res.writeHead(204, common());
+          res.end();
+          return;
+        }
         res.writeHead(303, { ...common(), location: '/' });
         res.end();
         return;
