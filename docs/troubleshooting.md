@@ -9,7 +9,7 @@ has one section per code: what it means and how to fix it. Search the page for t
   test runs, with a list of `MODE_*` and `CONFIG_*` problems and the closest valid names.
 - **Console summary** at the end of a scan: the result line `✔|✘ pw-sec: <NAME> (code N)` and up
   to three warnings or errors.
-- **`reports/pw-sec/report.json`** (`diagnostics`) and **`report.html`** (section Diagnostics):
+- **`reports/pw-sec/report.json`** (`diagnostics`) and **`report.html`** (tab Run & config, Diagnostics):
   every diagnostic of the run with its level.
 - **`reports/pw-sec/outcome.json`**: the result code for CI.
 

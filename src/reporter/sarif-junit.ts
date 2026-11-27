@@ -1,10 +1,10 @@
 // SARIF and JUnit writers of the reporter (09, chapters 5 and 6).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { renderHtml } from '../core/report/html.ts';
 import { buildJunit } from '../core/report/junit.ts';
 import { buildSarif } from '../core/report/sarif.ts';
 import { BUILT_IN_RULES } from '../core/rules/index.ts';
+import { renderHtmlReport } from '../html/index.ts';
 import { VERSION } from '../version.ts';
 import type { ReportWriter } from './writers.ts';
 
@@ -37,16 +37,19 @@ export const writeJunit: ReportWriter = (report, config, paths) => {
   return path;
 };
 
-/** report.html: one offline file (09, chapter 3). */
+/** report.html: one offline file (09, chapter 3.6). */
 export const writeHtml: ReportWriter = (report, config, paths) => {
   if (!config.report.html) return null;
-  const enabled = new Set(
-    Object.entries(config.rules)
-      .filter(([, r]) => r.enabled)
-      .map(([id]) => id),
-  );
   const path = join(paths.reportDir, 'report.html');
-  writeFileSync(path, renderHtml(report, BUILT_IN_RULES, enabled));
+  writeFileSync(
+    path,
+    renderHtmlReport({
+      report,
+      rules: BUILT_IN_RULES,
+      config,
+      ...(paths.tests === undefined ? {} : { tests: paths.tests }),
+    }),
+  );
   return path;
 };
 

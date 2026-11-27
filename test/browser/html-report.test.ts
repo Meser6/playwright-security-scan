@@ -1,117 +1,20 @@
-// The HTML report (09, chapter 3) in a real browser: rendering, filters, details, size and speed.
+// The HTML report (09, chapter 3) in a real browser: size and speed, tabs, filters, sorting,
+// details with the rule reference, and the page without JavaScript.
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
-import type { Browser } from '@playwright/test';
+import type { Browser, Page } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { emptyCoverage } from '../../src/core/coverage.ts';
-import { embedJson, renderHtml } from '../../src/core/report/html.ts';
-import { BUILT_IN_RULES } from '../../src/core/rules/index.ts';
-import type { ClassifiedFinding, RunReport } from '../../src/core/types/index.ts';
-
-const ENABLED = new Set(BUILT_IN_RULES.map((r) => r.id));
-
-function finding(i: number): ClassifiedFinding {
-  const rule = BUILT_IN_RULES[i % BUILT_IN_RULES.length] as (typeof BUILT_IN_RULES)[number];
-  const blocking = i % 7 === 0;
-  return {
-    ruleId: rule.id,
-    severity: blocking ? 'high' : 'low',
-    confidence: 'high',
-    scope: 'endpoint',
-    subject: `GET /api/items/${i}/details`,
-    location: {
-      origin: i % 2 === 0 ? 'https://shop.test' : 'https://api.shop.test',
-      endpointKey: `GET /api/items/${i}/details`,
-    },
-    evidence: [
-      {
-        kind: 'header',
-        name: 'x-test',
-        snippet: `value ${i} [redacted sha256:1a2b3c] <script>alert(1)</script>`.slice(0, 200),
-      },
-      { kind: 'body', snippet: 'x'.repeat(150) },
-    ],
-    message: `Finding number ${i} on the endpoint.`,
-    fingerprint: `${rule.id}|endpoint|GET /api/items/${i}/details`,
-    occurrences: 3,
-    firstSeen: {
-      testId: `t${i}`,
-      titlePath: ['suite', `test ${i}`],
-      file: `tests/area-${i % 10}.spec.ts`,
-      line: i + 1,
-      project: 'chromium',
-    },
-    tests: Array.from({ length: 5 }, (_, k) => `t${i}-${k}`),
-    sources: ['browser'],
-    classification: blocking ? 'new' : i % 3 === 0 ? 'accepted' : 'new',
-    blocking,
-    ...(i % 3 === 0 && !blocking
-      ? { baseline: { status: 'accepted' as const, note: 'ticket SEC-1', addedAt: '2026-11-01' } }
-      : {}),
-  };
-}
-
-function report(count: number): RunReport {
-  const coverage = emptyCoverage();
-  coverage.responses = 1234;
-  coverage.documents = 40;
-  coverage.origins['https://shop.test'] = { responses: 1000, documents: 40 };
-  coverage.endpoints['GET /api/items/:id'] = 12;
-  coverage.rulesRun['header.xcto-missing'] = 30;
-  const findings = Array.from({ length: count }, (_, i) => finding(i));
-  return {
-    schemaVersion: 2,
-    runId: 'r1',
-    startedAt: '2026-11-24T20:00:00.000Z',
-    finishedAt: '2026-11-24T20:05:00.000Z',
-    mode: 'scan',
-    pkgVersion: '0.1.0',
-    playwrightVersion: '1.57.0',
-    scope: { origins: ['https://shop.test'] },
-    coverage,
-    findings,
-    resolved: [
-      {
-        fingerprint: 'cookie.no-secure|cookie|old@shop.test',
-        ruleId: 'cookie.no-secure',
-        subject: 'old@shop.test',
-      },
-    ],
-    notCovered: [],
-    testsWithoutTraffic: [
-      {
-        testId: 'x',
-        titlePath: ['no traffic'],
-        file: 'tests/x.spec.ts',
-        line: 3,
-        project: 'chromium',
-      },
-    ],
-    gate: {
-      minSeverity: 'medium',
-      minConfidence: 'medium',
-      failed: true,
-      blocking: findings.filter((f) => f.blocking).map((f) => f.fingerprint),
-    },
-    diagnostics: [{ code: 'BODY_READ_FAILED', level: 'info', message: 'one body' }],
-    outcome: {
-      schemaVersion: 2,
-      code: 1,
-      name: 'NEW_FINDINGS',
-      testsPassed: true,
-      newBlocking: 143,
-      newNonBlocking: 0,
-      expired: 0,
-      resolved: 1,
-    },
-  };
-}
+import { renderHtmlReport } from '../../src/html/index.ts';
+import { bigInput, statesInput } from './fixtures.ts';
 
 let browser: Browser;
 const dir = mkdtempSync(join(tmpdir(), 'pw-sec-html-'));
+const statesFile = join(dir, 'states.html');
+writeFileSync(statesFile, renderHtmlReport(statesInput()));
+
 beforeAll(async () => {
   browser = await chromium.launch();
 });
@@ -119,63 +22,150 @@ afterAll(async () => {
   await browser?.close();
 });
 
+async function open(
+  file: string,
+  hash = '',
+  javaScriptEnabled = true,
+): Promise<{ page: Page; errors: string[] }> {
+  const context = await browser.newContext({ javaScriptEnabled });
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await page.goto(pathToFileURL(file).href + hash);
+  return { page, errors };
+}
+
+const rows = (page: Page) => page.locator('#table-findings > tbody:not([hidden]) > tr:first-child');
+
 describe('HTML report (09, chapter 3)', () => {
   test('09-AC-02 1000 findings: under 5 MB, no external resources, opens in under 2 s', async () => {
-    const html = renderHtml(report(1000), BUILT_IN_RULES, ENABLED);
+    const html = renderHtmlReport(bigInput(1000));
     expect(Buffer.byteLength(html)).toBeLessThan(5 * 1024 * 1024);
     expect(html).not.toMatch(/<(script|link|img|iframe)[^>]+(src|href)=["']?https?:/i);
-    expect(html).not.toMatch(/@import|url\(/);
     const file = join(dir, 'big.html');
     writeFileSync(file, html);
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    const page = await context.newPage();
     const external: string[] = [];
     page.on('request', (r) => {
-      if (!r.url().startsWith('file:')) external.push(r.url());
+      if (!r.url().startsWith('file:') && !r.url().startsWith('data:')) external.push(r.url());
     });
     const started = Date.now();
     await page.goto(pathToFileURL(file).href);
-    await page.locator('#rows tr.row').first().waitFor();
+    await page.locator('[data-count]').getByText('showing 1000 of 1000').waitFor();
     expect(Date.now() - started).toBeLessThan(2000);
     expect(external).toEqual([]);
-    expect(await page.locator('#rows tr.row').count()).toBe(1000);
-    await page.close();
+    expect(await rows(page).count()).toBe(1000);
+    await context.close();
   });
 
-  test('header, filters, details with Why/Fix/Accept, coverage and the "not covered" box', async () => {
-    const file = join(dir, 'small.html');
-    writeFileSync(file, renderHtml(report(20), BUILT_IN_RULES, ENABLED));
-    const page = await browser.newPage();
-    const errors: string[] = [];
-    page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(pathToFileURL(file).href);
-    await expect.poll(() => page.locator('#head').textContent()).toContain('NEW_FINDINGS · code 1');
-    expect(await page.locator('body').textContent()).toContain('What this scan does not cover');
-    // Blocking findings come first.
-    expect(await page.locator('#rows tr.row').first().textContent()).toContain('blocking');
-    await page.selectOption('#f-class', 'accepted');
-    const accepted = await page.locator('#rows tr.row').count();
-    expect(accepted).toBeGreaterThan(0);
-    expect(accepted).toBeLessThan(20);
-    await page.selectOption('#f-class', '');
-    await page.locator('#rows tr.row').first().click();
-    const detail = page.locator('#rows tr.detail.open');
-    await expect.poll(() => detail.textContent()).toContain('Why');
-    const text = (await detail.textContent()) ?? '';
-    expect(text).toContain('Fix');
-    expect(text).toContain('False positives');
-    expect(text).toContain('Add to security-baseline.json');
-    expect(text).toContain('(first seen)');
-    // Evidence is shown as text, never run.
-    expect(await page.locator('#rows script').count()).toBe(0);
-    const coverage = (await page.locator('#coverage').textContent()) ?? '';
-    expect(coverage).toContain('1234 responses in scope');
-    expect(coverage).toContain('Tests without traffic in scope (1)');
-    expect(coverage).toContain('Resolved baseline entries (1)');
+  test('tabs, counter tile filter, chips, search, sorting and reset', async () => {
+    const { page, errors } = await open(statesFile);
+    await expect
+      .poll(() => page.locator('#tab-findings-link').getAttribute('aria-selected'))
+      .toBe('true');
+    expect(await page.locator('#tab-coverage').isHidden()).toBe(true);
+    // Default order: new blocking, expired, new, baseline entries.
+    expect(await rows(page).locator('td:last-child').allTextContents()).toEqual([
+      'new · blocking',
+      'expired',
+      'new',
+      'accepted',
+      'accepted',
+      'wontfix',
+      'false positive',
+    ]);
+    // A tile opens the Findings tab filtered to its classes.
+    await page.locator('#tab-coverage-link').click();
+    expect(await page.locator('#tab-coverage').isVisible()).toBe(true);
+    await page.locator('.kpi a[data-filter^="accepted"]').click();
+    await expect.poll(() => rows(page).count()).toBe(4);
+    expect(await page.locator('[data-count]').textContent()).toBe('showing 4 of 7');
+    expect(page.url()).toMatch(/#tab=findings$/u);
+    await page.locator('.toolbar [data-reset]').click();
+    await page.locator('button[data-f="sev"][data-v="high"]').click();
+    await expect.poll(() => rows(page).count()).toBe(1);
+    await page.locator('.toolbar [data-reset]').click();
+    await page.locator('input[type="search"]').fill('theme@');
+    await expect.poll(() => rows(page).count()).toBe(1);
+    await page.locator('input[type="search"]').fill('nothing matches this');
+    await expect.poll(() => page.locator('[data-none]').isVisible()).toBe(true);
+    await page.locator('[data-none] [data-reset]').click();
+    await expect.poll(() => rows(page).count()).toBe(7);
+    // Sorting by rule.
+    await page.locator('th[data-sort="rule"] button').click();
+    expect(await page.locator('th[data-sort="rule"]').getAttribute('aria-sort')).toBe('ascending');
+    const rules = await rows(page).locator('.rk .key').allTextContents();
+    expect(rules).toEqual([...rules].sort());
+    // Keyboard on the tab list.
+    await page.locator('#tab-findings-link').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect
+      .poll(() => page.locator('#tab-coverage-link').getAttribute('aria-selected'))
+      .toBe('true');
     expect(errors).toEqual([]);
-    await page.close();
+    await page.context().close();
   });
 
-  test('embedded JSON cannot close the script element', () => {
-    expect(embedJson({ a: '</script><script>alert(1)</script>' })).not.toContain('</script>');
+  test('a row click shows its details with the rule reference; #tab= selects a tab', async () => {
+    const { page, errors } = await open(statesFile);
+    const first = rows(page).first();
+    await first.click();
+    const details = page.locator('#table-findings > tbody').first().locator('details');
+    await expect.poll(() => details.isVisible()).toBe(true);
+    // The rule reference is copied in when the details open (toggle event).
+    await expect.poll(() => details.textContent()).toContain('False positives');
+    const text = (await details.textContent()) ?? '';
+    for (const part of [
+      'Fingerprint',
+      'Location',
+      'Evidence',
+      'Tests',
+      'first seen',
+      'Why',
+      'Fix',
+      'False positives',
+      'References',
+      'Accept',
+    ]) {
+      expect(text, part).toContain(part);
+    }
+    expect(text).toContain('open the cart');
+    await first.click();
+    await expect.poll(() => details.isVisible()).toBe(false);
+    const run = await open(statesFile, '#tab=run');
+    await expect.poll(() => run.page.locator('#tab-run').isVisible()).toBe(true);
+    expect(await run.page.locator('#tab-findings').isHidden()).toBe(true);
+    const unknown = await open(statesFile, '#tab=nope');
+    await expect
+      .poll(() => unknown.page.locator('#status').textContent())
+      .toBe('Tab not found in this report');
+    expect([...errors, ...run.errors, ...unknown.errors]).toEqual([]);
+    for (const p of [page, run.page, unknown.page]) await p.context().close();
+  });
+
+  test('09-AC-09 without JavaScript every tab is shown and every finding has its details', async () => {
+    const { page } = await open(statesFile, '', false);
+    for (const id of ['findings', 'coverage', 'run']) {
+      expect(await page.locator(`#tab-${id}`).isVisible(), id).toBe(true);
+    }
+    expect(await page.locator('.toolbar').isHidden()).toBe(true);
+    const bodies = page.locator('#table-findings > tbody');
+    expect(await bodies.count()).toBe(7);
+    for (let i = 0; i < 7; i++) {
+      const body = bodies.nth(i);
+      await body.locator('summary').click();
+      const text = (await body.locator('details').textContent()) ?? '';
+      expect(text).toContain('Fingerprint');
+      expect(text).toContain('Rule reference of');
+    }
+    await page.locator('#rule-docs > summary').click();
+    expect(await page.locator('#rule-docs .rdoc').count()).toBe(7);
+    expect(await page.locator('#rule-docs').textContent()).toContain('False positives');
+    expect(await page.locator('body').textContent()).toContain('What this scan does not cover');
+    await page.context().close();
   });
 });

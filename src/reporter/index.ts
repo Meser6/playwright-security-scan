@@ -218,6 +218,13 @@ export default class SecurityReporter implements Reporter {
     };
   }
 
+  /** Every test of the run by id (09, chapter 3.7); empty before onBegin. */
+  #testRefs(): Map<string, TestContextRef> {
+    const refs = new Map<string, TestContextRef>();
+    for (const test of this.#suite?.allTests() ?? []) refs.set(test.id, this.#ref(test));
+    return refs;
+  }
+
   onTestEnd(test: TestCase, result: TestResult): void {
     try {
       const annotations = [...test.annotations, ...(result.annotations ?? [])];
@@ -477,7 +484,11 @@ export default class SecurityReporter implements Reporter {
       }
       writeFileSync(join(dir, 'outcome.json'), `${JSON.stringify(out, null, 2)}\n`);
       for (const writer of REPORT_WRITERS) {
-        const path = writer.write(report, sec, { reportDir: dir, configDir: this.#configDir() });
+        const path = writer.write(report, sec, {
+          reportDir: dir,
+          configDir: this.#configDir(),
+          tests: this.#testRefs(),
+        });
         if (writer.name === 'html' && path !== null) written.html = resolve(path);
       }
     } catch (error) {

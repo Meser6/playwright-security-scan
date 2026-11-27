@@ -1,0 +1,104 @@
+/* Token blocks of the HTML report of playwright-performance-regression
+   (src/html/template/styles.css at f2c3378, MIT), kept unchanged for 09-AC-08: the shared tokens of
+   the security report must have these values. Refresh by copying the two :root blocks again. */
+:root {
+  --sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Inter, Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --sunken: #f1f3f6;
+  --hover: #f7f8fb;
+  --line: #e4e7ec;
+  --line-2: #d0d5dd;
+  --fg: #101828;
+  --fg-2: #475467;
+  --fg-3: #5d6979;
+  --accent: #4f46e5;
+  --accent-2: #4338ca;
+  --accent-soft: #eef0ff;
+  --ok: #067647;
+  --ok-soft: #e6f6ee;
+  --ok-mark: #079455;
+  --warn: #a14c05;
+  --warn-soft: #fef4e4;
+  --warn-mark: #d06306;
+  --bad: #b42318;
+  --bad-soft: #fef3f2;
+  --bad-mark: #d92d20;
+  --bad-solid: #b42318;
+  --mute: #5d6979;
+  --mute-soft: #eef0f3;
+  --mute-mark: #7a8494;
+  --get: #175cd3;
+  --get-bg: #e9f1fe;
+  --post: #067647;
+  --post-bg: #e6f6ee;
+  --put: #a14c05;
+  --put-bg: #fef4e4;
+  --patch: #6938ef;
+  --patch-bg: #f1edfe;
+  --del: #b42318;
+  --del-bg: #fef3f2;
+  --bar: #848ea0;
+  --bar-hi: #5162e8;
+  --on-hi: #ffffff;
+  --track: #eceef2;
+  --r-sm: 6px;
+  --r: 8px;
+  --r-lg: 12px;
+  --sh-1: 0 1px 2px rgb(16 24 40 / 5%);
+  --sh-2: 0 1px 2px rgb(16 24 40 / 4%), 0 4px 12px -2px rgb(16 24 40 / 6%);
+  --sh-3: 0 24px 64px -12px rgb(16 24 40 / 30%), 0 0 0 1px var(--line);
+  --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+  color-scheme: light;
+}
+
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0d12;
+    --surface: #12151c;
+    --sunken: #0e1117;
+    --hover: #171b24;
+    --line: #232836;
+    --line-2: #323949;
+    --fg: #e7e9ef;
+    --fg-2: #a9b0bf;
+    --fg-3: #8e97a8;
+    --accent: #8b93ff;
+    --accent-2: #a4abff;
+    --accent-soft: #1d2040;
+    --ok: #47cd89;
+    --ok-soft: #0f2a1f;
+    --ok-mark: #2fbf71;
+    --warn: #fdb022;
+    --warn-soft: #2e2210;
+    --warn-mark: #f79009;
+    --bad: #f97066;
+    --bad-soft: #2d1214;
+    --bad-mark: #f04438;
+    --bad-solid: #d92d20;
+    --mute: #98a2b3;
+    --mute-soft: #1c212b;
+    --mute-mark: #667085;
+    --get: #84adff;
+    --get-bg: #14223f;
+    --post: #47cd89;
+    --post-bg: #0f2a1f;
+    --put: #fdb022;
+    --put-bg: #2e2210;
+    --patch: #bdb4fe;
+    --patch-bg: #231b45;
+    --del: #f97066;
+    --del-bg: #2d1214;
+    --bar: #6b7589;
+    --bar-hi: #8b93ff;
+    --on-hi: #0b0d12;
+    --track: #1f2430;
+    --sh-1: 0 1px 2px rgb(0 0 0 / 40%);
+    --sh-2: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+    --sh-3: 0 24px 64px -12px rgb(0 0 0 / 70%), 0 0 0 1px var(--line);
+    color-scheme: dark;
+  }
+}

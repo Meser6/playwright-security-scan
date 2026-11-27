@@ -18,11 +18,30 @@ See [Console output](cli.md#console-output) and [Colors](cli.md#colors).
 
 ## HTML report
 
-One self-contained file that loads nothing from the network: the result, counters, filters
-(classification, severity, confidence, rule group, origin, test), grouping by rule, origin or
-endpoint, and for each finding the redacted evidence, the tests that saw it, why it matters, how
-to fix it, known false positives and the baseline entry to paste. It ends with the coverage of the
-run and what the scan does not cover. 1000 findings open in under two seconds.
+One self-contained file that loads nothing from the network (its Content-Security-Policy allows
+only its own script and styles), in the same look as the report of
+[playwright-performance-regression](https://github.com/Meser6/playwright-performance-regression),
+in a light and a dark theme:
+
+- the verdict as in the console, with the exit code, and six counters (new blocking, new
+  non-blocking, accepted, expired, resolved, not covered); a counter above zero opens the
+  filtered list;
+- **Findings**: new blocking findings first, then expired, new non-blocking and baseline entries;
+  filters for classification, severity, confidence, rule group and origin, a search over rule,
+  subject and test, and sorting by any column (sort by Rule or Subject to group the findings). A
+  click on a row shows the details: the state against the baseline (note, added, until, "expires
+  in N days"), the fingerprint, where it is, the redacted evidence, the tests that saw it (the
+  first one with its step), why it matters, how to fix it, known false positives, CWE and OWASP,
+  and for a new or expired finding the baseline entry to paste;
+- **Coverage**: responses in and out of scope, origins, endpoints, tests without traffic, rules
+  that had nothing to check, resolved and not covered baseline entries, and what the scan does
+  not cover;
+- **Run & config**: the run, the enabled rules with their preset, the resolved configuration and
+  the diagnostics.
+
+Without JavaScript the page shows every tab one below the other, and each finding's details open
+from its row. Links: `report.html#tab=coverage` opens a tab. 1000 findings open in under two
+seconds.
 
 ## JSON
 
