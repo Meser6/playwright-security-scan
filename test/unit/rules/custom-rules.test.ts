@@ -1,6 +1,12 @@
 // Custom rules (16): defineRule(), validation, presets, execution and reports.
 import { describe, expect, test } from 'vitest';
-import { AnalysisCache, TestCollector } from '../../../src/collector/test-collector.ts';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import {
+  AnalysisCache,
+  TestCollector,
+  userStackLine,
+} from '../../../src/collector/test-collector.ts';
 import { Scope } from '../../../src/collector/scope.ts';
 import { ConfigError, resolveConfig, validateConfig } from '../../../src/core/config/index.ts';
 import type {
@@ -546,5 +552,28 @@ describe('baseline and reports (16-REQ-11, 16-REQ-12)', () => {
       { width: 100, color: false, ascii: true },
     );
     expect(lines.join('\n')).toContain('47 enabled (preset recommended, 3 custom)');
+  });
+});
+
+describe('the stack line of CUSTOM_RULE_ERROR (16-REQ-09)', () => {
+  const at = (line: string): string | undefined => {
+    const error = new Error('x');
+    error.stack = `Error: x\n    at check (/srv/node_modules/playwright-security-scan/dist/fixture.js:1:1)\n    ${line}`;
+    return userStackLine(error);
+  };
+
+  test('a path or file URL under the working directory becomes relative', () => {
+    const cwd = process.cwd();
+    expect(at(`at Object.check (${join(cwd, 'rules', 'a b.ts')}:3:9)`)).toBe(
+      'at Object.check (rules/a b.ts:3:9)',
+    );
+    expect(at(`at Object.check (${pathToFileURL(join(cwd, 'rules', 'a b.ts')).href}:3:9)`)).toBe(
+      'at Object.check (rules/a b.ts:3:9)',
+    );
+    expect(at(`at ${join(cwd, 'r.ts')}:1:2`)).toBe('at r.ts:1:2');
+  });
+
+  test('a path outside the working directory stays absolute', () => {
+    expect(at('at check (/elsewhere/r.ts:1:2)')).toBe('at check (/elsewhere/r.ts:1:2)');
   });
 });

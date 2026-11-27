@@ -17,6 +17,8 @@ import type {
   TestAttachment,
   TestContextRef,
 } from '../core/types/index.ts';
+import { isAbsolute, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { isLocalOrigin } from './scope.ts';
 import type { Scope } from './scope.ts';
 
@@ -296,14 +298,21 @@ export function userStackLine(error: unknown): string | undefined {
     .map((l) => l.trim())
     .find((l) => l.startsWith('at ') && !l.includes('node:') && !PACKAGE_FILE.test(l));
   if (line === undefined) return undefined;
-  const path = line.replace(/file:\/\/([^\s)]+)/, (_m, file: string) => {
+  // "at fn (<file>:<line>:<col>)" or "at <file>:<line>:<col>"; <file> may be a file:// URL.
+  const m = /^(at (?:.*? \()?)(.+?)(:\d+:\d+)(\)?)$/.exec(line);
+  if (m === null) return line;
+  const [, head = '', location = '', position = '', tail = ''] = m;
+  let file = location;
+  if (file.startsWith('file://')) {
     try {
-      return decodeURIComponent(file);
+      file = fileURLToPath(file);
     } catch {
-      return file;
+      return line;
     }
-  });
-  return path.split(`${process.cwd()}/`).join('');
+  }
+  const rel = relative(process.cwd(), file);
+  const shown = rel !== '' && !rel.startsWith('..') && !isAbsolute(rel) ? rel : file;
+  return `${head}${shown.split('\\').join('/')}${position}${tail}`;
 }
 
 /** Whether a rule applies to a record (06, chapter 2). */
