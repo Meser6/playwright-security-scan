@@ -23,6 +23,8 @@ export interface ProjectInfo {
   baseOrigin: string | null;
   /** Other http(s) origins written in the sources, most frequent first, at most 10 (11, step 4). */
   foundOrigins: string[];
+  /** Projects with `storageState: '<literal>'` in playwright.config: roles of step 4a (18-REQ-22). */
+  roleProjects: string[];
   /** Source files with request.newContext( and no trackRequestContext (perf 04-REQ-74). */
   untrackedContextFiles: string[];
   existing: {
@@ -192,6 +194,25 @@ function sourceFiles(files: ReadonlyMap<string, string>, configPath: string | nu
     .sort();
 }
 
+/**
+ * Projects with a literal storageState (11-REQ-07, 18-REQ-22): the closest `name: '<x>'` before each
+ * `storageState: '<path>'` in the same object, else the path.
+ */
+export function roleProjectsIn(configText: string): string[] {
+  const out: string[] = [];
+  for (const m of configText.matchAll(/\bstorageState\s*:\s*(['"`])([^'"`\n]+)\1/gu)) {
+    const before = configText.slice(0, m.index);
+    // The object of the project: the brace before its `use`.
+    const objectStart = before.lastIndexOf('{', before.lastIndexOf('use'));
+    const names = [
+      ...before.slice(Math.max(0, objectStart)).matchAll(/\bname\s*:\s*(['"`])([^'"`\n]+)\1/gu),
+    ];
+    const name = names.at(-1)?.[2] ?? (m[2] as string);
+    if (!out.includes(name)) out.push(name);
+  }
+  return out;
+}
+
 /** Text-only detection (perf 04-REQ-38 step 1, perf 04-D-18). */
 export function detectProject(files: ReadonlyMap<string, string>): ProjectInfo {
   const configPath = PLAYWRIGHT_CONFIG_NAMES.find((name) => files.has(name)) ?? null;
@@ -235,6 +256,7 @@ export function detectProject(files: ReadonlyMap<string, string>): ProjectInfo {
         : {},
     baseOrigin,
     foundOrigins: originsIn([configText, ...sources.map(text)], baseOrigin),
+    roleProjects: roleProjectsIn(configText),
     untrackedContextFiles: sources.filter(
       (p) => NEW_REQUEST_CONTEXT.test(text(p)) && !text(p).includes('trackRequestContext'),
     ),

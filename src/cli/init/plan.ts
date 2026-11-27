@@ -118,6 +118,9 @@ function planSecConfig(
   if (answers.minSeverity !== 'medium')
     values.push(`gate.minSeverity = ${ts(answers.minSeverity)}`);
   if (answers.origins.length > 0) values.push(`scope.origins = ${ts(answers.origins)}`);
+  if (answers.authzOrigins !== undefined && answers.authzOrigins.length > 0) {
+    values.push(`authz = { enabled: true, allowedOrigins: ${ts(answers.authzOrigins)} }`);
+  }
   if (values.length > 0) {
     plan.manualSteps.push(
       manual(
@@ -358,6 +361,37 @@ function planRequestContexts(info: ProjectInfo, plan: InitPlan, t: Translate): v
   );
 }
 
+/** "yes" in step 4a (18-REQ-22): what the wizard cannot write for the authorization tests. */
+function planAuthz(info: ProjectInfo, answers: InitAnswers, plan: InitPlan, t: Translate): void {
+  const origins = answers.authzOrigins;
+  if (origins === undefined) return;
+  if (origins.length === 0) {
+    plan.manualSteps.push(
+      manual(
+        t('manualAuthzOrigins'),
+        [
+          t('manualAuthzOriginsHint'),
+          "  authz: { enabled: true, allowedOrigins: ['https://staging.example.com'] },",
+        ].join('\n'),
+      ),
+    );
+    return;
+  }
+  // A new config maps no project to a shared role: no role has a pair for the IDOR test (14-REQ-12).
+  const first = info.roleProjects[0] ?? 'customer';
+  plan.manualSteps.push(
+    manual(
+      t('manualAuthzUser'),
+      [
+        t('manualAuthzUserHint'),
+        `  // auth.setup.ts: sign in a second user and save .auth/${first}2.json`,
+        `  // playwright.config: { name: '${first}2', dependencies: ['setup'], use: { storageState: '.auth/${first}2.json' } }`,
+        `  // pw-sec.config: authz: { roles: { '${first}2': { role: '${first}' } } }`,
+      ].join('\n'),
+    ),
+  );
+}
+
 function planGitignore(info: ProjectInfo, plan: InitPlan): void {
   const dir = REPORT_DIR;
   const current = info.files.get('.gitignore') ?? null;
@@ -381,6 +415,7 @@ export function planInitChanges(
   planPlaywrightConfig(info, answers, plan, t);
   planTestObject(info, plan, t);
   planRequestContexts(info, plan, t);
+  planAuthz(info, answers, plan, t);
   planGitignore(info, plan);
   return plan;
 }

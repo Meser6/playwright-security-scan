@@ -116,7 +116,7 @@ export interface Location {
  * One piece of evidence, already redacted (07, chapter 5).
  */
 export interface Evidence {
-  kind: 'header' | 'cookie' | 'body' | 'url' | 'storage' | 'event';
+  kind: 'header' | 'cookie' | 'body' | 'url' | 'storage' | 'event' | 'replay';
   /**
    * Header, cookie, parameter or storage key name.
    */
@@ -178,6 +178,15 @@ export interface Coverage {
    */
   storageOrigins: string[];
   rulesRun: Counts;
+  /**
+   * Authorization tests (18-REQ-13): endpoint key to the roles that got a 2xx answer with credentials, and whether one came without credentials.
+   */
+  authzObserved?: {
+    [k: string]: {
+      roles: string[];
+      public: boolean;
+    };
+  };
 }
 export interface Counts {
   [k: string]: number;
@@ -257,6 +266,10 @@ export interface RunReport {
     missing: number[];
     list: ShardInfo[];
   };
+  /**
+   * Authorization tests of the run (18-REQ-21); null when they are off.
+   */
+  authz: null | AuthzSummary;
   pkgVersion: string;
   playwrightVersion: string;
   scope: {
@@ -311,6 +324,50 @@ export interface ShardInfo {
   findings: number;
   responses: number;
   buildUrl: string | null;
+}
+/**
+ * Roles, replays and the role matrix of the authorization tests (18-REQ-21).
+ */
+export interface AuthzSummary {
+  roles: {
+    name: string;
+    projects: string[];
+    level: null | number;
+  }[];
+  /**
+   * Request templates after the deduplication by endpoint key and project.
+   */
+  templates: number;
+  /**
+   * Requests sent.
+   */
+  replays: number;
+  budget: {
+    maxRequests: number;
+    used: number;
+    exceeded: boolean;
+  };
+  /**
+   * Replays not sent, by reason (18, chapter 12a).
+   */
+  skipped: {
+    [k: string]: number;
+  };
+  matrix: {
+    endpointKey: string;
+    /**
+     * Role of the original request.
+     */
+    from: string;
+    /**
+     * Role of the replay; anonymous without a session.
+     */
+    as: string;
+    result: 'enforced' | 'bypassed' | 'different' | 'public' | 'skipped';
+    reason?: string;
+    similarity?: number;
+    fingerprint?: string;
+  }[];
 }
 /**
  * A deduplicated finding (02, chapter 4).

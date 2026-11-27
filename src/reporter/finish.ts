@@ -13,6 +13,9 @@ import {
   updateBaseline,
 } from '../core/baseline/index.ts';
 import type { BaselineDiff } from '../core/baseline/index.ts';
+import { evaluateAuthz } from '../core/authz/evaluate.ts';
+import { AUTHZ_RULE_IDS } from '../core/authz/manifest.ts';
+import type { AuthzRunData } from '../core/authz/types.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { sortCoverage } from '../core/coverage.ts';
 import { compareTests, dedupeRun } from '../core/fingerprint/index.ts';
@@ -44,7 +47,12 @@ export interface RunData {
   /** Every test without traffic in scope; sorted and cut to 50 here. */
   testsWithoutTraffic: readonly TestContextRef[];
   testsPassed: boolean;
+  /** Replays of the authorization tests (18-REQ-20); null when they are off. */
+  authz: AuthzRunData | null;
 }
+
+/** Rule ids a baseline may name: passive and authorization tests (18-REQ-17). */
+export const KNOWN_RULE_IDS: ReadonlySet<string> = new Set([...RULE_IDS, ...AUTHZ_RULE_IDS]);
 
 export interface FinishOptions {
   config: ResolvedSecurityConfig;
@@ -101,8 +109,11 @@ export function finishRun(data: RunData, options: FinishOptions): OutcomeFile {
       .filter(([, r]) => r.enabled)
       .map(([id]) => id),
   );
-  const findings = dedupeRun(data.findings);
   const coverage = sortCoverage(data.coverage);
+  // The authorization tests are judged with the knowledge of the whole run (18-REQ-20).
+  const authz =
+    data.authz === null ? null : evaluateAuthz(data.authz, coverage.authzObserved ?? {}, sec);
+  const findings = dedupeRun([...data.findings, ...(authz?.findings ?? [])]);
   const date = today();
 
   // Baseline file (08): only baseline.path (D-17).
@@ -114,7 +125,7 @@ export function finishRun(data: RunData, options: FinishOptions): OutcomeFile {
     const parsed = parseBaseline(
       readFileSync(baselinePath, 'utf8'),
       baselineName,
-      new Set(RULE_IDS),
+      KNOWN_RULE_IDS,
       enabled,
     );
     for (const d of parsed.diagnostics) diags.add(d);
@@ -127,7 +138,13 @@ export function finishRun(data: RunData, options: FinishOptions): OutcomeFile {
 
   const gate = sec.gate;
   const classified = classify(findings, baseline, gate, date, mode === 'scan');
-  const { resolved, notCovered } = resolveEntries(baseline, findings, coverage, enabled);
+  const { resolved, notCovered } = resolveEntries(
+    baseline,
+    findings,
+    coverage,
+    enabled,
+    authz?.passed,
+  );
 
   if (coverage.responses === 0) {
     diags.add({
@@ -187,6 +204,7 @@ export function finishRun(data: RunData, options: FinishOptions): OutcomeFile {
     finishedAt: options.finishedAt(),
     mode,
     shards: options.shards,
+    authz: authz?.summary ?? null,
     pkgVersion: VERSION,
     playwrightVersion: options.playwrightVersion,
     scope: { origins: scope },

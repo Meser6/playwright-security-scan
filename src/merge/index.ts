@@ -14,6 +14,7 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { combineAuthz } from '../core/authz/evaluate.ts';
 import { addCoverage, emptyCoverage } from '../core/coverage.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { defineRule } from '../core/custom/define.ts';
@@ -245,6 +246,7 @@ export function combineShards(shards: readonly ShardFile[]): {
       diagnostics: diagnostics.list(),
       testsWithoutTraffic: [...withoutTraffic.values()],
       testsPassed: shards.every((s) => s.status === 'passed'),
+      authz: combineAuthz(shards.map((s) => s.authz)),
     },
     tests,
     list: shards.map((s) => ({

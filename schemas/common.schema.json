@@ -74,7 +74,7 @@
       "required": ["kind", "snippet"],
       "properties": {
         "kind": {
-          "enum": ["header", "cookie", "body", "url", "storage", "event"]
+          "enum": ["header", "cookie", "body", "url", "storage", "event", "replay"]
         },
         "name": {
           "description": "Header, cookie, parameter or storage key name.",
@@ -222,6 +222,22 @@
         "rulesRun": {
           "description": "Rule id to number of evaluations.",
           "$ref": "#/$defs/counts"
+        },
+        "authzObserved": {
+          "description": "Authorization tests (18-REQ-13): endpoint key to the roles that got a 2xx answer with credentials, and whether one came without credentials.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["roles", "public"],
+            "properties": {
+              "roles": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "public": { "type": "boolean" }
+            }
+          }
         }
       }
     },

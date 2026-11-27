@@ -106,7 +106,7 @@ async function wizardWithCheck(
   const fake = fakeCliHost({
     cwd: dir,
     // tutorial, language, Enter, preset, gate, origins, command, four changes, the check.
-    prompt: answers('y', 'en', '', '', '', '', '', 'y', 'y', 'y', 'y', 'y'),
+    prompt: answers('y', 'en', '', '', '', '', '', '', 'y', 'y', 'y', 'y', 'y'),
     onSpawn: (f) => {
       if (input !== null) f.child.print(printed(input, false));
       f.child.exit(code);
@@ -154,7 +154,7 @@ describe('init wizard: the check (11, chapter 7)', () => {
     cpSync(join(import.meta.dirname, '../../projects/init-ts-fixtures'), dir, { recursive: true });
     const fake = fakeCliHost({
       cwd: dir,
-      prompt: answers('y', 'en', '', '', '', '', '', 'y', 'y', 'y', 'y', 'y'),
+      prompt: answers('y', 'en', '', '', '', '', '', '', 'y', 'y', 'y', 'y', 'y'),
       onSpawn: (f) => f.child.exit(null, 'SIGINT'),
     });
     expect(await main([], fake.host)).toBe(130);

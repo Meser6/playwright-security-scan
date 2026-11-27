@@ -19,8 +19,11 @@ import {
 } from './parts.ts';
 
 /** The fixed box of what a passive scan does not see (09-REQ-05). */
-function notCoveredBox(): SafeHtml {
-  return html`<div class="note warnbox">${icon('info')}<span><b>What this scan does not cover.</b> It is passive: it only looks at the traffic of your tests. It does not send attacks (no injection or authorization tests), does not see endpoints your tests never call, WebSockets or Server-Sent Events, and does not judge business logic. It does not replace a penetration test. Active checks are planned: <code>${REPOSITORY_URL}#what-it-does-not-do</code>.</span></div>`;
+function notCoveredBox(authz: boolean): SafeHtml {
+  const what = authz
+    ? 'It looks at the traffic of your tests; its only own requests are the authorization tests: GET/HEAD replays only. It does not send attacks (no injection tests), does not see'
+    : 'It is passive: it only looks at the traffic of your tests. It does not send attacks (no injection or authorization tests), does not see';
+  return html`<div class="note warnbox">${icon('info')}<span><b>What this scan does not cover.</b> ${what} endpoints your tests never call, WebSockets or Server-Sent Events, and does not judge business logic. It does not replace a penetration test. Active checks are planned: <code>${REPOSITORY_URL}#what-it-does-not-do</code>.</span></div>`;
 }
 
 function countList(counts: Record<string, number>): string {
@@ -62,7 +65,7 @@ export function coverageTab(ctx: Ctx): SafeHtml {
       : Object.keys(ctx.config.rules).filter((id) => ctx.config?.rules[id]?.enabled === true);
   const noInput = enabled.filter((id) => (c.rulesRun[id] ?? 0) === 0).sort(compareText);
   return join(
-    notCoveredBox(),
+    notCoveredBox(r.authz != null),
     section(
       'cov-traffic',
       'Traffic',

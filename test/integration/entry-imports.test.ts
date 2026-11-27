@@ -58,6 +58,51 @@ describe('01-AC-03 the package never routes requests (P-04)', () => {
   });
 });
 
+/** Static imports only: `import(` is not followed. */
+function staticGraph(entry: string): string[] {
+  const seen = new Set<string>();
+  const queue = [join(DIST, entry)];
+  while (queue.length > 0) {
+    const file = queue.pop() as string;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const source = readFileSync(file, 'utf8');
+    for (const m of source.matchAll(/(?:from\s*|require\(\s*)["'](\.\/[^"']+)["']/g)) {
+      queue.push(join(dirname(file), m[1] as string));
+    }
+  }
+  return [...seen];
+}
+
+describe('01-AC-03 18-AC-06 the code that sends requests is loaded only with import()', () => {
+  test.skipIf(!built)(
+    'active/ is a chunk of its own, imported dynamically by the reporter only',
+    () => {
+      const files = readdirSync(DIST).filter((f) => /\.(c?js)$/.test(f));
+      const active = files.filter((f) =>
+        readFileSync(join(DIST, f), 'utf8').includes('"x-pw-sec-probe"'),
+      );
+      expect(active.sort()).toEqual(files.filter((f) => f.startsWith('active-')).sort());
+      expect(active).toHaveLength(2);
+      for (const entry of ['config', 'fixture', 'reporter', 'rules', 'test']) {
+        for (const ext of ['js', 'cjs']) {
+          const reached = staticGraph(`${entry}.${ext}`).map((f) => f.split(/[\\/]/).pop());
+          for (const chunk of active) expect(reached, `${entry}.${ext}`).not.toContain(chunk);
+        }
+      }
+      for (const chunk of active) {
+        const users = files.filter((f) => readFileSync(join(DIST, f), 'utf8').includes(chunk));
+        expect(users.sort(), chunk).toEqual([
+          chunk.endsWith('.cjs') ? 'reporter.cjs' : 'reporter.js',
+        ]);
+        expect(readFileSync(join(DIST, users[0] as string), 'utf8')).toContain(
+          `await import('./${chunk}')`,
+        );
+      }
+    },
+  );
+});
+
 describe('the rules entry point loads as ESM and CJS (16, chapter 12)', () => {
   test.skipIf(!built)('defineRule() from CJS makes a rule the ESM config accepts', async () => {
     const { createRequire } = await import('node:module');

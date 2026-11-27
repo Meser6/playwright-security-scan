@@ -1,4 +1,5 @@
 // Package config (03, chapter 4): what users write and the resolved form.
+import type { AuthzInput, ResolvedAuthz } from '../authz/config.ts';
 import type { Rule as CustomRule } from '../custom/define.ts';
 import type { NormalizationConfig, NormalizationInput } from '../normalize/index.ts';
 import type { Confidence, Severity } from '../types/index.ts';
@@ -49,6 +50,8 @@ export interface SecurityConfigInput {
     sarifIncludeAccepted?: boolean;
   };
   normalization?: NormalizationInput;
+  /** Authorization tests (18-REQ-01); off by default. */
+  authz?: AuthzInput;
 }
 
 export interface ResolvedRule {
@@ -90,6 +93,7 @@ export interface ResolvedSecurityConfig {
     sarifIncludeAccepted: boolean;
   };
   normalization: NormalizationConfig;
+  authz: ResolvedAuthz;
 }
 
 /** A config problem; `path` is the option path, e.g. "rules.cookie.no-htponly". */

@@ -1,5 +1,7 @@
 // Validation of the package config (03-REQ-02): unknown options and rule ids with the closest
 // known name, wrong types and values with the allowed ones. Every problem is reported (P-12).
+import { deniedReason, resolveAuthz } from '../authz/config.ts';
+import { AUTHZ_RULE_IDS } from '../authz/manifest.ts';
 import { canonicalOrigin, parseHostPattern } from '../normalize/index.ts';
 import { customRulesIssues, isCustomRule } from '../custom/define.ts';
 import { RULE_IDS, ruleManifest } from '../manifest/rules.ts';
@@ -206,14 +208,17 @@ function rules(c: Collector, value: unknown): void {
       }
     }
   }
-  const ids = [...RULE_IDS, ...custom.keys()];
+  const ids = [...RULE_IDS, ...AUTHZ_RULE_IDS, ...custom.keys()];
   for (const [key, v] of Object.entries(value)) {
     if (key === 'preset') {
       enumOf(PRESETS)(c, 'rules.preset', v);
       continue;
     }
     if (key === 'custom') continue;
-    const defaults = custom.get(key) ?? ruleManifest(key)?.options;
+    const defaults =
+      custom.get(key) ??
+      ruleManifest(key)?.options ??
+      (AUTHZ_RULE_IDS.includes(key) ? {} : undefined);
     if (defaults === undefined) {
       const suggestion = closest(key, ids);
       c.add(
@@ -230,6 +235,98 @@ function rules(c: Collector, value: unknown): void {
     }
     if (v !== undefined) ruleSetting(c, `rules.${key}`, key, v, defaults);
   }
+}
+
+/** Exact origins only: the hard check of 18-REQ-04 compares origins exactly (18 chapter 12a). */
+const exactOriginList: Check = (c, p, v) => {
+  if (!Array.isArray(v)) {
+    c.type(p, v, 'an array of origins');
+    return;
+  }
+  v.forEach((item, i) => {
+    if (typeof item !== 'string' || item.includes('*') || canonicalOrigin(item) === null) {
+      c.add(
+        'CONFIG_INVALID_VALUE',
+        `${p}[${i}]`,
+        `${show(item)} is not an origin`,
+        'Use scheme://host[:port] without wildcards, e.g. "https://staging.example.com".',
+      );
+    }
+  });
+};
+
+const positiveNumber: Check = (c, p, v) => {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) c.type(p, v, 'a positive number');
+};
+
+function authz(c: Collector, value: unknown): void {
+  section(c, 'authz', value, {
+    enabled: bool,
+    allowedOrigins: exactOriginList,
+    denyOrigins: exactOriginList,
+    iUnderstandThisIsNotProduction: bool,
+    roles: (cc, p, v) => {
+      if (!isRecord(v)) {
+        cc.type(p, v, 'an object of project name → role options');
+        return;
+      }
+      for (const [project, options] of Object.entries(v)) {
+        section(cc, `${p}.${project}`, options, {
+          role: nonEmptyString,
+          level: (c3, p3, v3) => {
+            if (typeof v3 !== 'number' || !Number.isInteger(v3) || v3 < 0)
+              c3.type(p3, v3, 'a whole number ≥ 0');
+          },
+          headers: (c3, p3, v3) => {
+            if (!isRecord(v3) || Object.values(v3).some((x) => typeof x !== 'string'))
+              c3.type(p3, v3, 'an object of header name → value');
+          },
+          skip: bool,
+        });
+      }
+    },
+    exclude: stringList,
+    maxRequests: positiveInt,
+    maxRps: positiveNumber,
+    maxDurationMinutes: positiveNumber,
+    similarity: (cc, p, v) => {
+      if (typeof v !== 'number' || !(v >= 0 && v <= 1)) cc.type(p, v, 'a number from 0 to 1');
+    },
+    probeHeader: bool,
+    tests: (cc, p, v) =>
+      section(cc, p, v, { unauthenticated: bool, horizontal: bool, vertical: bool }),
+  });
+  if (
+    !isRecord(value) ||
+    value.enabled !== true ||
+    c.issues.some((i) => i.path.startsWith('.authz'))
+  )
+    return;
+  // 18-REQ-02: no default on purpose (R-05).
+  const allowed = value.allowedOrigins;
+  if (!Array.isArray(allowed) || allowed.length === 0) {
+    c.add(
+      'AUTHZ_ORIGINS_REQUIRED',
+      '.authz.allowedOrigins',
+      'authorization tests are enabled but authz.allowedOrigins is empty',
+      'List the origins the package may send its GET/HEAD replays to, e.g. allowedOrigins: ["https://staging.example.com"]. There is no default on purpose.',
+    );
+    return;
+  }
+  // 18-REQ-03: the production block list, before any test runs.
+  const resolved = resolveAuthz(value as Parameters<typeof resolveAuthz>[0]);
+  resolved.allowedOrigins.forEach((origin, i) => {
+    const reason = deniedReason(origin, resolved);
+    if (reason === null) return;
+    c.add(
+      'AUTHZ_ORIGIN_DENIED',
+      `.authz.allowedOrigins[${i}]`,
+      `${origin} matches ${reason}; the package never sends requests to production`,
+      reason === 'authz.denyOrigins'
+        ? 'Remove it from authz.allowedOrigins: authz.denyOrigins always wins.'
+        : 'Use a test environment. If this origin is not production, set authz.iUnderstandThisIsNotProduction: true.',
+    );
+  });
 }
 
 function normalization(c: Collector, value: unknown): void {
@@ -324,6 +421,7 @@ export function validateConfig(input: unknown): ConfigIssue[] {
         sarifIncludeAccepted: bool,
       }),
     normalization: (cc, _p, v) => normalization(cc, v),
+    authz: (cc, _p, v) => authz(cc, v),
   };
   section(c, '', input, top);
   // section() prefixes top-level paths with '.'; strip it.

@@ -141,7 +141,7 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'pw-sec init-'));
     dirs.push(dir);
     cpSync(join(import.meta.dirname, '../../projects/init-ts-fixtures'), dir, { recursive: true });
-    // tutorial, language, Enter after step 1, preset, gate, origins, command, then "yes" to every
+    // tutorial, language, Enter after step 1, preset, gate, origins, authorization tests, command, then "yes" to every
     // change.
     const first = fakeCliHost({
       cwd: dir,
@@ -152,6 +152,7 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
         'strict',
         'high',
         'https://api.example.test',
+        '',
         'skip',
         'y',
         'y',
@@ -177,11 +178,44 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
 
     const second = fakeCliHost({
       cwd: dir,
-      prompt: answers('y', 'en', '', '', '', '', 'skip'),
+      prompt: answers('y', 'en', '', '', '', '', '', 'skip'),
     });
     expect(await main([], second.host)).toBe(0);
     expect(out(second.stdout)).toContain('Nothing to change: the project is already set up.');
     expect(second.written).toEqual([]);
+  });
+
+  test('11-AC-11 step 4a: "yes" enables the authorization tests for the scope origins, a production-like origin is left out', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'pw-sec init-'));
+    dirs.push(dir);
+    cpSync(join(import.meta.dirname, '../../projects/init-ts-fixtures'), dir, { recursive: true });
+    const fake = fakeCliHost({
+      cwd: dir,
+      prompt: answers(
+        'y',
+        'en',
+        '',
+        '',
+        '',
+        'https://api.example.test, https://www.example.com',
+        'yes',
+        'skip',
+        'y',
+        'y',
+        'y',
+        'y',
+      ),
+    });
+    expect(await main([], fake.host)).toBe(0);
+    const text = out(fake.stdout);
+    expect(text).toContain('Authorization tests (optional, off by default)');
+    expect(text).toContain('https://www.example.com looks like production');
+    expect(fake.stderr.join('')).toContain('needs a second user of one role');
+    const config = readFileSync(join(dir, 'pw-sec.config.ts'), 'utf8');
+    expect(config).toContain('enabled: true,');
+    expect(config).toContain(
+      "allowedOrigins: ['https://shop.example.test', 'https://api.example.test'],",
+    );
   });
 
   test('11-REQ-08 an invalid origin is asked again', async () => {
@@ -196,6 +230,7 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
         '',
         'api.example.test',
         'https://api.example.test',
+        '',
         'skip',
         'n',
         'n',
@@ -212,7 +247,7 @@ describe('init wizard: start (11, chapters 3 and 4)', () => {
     test.each(LANGUAGES.map((lang) => [lang]))('%s', async (lang) => {
       const dir = project({ 'playwright.config.ts': CONFIG });
       const asked: string[] = [];
-      const list = ['y', lang, '', '', '', '', 'skip', 'n', 'n', 'n'];
+      const list = ['y', lang, '', '', '', '', '', 'skip', 'n', 'n', 'n'];
       const fake = fakeCliHost({
         cwd: dir,
         prompt: () => ({

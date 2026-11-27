@@ -55,8 +55,9 @@ without tests, with `PW_SEC_MODE=merge npx pw-sec`.
 
 ### MODE_NOT_AVAILABLE
 
-`PW_SEC_MODE=active` is reserved for the active scan of later versions. This version is passive
-only.
+`PW_SEC_MODE=active` is not a mode. The authorization tests are switched on in the config with
+`authz: { enabled: true, allowedOrigins: [...] }` and run in the usual `scan` and `baseline` runs;
+see [Authorization tests](authz.md).
 
 ### ENV_REMOVED
 
@@ -231,6 +232,64 @@ A `false-positive` entry has an `until` date. False positives never expire; remo
 
 A `baseline` run was filtered (`--grep`, `--project`, `--shard`, file arguments, `--only-changed`),
 so entries not seen in it were kept rather than removed as resolved. Run the full suite to prune.
+
+## Authorization tests
+
+See [Authorization tests](authz.md).
+
+### AUTHZ_ORIGINS_REQUIRED
+
+`authz.enabled` is `true` but `authz.allowedOrigins` is missing or empty. The run stops before any
+test. List the origins of your test environment the package may send its GET/HEAD replays to; there
+is no default on purpose, so a forgotten list can never reach production.
+
+### AUTHZ_ORIGIN_DENIED
+
+An origin of `authz.allowedOrigins` is on `authz.denyOrigins` or looks like production: a host that
+starts with `www.`, has a `prod` or `production` part, or is a domain without a subdomain
+(`shop.com`). The run stops before any test. Use a test environment. If the origin is not production
+(for example a public practice app on its own domain), set
+`authz.iUnderstandThisIsNotProduction: true`; `authz.denyOrigins` always wins.
+
+### AUTHZ_ENV_INVALID
+
+`PW_SEC_AUTHZ` has a value other than `0`. `PW_SEC_AUTHZ=0` switches the authorization tests off for
+one run; the variable never switches them on (use `authz.enabled`).
+
+### AUTHZ_ORIGIN_BLOCKED
+
+**Error (code 3).** The package was about to send a replay to an origin outside
+`authz.allowedOrigins` or on the block list, and did not send it. Templates are only made for
+allowed origins, so this is a bug in the package: please report it.
+
+### AUTHZ_STATE_MISSING
+
+**Warning.** The `storageState` file of a role project did not exist when the replays started; the
+replays as that role were skipped (`skipped: state-missing` in the Authorization tab). Check that
+the setup project writes the file to the path in `use.storageState` (relative to the Playwright
+config).
+
+### AUTHZ_NO_ROLES
+
+**Warning.** No scanned project has `use.storageState` as a file path, so only access without a
+session is tested. Add projects with the `storageState` of your users; for the IDOR test add a
+second user of the same role (see [Roles](authz.md#roles)).
+
+### AUTHZ_BUDGET_EXCEEDED
+
+**Warning.** The replays used up `authz.maxRequests` or `authz.maxDurationMinutes`; the rest was
+skipped (`skipped: budget`). Raise the budget, or exclude endpoints with `authz.exclude`. Baseline
+entries of skipped pairs are not covered in this run.
+
+### AUTHZ_REPLAY_FAILED
+
+**Info.** A replay failed on the network (connection refused, timeout after 10 seconds). It gives
+no finding; the pair stays not covered.
+
+### AUTHZ_TEMPLATES_TRUNCATED
+
+**Info.** The request templates of one test exceeded 512 KB; the templates with the longest
+digests were dropped, so some endpoints of that test are not replayed.
 
 ## Reporter
 

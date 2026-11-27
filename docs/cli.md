@@ -47,11 +47,13 @@ result code below. See [Sharded runs](ci.md#sharded-runs).
 | `PW_SEC_MODE`      | `check`, `baseline` or `scan`; the package is off when it is unset or empty; `merge` for `npx pw-sec` only        |
 | `PW_SEC_MAX_TESTS` | in a check: tests to run, 1 to 1000 (default 10)                                                                  |
 | `PW_SEC_CONFIG`    | path of a package config file (`.json`, or a module with a default export); wins over `withSecurity()`'s argument |
+| `PW_SEC_AUTHZ`     | `0` switches the [authorization tests](authz.md) off for one run; it never switches them on                       |
 | `PW_SEC_RUN_ID`    | id of the run, set by the package for the workers; do not set it yourself                                         |
 | `PW_SEC_RUN_SALT`  | redaction salt of the run, set by the package; do not set it yourself                                             |
 
 An invalid `PW_SEC_MAX_TESTS` stops a check before the tests with
-[`MAX_TESTS_INVALID`](troubleshooting.md#max_tests_invalid). `PW_SEC_ENV` (environment labels of
+[`MAX_TESTS_INVALID`](troubleshooting.md#max_tests_invalid), another `PW_SEC_AUTHZ` value than `0`
+with [`AUTHZ_ENV_INVALID`](troubleshooting.md#authz_env_invalid). `PW_SEC_ENV` (environment labels of
 0.2) is no longer read: when set, the run warns with
 [`ENV_REMOVED`](troubleshooting.md#env_removed).
 

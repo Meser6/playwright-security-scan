@@ -10,6 +10,7 @@ import { canonicalOrigin } from '../core/normalize/index.ts';
 import type { Diagnostic } from '../core/types/index.ts';
 import {
   CONFIG_ENV,
+  readAuthzEnv,
   REMOVED_ENV_ENV,
   readMaxTests,
   readMode,
@@ -159,7 +160,9 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   const resolved = resolveConfig(input);
   const maxTests = mode.mode === 'check' ? readMaxTests(process.env) : undefined;
   const jsonIssues = jsonCustomRulesIssue(fromEnv, input);
+  const authzEnv = readAuthzEnv(process.env);
   const issues = [
+    ...(authzEnv.ok ? [] : authzEnv.issues),
     ...jsonIssues,
     ...(resolved.ok
       ? []

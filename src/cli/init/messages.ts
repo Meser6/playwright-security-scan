@@ -88,6 +88,21 @@ const en = {
   originsFound: 'Other origins found in your sources:',
   originsQuestion: 'Other origins of your app or API to scan (comma-separated, Enter for none)?',
   originsInvalid: '"{value}" is not an origin such as https://api.example.com.',
+  authzLesson:
+    'Authorization tests (optional, off by default): after the tests the package replays their GET requests as your other users and without a session, only to the origins of this step, and reports answers that should have been denied.',
+  authzRoles: 'Projects with a storageState (roles): {roles}',
+  authzNoRoles:
+    'No project with a storageState found: only access without a session would be tested.',
+  authzQuestion:
+    'Test access control by replaying the GET requests of your tests as other users and without a session? [no/yes]',
+  authzProduction: '{origin} looks like production: it is left out of authz.allowedOrigins.',
+  manualAuthzOrigins:
+    'The authorization tests were not enabled: no origin of a test environment is known.',
+  manualAuthzOriginsHint:
+    'Add them to the package config with the origins of your test environment:',
+  manualAuthzUser: 'The IDOR test (authz.horizontal) needs a second user of one role.',
+  manualAuthzUserHint:
+    'Sign in a second user in the setup project, add a project with its storageState and give it the role of the first one:',
   stepCommand: 'Test command',
   commandLesson1:
     'Type the command you usually run your tests with, e.g. npm run e2e:qa. The wizard does not change anything in it: it uses it in the commands at the end and for the check.',
@@ -250,6 +265,19 @@ const pl: Messages = {
   originsQuestion:
     'Inne originy aplikacji albo API do skanowania (po przecinku, Enter, jeśli brak)?',
   originsInvalid: '"{value}" nie jest originem w rodzaju https://api.example.com.',
+  authzLesson:
+    'Testy autoryzacji (opcjonalne, domyślnie wyłączone): po testach paczka odtwarza ich requesty GET jako inni użytkownicy i bez sesji, tylko do originów z tego kroku, i zgłasza odpowiedzi, które powinny być odmową.',
+  authzRoles: 'Projekty ze storageState (role): {roles}',
+  authzNoRoles: 'Nie znaleziono projektu ze storageState: sprawdzany byłby tylko dostęp bez sesji.',
+  authzQuestion:
+    'Sprawdzić kontrolę dostępu, odtwarzając requesty GET testów jako inni użytkownicy i bez sesji? [no/yes]',
+  authzProduction: '{origin} wygląda na produkcję: pominięty w authz.allowedOrigins.',
+  manualAuthzOrigins:
+    'Testy autoryzacji nie zostały włączone: nie znam żadnego originu środowiska testowego.',
+  manualAuthzOriginsHint: 'Dodaj je do configu paczki z originami swojego środowiska testowego:',
+  manualAuthzUser: 'Test IDOR (authz.horizontal) wymaga drugiego użytkownika tej samej roli.',
+  manualAuthzUserHint:
+    'Zaloguj drugiego użytkownika w projekcie setup, dodaj projekt z jego storageState i nadaj mu rolę pierwszego:',
   stepCommand: 'Polecenie testów',
   commandLesson1:
     'Wpisz polecenie, którym zwykle uruchamiasz testy, np. npm run e2e:qa. Kreator niczego w nim nie zmienia: używa go w poleceniach na końcu i do sprawdzenia.',
@@ -413,6 +441,21 @@ const es: Messages = {
   originsQuestion:
     '¿Otros orígenes de tu aplicación o API a escanear (separados por comas, Intro si ninguno)?',
   originsInvalid: '"{value}" no es un origen como https://api.example.com.',
+  authzLesson:
+    'Pruebas de autorización (opcionales, desactivadas por defecto): después de las pruebas el paquete repite sus peticiones GET como tus otros usuarios y sin sesión, solo a los orígenes de este paso, e informa de las respuestas que deberían haberse denegado.',
+  authzRoles: 'Proyectos con storageState (roles): {roles}',
+  authzNoRoles:
+    'No se encontró ningún proyecto con storageState: solo se probaría el acceso sin sesión.',
+  authzQuestion:
+    '¿Probar el control de acceso repitiendo las peticiones GET de tus pruebas como otros usuarios y sin sesión? [no/yes]',
+  authzProduction: '{origin} parece producción: queda fuera de authz.allowedOrigins.',
+  manualAuthzOrigins:
+    'Las pruebas de autorización no se activaron: no se conoce ningún origen de un entorno de pruebas.',
+  manualAuthzOriginsHint:
+    'Añádelas a la configuración del paquete con los orígenes de tu entorno de pruebas:',
+  manualAuthzUser: 'La prueba IDOR (authz.horizontal) necesita un segundo usuario del mismo rol.',
+  manualAuthzUserHint:
+    'Inicia sesión con un segundo usuario en el proyecto setup, añade un proyecto con su storageState y dale el rol del primero:',
   stepCommand: 'Comando de tests',
   commandLesson1:
     'Escribe el comando con el que sueles ejecutar tus tests, p. ej. npm run e2e:qa. El asistente no cambia nada en él: lo usa en los comandos del final y para la comprobación.',
@@ -579,6 +622,21 @@ const fr: Messages = {
   originsQuestion:
     'Autres origines de votre application ou API à scanner (séparées par des virgules, Entrée si aucune) ?',
   originsInvalid: '« {value} » n’est pas une origine comme https://api.example.com.',
+  authzLesson:
+    "Tests d'autorisation (optionnels, désactivés par défaut) : après les tests, le paquet rejoue leurs requêtes GET comme vos autres utilisateurs et sans session, uniquement vers les origines de cette étape, et signale les réponses qui auraient dû être refusées.",
+  authzRoles: 'Projets avec un storageState (rôles) : {roles}',
+  authzNoRoles:
+    "Aucun projet avec un storageState trouvé : seul l'accès sans session serait testé.",
+  authzQuestion:
+    "Tester le contrôle d'accès en rejouant les requêtes GET de vos tests comme d'autres utilisateurs et sans session ? [no/yes]",
+  authzProduction: '{origin} ressemble à la production : exclu de authz.allowedOrigins.',
+  manualAuthzOrigins:
+    "Les tests d'autorisation n'ont pas été activés : aucune origine d'environnement de test n'est connue.",
+  manualAuthzOriginsHint:
+    'Ajoutez-les à la configuration du paquet avec les origines de votre environnement de test :',
+  manualAuthzUser: "Le test IDOR (authz.horizontal) a besoin d'un second utilisateur du même rôle.",
+  manualAuthzUserHint:
+    'Connectez un second utilisateur dans le projet setup, ajoutez un projet avec son storageState et donnez-lui le rôle du premier :',
   stepCommand: 'Commande de tests',
   commandLesson1:
     'Saisissez la commande avec laquelle vous lancez habituellement vos tests, ex. npm run e2e:qa. L’assistant n’y change rien : il l’utilise dans les commandes de la fin et pour la vérification.',
@@ -745,6 +803,21 @@ const it: Messages = {
   originsQuestion:
     'Altre origini della tua applicazione o API da scansionare (separate da virgole, Invio se nessuna)?',
   originsInvalid: '"{value}" non è un’origine come https://api.example.com.',
+  authzLesson:
+    'Test di autorizzazione (facoltativi, disattivati per impostazione predefinita): dopo i test il pacchetto ripete le loro richieste GET come gli altri utenti e senza sessione, solo verso le origini di questo passo, e segnala le risposte che avrebbero dovuto essere negate.',
+  authzRoles: 'Progetti con storageState (ruoli): {roles}',
+  authzNoRoles:
+    "Nessun progetto con storageState trovato: verrebbe testato solo l'accesso senza sessione.",
+  authzQuestion:
+    'Testare il controllo degli accessi ripetendo le richieste GET dei test come altri utenti e senza sessione? [no/yes]',
+  authzProduction: '{origin} sembra produzione: escluso da authz.allowedOrigins.',
+  manualAuthzOrigins:
+    'I test di autorizzazione non sono stati attivati: non è nota alcuna origine di un ambiente di test.',
+  manualAuthzOriginsHint:
+    'Aggiungili alla configurazione del pacchetto con le origini del tuo ambiente di test:',
+  manualAuthzUser: 'Il test IDOR (authz.horizontal) richiede un secondo utente dello stesso ruolo.',
+  manualAuthzUserHint:
+    'Accedi con un secondo utente nel progetto setup, aggiungi un progetto con il suo storageState e dagli il ruolo del primo:',
   stepCommand: 'Comando dei test',
   commandLesson1:
     'Scrivi il comando con cui esegui di solito i test, es. npm run e2e:qa. La procedura non cambia nulla: lo usa nei comandi finali e per la verifica.',
@@ -907,6 +980,20 @@ const uk: Messages = {
   originsFound: 'Інші origin, знайдені у ваших файлах:',
   originsQuestion: 'Інші origin застосунку або API для сканування (через кому, Enter, якщо немає)?',
   originsInvalid: '"{value}" не є origin на кшталт https://api.example.com.',
+  authzLesson:
+    'Тести авторизації (необовʼязкові, типово вимкнені): після тестів пакет повторює їхні GET-запити від імені інших користувачів і без сесії, лише до originів цього кроку, і повідомляє про відповіді, які мали бути відмовою.',
+  authzRoles: 'Проєкти зі storageState (ролі): {roles}',
+  authzNoRoles: 'Не знайдено проєкту зі storageState: перевірявся б лише доступ без сесії.',
+  authzQuestion:
+    'Перевірити контроль доступу, повторивши GET-запити тестів від імені інших користувачів і без сесії? [no/yes]',
+  authzProduction: '{origin} схожий на продакшн: його виключено з authz.allowedOrigins.',
+  manualAuthzOrigins:
+    'Тести авторизації не ввімкнено: невідомий жоден origin тестового середовища.',
+  manualAuthzOriginsHint:
+    'Додайте їх до конфігурації пакета з originами вашого тестового середовища:',
+  manualAuthzUser: 'Тест IDOR (authz.horizontal) потребує другого користувача тієї ж ролі.',
+  manualAuthzUserHint:
+    'Увійдіть другим користувачем у проєкті setup, додайте проєкт з його storageState і дайте йому роль першого:',
   stepCommand: 'Команда тестів',
   commandLesson1:
     'Введіть команду, якою зазвичай запускаєте тести, напр. npm run e2e:qa. Майстер нічого в ній не змінює: використовує її в командах наприкінці та для перевірки.',
@@ -1068,6 +1155,18 @@ const ru: Messages = {
   originsQuestion:
     'Другие origin приложения или API для сканирования (через запятую, Enter, если нет)?',
   originsInvalid: '"{value}" не является origin вроде https://api.example.com.',
+  authzLesson:
+    'Тесты авторизации (необязательные, по умолчанию выключены): после тестов пакет повторяет их GET-запросы от имени других пользователей и без сессии, только к originам этого шага, и сообщает об ответах, которые должны были быть отказом.',
+  authzRoles: 'Проекты со storageState (роли): {roles}',
+  authzNoRoles: 'Проект со storageState не найден: проверялся бы только доступ без сессии.',
+  authzQuestion:
+    'Проверить контроль доступа, повторив GET-запросы тестов от имени других пользователей и без сессии? [no/yes]',
+  authzProduction: '{origin} похож на продакшн: он исключён из authz.allowedOrigins.',
+  manualAuthzOrigins: 'Тесты авторизации не включены: не известен ни один origin тестовой среды.',
+  manualAuthzOriginsHint: 'Добавьте их в конфигурацию пакета с originами вашей тестовой среды:',
+  manualAuthzUser: 'Тесту IDOR (authz.horizontal) нужен второй пользователь той же роли.',
+  manualAuthzUserHint:
+    'Войдите вторым пользователем в проекте setup, добавьте проект с его storageState и дайте ему роль первого:',
   stepCommand: 'Команда тестов',
   commandLesson1:
     'Введите команду, которой обычно запускаете тесты, напр. npm run e2e:qa. Мастер ничего в ней не меняет: использует её в командах в конце и для проверки.',

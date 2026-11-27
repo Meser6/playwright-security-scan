@@ -5,6 +5,7 @@
 // Source: playwright-performance-regression src/reporter/shard-file.ts (MIT, same author; D-08),
 // adapted to the security data.
 import { createHash } from 'node:crypto';
+import type { AuthzRunData } from '../core/authz/types.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import type { Rule as CustomRule, RuleDefinition } from '../core/custom/define.ts';
 import type { Coverage, Diagnostic, Finding, TestContextRef } from '../core/types/index.ts';
@@ -70,8 +71,8 @@ export interface ShardFile {
   /** Every test without traffic in scope (no limit). */
   testsWithoutTraffic: TestContextRef[];
   diagnostics: Diagnostic[];
-  /** Raw replay results of the authorization tests (18); null until they exist. */
-  authz: null;
+  /** Raw replay results of the authorization tests (18-REQ-20); null when they are off. */
+  authz: AuthzRunData | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -178,11 +179,18 @@ export function customRuleMeta(rule: CustomRule): CustomRuleMeta {
 /** The config snapshot of a shard file (17-REQ-07). */
 export function configSnapshot(config: ResolvedSecurityConfig): ConfigSnapshot {
   const { normalization, customRules, ...rest } = config;
+  const plain = JSON.parse(JSON.stringify(rest)) as Omit<
+    ResolvedSecurityConfig,
+    'normalization' | 'customRules'
+  >;
+  // Credential headers of the roles never reach a file (18-AC-07, 18 chapter 12a).
+  for (const role of Object.values(plain.authz.roles)) {
+    if (role.headers !== undefined) {
+      role.headers = Object.fromEntries(Object.keys(role.headers).map((k) => [k, '[redacted]']));
+    }
+  }
   return {
-    ...(JSON.parse(JSON.stringify(rest)) as Omit<
-      ResolvedSecurityConfig,
-      'normalization' | 'customRules'
-    >),
+    ...plain,
     normalization: createHash('sha256').update(stableStringify(normalization)).digest('hex'),
     customRules: customRules.map(customRuleMeta),
   };

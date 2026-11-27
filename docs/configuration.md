@@ -134,6 +134,12 @@ same way:
 
 Endpoint keys group findings of API rules and appear in the reports; they never contain values.
 
+## Authorization tests
+
+`authz.*` options switch on the GET/HEAD replays of [Authorization tests](authz.md) (off by
+default; `authz.allowedOrigins` is required when `authz.enabled` is `true`). Their findings take
+`rules['authz.<test>']` settings like rules; presets do not change them.
+
 ## Contexts created by hand
 
 The fixtures scan the `context`, `page` and `request` fixtures. Other contexts need one line:
