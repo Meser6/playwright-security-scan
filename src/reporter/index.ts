@@ -21,7 +21,7 @@ import {
   updateBaseline,
 } from '../core/baseline/index.ts';
 import type { BaselineDiff } from '../core/baseline/index.ts';
-import { enabledRuleCount, resolveConfig } from '../core/config/index.ts';
+import { enabledCustomRuleCount, enabledRuleCount, resolveConfig } from '../core/config/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { addCoverage, emptyCoverage, sortCoverage } from '../core/coverage.ts';
 import { compareTests, dedupeRun } from '../core/fingerprint/index.ts';
@@ -190,6 +190,7 @@ export default class SecurityReporter implements Reporter {
           mode,
           scope,
           enabledRules: enabledRuleCount(sec),
+          customRules: enabledCustomRuleCount(sec),
           preset: sec.preset,
           minSeverity: sec.gate.minSeverity,
           minConfidence: sec.gate.minConfidence,
@@ -350,6 +351,7 @@ export default class SecurityReporter implements Reporter {
         testsWithApi: this.#withApi.size,
         projects,
         enabledRules: enabledRuleCount(sec),
+        customRules: enabledCustomRuleCount(sec),
         preset: sec.preset,
         baseline: baselineState,
         findings: findings.length,

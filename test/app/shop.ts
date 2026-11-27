@@ -61,6 +61,12 @@ export const APP_RULES = [
   'browser.reflected-param',
 ] as const;
 
+/**
+ * Switches for the custom rules of test/projects/shop (16-AC-01). The app answers /api/* with an
+ * x-request-id header, except /api/token; this switch drops it from /api/me too.
+ */
+export const CUSTOM_SWITCHES = ['custom.request-id-missing'] as const;
+
 /** Rules that cannot be reproduced by the app, with the reason (06-AC-01 exceptions). */
 export const NOT_REPRODUCIBLE: Record<string, string> = {
   'transport.weak-tls':
@@ -237,6 +243,14 @@ function appHandler(vulns: ReadonlySet<string>, ports: () => Ports, build: strin
     const url = new URL(req.url ?? '/', 'https://shop.test');
     const path = url.pathname;
     const { partner, http } = ports();
+    // For the custom rule of test/projects/shop (16-AC-01); no built-in rule reads it.
+    if (
+      path.startsWith('/api/') &&
+      path !== '/api/token' &&
+      !(path === '/api/me' && vulns.has('custom.request-id-missing'))
+    ) {
+      res.setHeader('x-request-id', 'req-0001');
+    }
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204, { ...common(), ...cors(req) });
@@ -448,7 +462,10 @@ export async function startShop(
 ): Promise<Shop> {
   const set = new Set(vulns);
   for (const rule of set) {
-    if (!(APP_RULES as readonly string[]).includes(rule))
+    if (
+      !(APP_RULES as readonly string[]).includes(rule) &&
+      !(CUSTOM_SWITCHES as readonly string[]).includes(rule)
+    )
       throw new Error(`the test app has no switch ${rule}`);
   }
   const certs = join(import.meta.dirname, 'certs');

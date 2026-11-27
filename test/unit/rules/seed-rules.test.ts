@@ -19,6 +19,7 @@ const ctx = (r: BuiltInRule): RuleContext => ({
 });
 const ref = { testId: 't', titlePath: ['t'], file: 'a.spec.ts', line: 1, project: 'p' };
 const rec = (over: Partial<ResponseRecord>): ResponseRecord => ({
+  kind: 'response',
   id: 1,
   source: 'browser',
   method: 'GET',

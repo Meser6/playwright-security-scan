@@ -13,6 +13,7 @@ const GROUPS: RuleGroup[] = [
   'data',
   'disclosure',
   'browser',
+  'custom',
 ];
 
 /** XML text: escapes markup and drops characters XML 1.0 does not allow. */
@@ -93,7 +94,10 @@ export function buildJunit(
     let f1 = 0;
     let s1 = 0;
     for (const f of report.findings) {
-      if ((ruleManifest(f.ruleId)?.group ?? 'browser') !== group) continue;
+      const ruleGroup = byId.get(f.ruleId)?.manifest.group ?? ruleManifest(f.ruleId)?.group;
+      if ((ruleGroup ?? (f.ruleId.startsWith('custom.') ? 'custom' : 'browser')) !== group) {
+        continue;
+      }
       const accepted =
         f.classification === 'accepted' ||
         f.classification === 'wontfix' ||

@@ -3,14 +3,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { buildJunit } from '../core/report/junit.ts';
 import { buildSarif } from '../core/report/sarif.ts';
-import { BUILT_IN_RULES } from '../core/rules/index.ts';
+import { rulesOf } from '../core/rules/all.ts';
 import { renderHtmlReport } from '../html/index.ts';
 import { VERSION } from '../version.ts';
 import type { ReportWriter } from './writers.ts';
 
 export const writeSarif: ReportWriter = (report, config, paths) => {
   if (!config.report.sarif) return null;
-  const enabled = BUILT_IN_RULES.filter((r) => config.rules[r.id]?.enabled === true);
+  const enabled = rulesOf(config).filter((r) => config.rules[r.id]?.enabled === true);
   const path = join(paths.reportDir, 'results.sarif');
   const log = buildSarif(report, enabled, {
     version: VERSION,
@@ -29,7 +29,7 @@ export const writeJunit: ReportWriter = (report, config, paths) => {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
-    buildJunit(report, BUILT_IN_RULES, {
+    buildJunit(report, rulesOf(config), {
       includeAccepted: config.report.junitIncludeAccepted,
       failOnExpired: config.gate.failOnExpired,
     }),
@@ -45,7 +45,7 @@ export const writeHtml: ReportWriter = (report, config, paths) => {
     path,
     renderHtmlReport({
       report,
-      rules: BUILT_IN_RULES,
+      rules: rulesOf(config),
       config,
       ...(paths.tests === undefined ? {} : { tests: paths.tests }),
     }),

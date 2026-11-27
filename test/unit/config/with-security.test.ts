@@ -184,6 +184,21 @@ describe('withSecurity() (01, chapter 7; 04)', () => {
     expect(() => withSecurity(base)).toThrow(/CONFIG|cannot load/);
   });
 
+  test('16-REQ-06 a JSON PW_SEC_CONFIG cannot hold rules.custom (CONFIG_INVALID_TYPE)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'pw-sec-'));
+    const file = join(dir, 'pw-sec.config.json');
+    writeFileSync(file, JSON.stringify({ rules: { custom: [{ id: 'custom.x' }] } }));
+    process.env.PW_SEC_MODE = 'scan';
+    process.env.PW_SEC_CONFIG = file;
+    let error: unknown;
+    try {
+      withSecurity(base);
+    } catch (e) {
+      error = e;
+    }
+    expect((error as ConfigError).issues.map((i) => i.code)).toEqual(['CONFIG_INVALID_TYPE']);
+  });
+
   test('--reporter without the package reporter stops the run (the scan could not fail)', () => {
     const argv = (...a: string[]) => ['node', 'playwright', 'test', ...a];
     expect(reporterFlagIssue(argv())).toBeUndefined();

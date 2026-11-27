@@ -54,10 +54,11 @@ so you can see which origin to add. Analytics, fonts and CDNs are not your app: 
 
 ## Rules
 
-| Option          | Type                                                    | Default         | Meaning                                                           |
-| --------------- | ------------------------------------------------------- | --------------- | ----------------------------------------------------------------- |
-| `rules.preset`  | `'recommended' \| 'strict' \| 'minimal'`                | `'recommended'` | The set of rules and their severities                             |
-| `rules['<id>']` | `'off' \| 'on' \| { severity?, confidence?, options? }` | from the preset | Turn a rule off or on, change its severity, confidence or options |
+| Option          | Type                                                    | Default         | Meaning                                                                             |
+| --------------- | ------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------- |
+| `rules.preset`  | `'recommended' \| 'strict' \| 'minimal'`                | `'recommended'` | The set of rules and their severities                                               |
+| `rules['<id>']` | `'off' \| 'on' \| { severity?, confidence?, options? }` | from the preset | Turn a rule off or on, change its severity, confidence or options                   |
+| `rules.custom`  | `Rule[]` (from `defineRule()`)                          | `[]`            | Your own rules, ids `custom.<name>` ([Custom rules](custom-rules.md), experimental) |
 
 - `recommended`: every rule except two strict-only header rules.
 - `strict`: every rule; `info` becomes `low`, and `low` with high confidence becomes `medium`.
@@ -66,6 +67,10 @@ so you can see which origin to add. Analytics, fonts and CDNs are not your app: 
 Rule options (for example the token parameter names of `data.token-in-url` or the names of
 non-session cookies) are listed on each [rule page](rules/README.md). An unknown option or a value
 of another type than the default fails the config check.
+
+Custom rules (`rules.custom`) take presets and `rules['custom.<name>']` settings like built-in rules.
+They need a TypeScript or JavaScript config: a JSON file in `PW_SEC_CONFIG` cannot hold them. See
+[Custom rules](custom-rules.md).
 
 ## Gate
 

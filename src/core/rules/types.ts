@@ -46,6 +46,8 @@ export interface RuleDocs {
   /** With examples for nginx, Express and Spring (06-AC-03). */
   fix: string;
   falsePositives: string;
+  /** Docs link of a custom rule (16-REQ-12); built-in rules link to docs/rules/<id>.md. */
+  url?: string;
 }
 
 export interface Rule {
@@ -55,6 +57,12 @@ export interface Rule {
   needsBody?: string[];
   check(input: ResponseRecord | BrowserEvent, ctx: RuleContext): RawFinding[];
   docs: RuleDocs;
+}
+
+/** Where the docs of a rule are: docs/rules/<id>.md, or docs.url of a custom rule (16-REQ-12). */
+export function ruleDocsUrl(rule: BuiltInRule, repoUrl: string): string | undefined {
+  if (rule.manifest.group === 'custom') return rule.docs.url;
+  return `${repoUrl}/blob/main/docs/rules/${rule.id}.md`;
 }
 
 /** A rule with its manifest entry. */

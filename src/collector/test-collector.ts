@@ -4,6 +4,7 @@ import { addCoverage, emptyCoverage } from '../core/coverage.ts';
 import { dedupeTest, normalizeAssetUrl, toFinding } from '../core/fingerprint/index.ts';
 import type { Redactor } from '../core/fingerprint/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
+import { CustomRuleAsyncError } from '../core/custom/adapt.ts';
 import type { BuiltInRule, RuleContext } from '../core/rules/index.ts';
 import type {
   BrowserEvent,
@@ -32,6 +33,8 @@ const MAX_CACHE_ENTRIES = 2000;
 export class AnalysisCache {
   readonly #findings = new Map<string, RawFinding[]>();
   readonly #hashes = new Map<string, string>();
+  /** Custom rules switched off for the rest of the run in this worker (16-REQ-08). */
+  readonly offInWorker = new Set<string>();
 
   findings(key: string): RawFinding[] | undefined {
     return this.#findings.get(key);
@@ -75,7 +78,9 @@ export class TestCollector {
 
   constructor(options: TestCollectorOptions) {
     this.options = options;
-    this.#enabled = options.rules.filter((r) => options.config.rules[r.id]?.enabled === true);
+    this.#enabled = options.rules.filter(
+      (r) => options.config.rules[r.id]?.enabled === true && !options.cache.offInWorker.has(r.id),
+    );
     this.bodyTypes = new Set(this.#enabled.flatMap((r) => r.needsBody ?? []));
   }
 
@@ -122,11 +127,30 @@ export class TestCollector {
       return rule.check(input, ctx).map((raw) => this.options.redactor.enforce(raw));
     } catch (error) {
       this.#failed.add(rule.id);
-      this.diagnostic(
-        'RULE_ERROR',
-        'warn',
-        `rule ${rule.id} threw and is off for the rest of this test: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      if (rule.manifest.group !== 'custom') {
+        this.diagnostic(
+          'RULE_ERROR',
+          'warn',
+          `rule ${rule.id} threw and is off for the rest of this test: ${message}`,
+        );
+      } else if (error instanceof CustomRuleAsyncError) {
+        // 16-REQ-08: off for the rest of the run in this worker.
+        this.options.cache.offInWorker.add(rule.id);
+        this.diagnostic(
+          'CUSTOM_RULE_ASYNC',
+          'error',
+          `custom rule ${rule.id}: check() returned a promise; custom rules must be synchronous. The rule is off for the rest of the run in this worker`,
+        );
+      } else {
+        // 16-REQ-09: a custom rule that does not run makes the result unreliable.
+        const at = userStackLine(error);
+        this.diagnostic(
+          'CUSTOM_RULE_ERROR',
+          'error',
+          `custom rule ${rule.id} threw and is off for the rest of this test: ${this.options.redactor.text(message)}${at === undefined ? '' : ` (${at})`}`,
+        );
+      }
       return [];
     }
   }
@@ -259,6 +283,27 @@ export class TestCollector {
     }
     return body;
   }
+}
+
+/** Files of the package itself, skipped when looking for the user's line in a stack. */
+const PACKAGE_FILE = /[\\/]playwright-security-scan[\\/](dist|src)[\\/]/;
+
+/** The first stack line outside the package and Node (16-REQ-09), relative to the cwd. */
+export function userStackLine(error: unknown): string | undefined {
+  if (!(error instanceof Error) || typeof error.stack !== 'string') return undefined;
+  const line = error.stack
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l.startsWith('at ') && !l.includes('node:') && !PACKAGE_FILE.test(l));
+  if (line === undefined) return undefined;
+  const path = line.replace(/file:\/\/([^\s)]+)/, (_m, file: string) => {
+    try {
+      return decodeURIComponent(file);
+    } catch {
+      return file;
+    }
+  });
+  return path.split(`${process.cwd()}/`).join('');
 }
 
 /** Whether a rule applies to a record (06, chapter 2). */

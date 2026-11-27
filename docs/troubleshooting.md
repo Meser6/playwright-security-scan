@@ -92,6 +92,18 @@ origin (`scheme://host[:port]`, `*` only in subdomains).
 
 A `{ regex, flags }` entry of `normalization.extraIdPatterns` does not compile.
 
+### CONFIG_INVALID_RULE
+
+A custom rule in `rules.custom` is not valid: it was not made with `defineRule()`, a required field
+is missing (`id`, `defaultSeverity`, `defaultConfidence`, `scope`, `check`, `docs.title`,
+`docs.why`, `docs.fix`) or the id is not `custom.<name>` (`<name>`: lowercase letters, digits and
+`-`, up to 48 characters). `defineRule()` reports the same problems when the rule file is
+imported. See [Custom rules](custom-rules.md).
+
+### CONFIG_DUPLICATE_RULE
+
+Two custom rules in `rules.custom` have the same id. Rename one of them.
+
 ### CONFIG_FILE_UNREADABLE
 
 `PW_SEC_CONFIG` points to a file that cannot be read. Use a `.json` file or a module whose default
@@ -149,6 +161,19 @@ usual cause; lower `limits.maxBodyBytes`.
 
 A rule threw on some input and was switched off for the rest of that test. The test result is not
 affected. Please report it with the rule id.
+
+### CUSTOM_RULE_ERROR
+
+A custom rule threw (or returned something other than an array of findings). The message names the
+rule, the error and the first line of the stack in your file. The rule is off for the rest of that
+test; the tests pass, but the result is `TOOL_ERROR` (exit code 3): a scan without a rule that
+should have run is not reliable. Fix the rule, for example with a unit test on a record (see
+[Custom rules](custom-rules.md#testing-a-rule)).
+
+### CUSTOM_RULE_ASYNC
+
+`check` of a custom rule returned a promise. Rules must be synchronous and do no I/O; the rule is
+off for the rest of the run in that worker and the result is `TOOL_ERROR`.
 
 ### RULE_FINDINGS_LIMIT
 

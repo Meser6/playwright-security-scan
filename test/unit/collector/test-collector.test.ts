@@ -24,6 +24,7 @@ const scope = new Scope({
 const ctxRef = { testId: 't1', titlePath: ['t'], file: 'a.spec.ts', line: 1, project: 'p' };
 
 const record = (over: Partial<ResponseRecord> = {}): ResponseRecord => ({
+  kind: 'response',
   id: 1,
   source: 'browser',
   method: 'GET',

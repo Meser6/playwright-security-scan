@@ -34,6 +34,7 @@ function toInput(raw: Record<string, unknown>): ResponseRecord | BrowserEvent {
   const responseHeaders =
     (raw.responseHeaders as ResponseRecord['responseHeaders'] | undefined) ?? [];
   const record: ResponseRecord = {
+    kind: 'response',
     id: 1,
     source: 'browser',
     method,

@@ -2,6 +2,8 @@
 // and search, and the details block of each finding (09-REQ-20). Without the script the details
 // are a <details> row under the finding (09-REQ-18). Table markup follows the key table of
 // playwright-performance-regression (src/html/keys.ts, MIT, D-08).
+import { ruleDocsUrl } from '../core/rules/types.ts';
+import type { BuiltInRule } from '../core/rules/types.ts';
 import type { ClassifiedFinding, TestContextRef } from '../core/types/index.ts';
 import { CONFIDENCES, SEVERITIES, confidenceRank, severityRank } from '../core/types/index.ts';
 import type { Ctx } from './context.ts';
@@ -173,6 +175,11 @@ function testsPart(ctx: Ctx, f: ClassifiedFinding): SafeHtml {
   );
 }
 
+/** The "custom" badge of a custom rule (16-REQ-12). */
+function customBadge(rule: BuiltInRule | undefined): SafeHtml | null {
+  return rule?.manifest.group === 'custom' ? html` <span class="src">custom</span>` : null;
+}
+
 function referencesPart(ctx: Ctx, ruleId: string): SafeHtml {
   const m = ctx.rules.get(ruleId)?.manifest;
   const items: [string, HtmlValue][] = [];
@@ -183,7 +190,12 @@ function referencesPart(ctx: Ctx, ruleId: string): SafeHtml {
     ]);
   }
   if (m?.owasp !== undefined) items.push(['OWASP', m.owasp]);
-  items.push(['Rule docs', html`<code>${REPOSITORY_URL}/blob/main/docs/rules/${ruleId}.md</code>`]);
+  const rule = ctx.rules.get(ruleId);
+  const docsUrl =
+    rule === undefined
+      ? `${REPOSITORY_URL}/blob/main/docs/rules/${ruleId}.md`
+      : ruleDocsUrl(rule, REPOSITORY_URL);
+  if (docsUrl !== undefined) items.push(['Rule docs', html`<code>${docsUrl}</code>`]);
   return part('References', 'addresses as text', facts(items));
 }
 
@@ -196,17 +208,19 @@ function ruleDoc(ctx: Ctx, ruleId: string): SafeHtml {
   const rule = ctx.rules.get(ruleId);
   const docs = rule?.docs;
   return join(
-    html`<section class="rdoc" id="rule-${ruleId}" data-rule="${ruleId}"><h4 class="rt">${docs?.title ?? ruleId} <code class="rid">${ruleId}</code></h4>`,
+    html`<section class="rdoc" id="rule-${ruleId}" data-rule="${ruleId}"><h4 class="rt">${docs?.title ?? ruleId} <code class="rid">${ruleId}</code>${customBadge(rule)}</h4>`,
     docs === undefined
       ? null
       : [
           part('Why', null, html`<div class="doc">${docText(docs.why)}</div>`),
           part('Fix', null, html`<div class="doc">${docText(docs.fix)}</div>`),
-          part(
-            'False positives',
-            null,
-            html`<div class="doc">${docText(docs.falsePositives)}</div>`,
-          ),
+          docs.falsePositives === ''
+            ? null
+            : part(
+                'False positives',
+                null,
+                html`<div class="doc">${docText(docs.falsePositives)}</div>`,
+              ),
         ],
     referencesPart(ctx, ruleId),
     html`</section>`,
@@ -246,8 +260,9 @@ function acceptPart(ctx: Ctx, f: ClassifiedFinding): SafeHtml | null {
 
 /** Header of the details block: rule title, id, pills and counts (09-REQ-20, item 1). */
 function findingHeader(ctx: Ctx, f: ClassifiedFinding): SafeHtml {
-  const title = ctx.rules.get(f.ruleId)?.docs.title ?? f.ruleId;
-  return html`<div class="kh"><p class="fkl"><span class="ft">${title}</span> <code class="rid">${f.ruleId}</code></p><p class="pills">${[
+  const rule = ctx.rules.get(f.ruleId);
+  const title = rule?.docs.title ?? f.ruleId;
+  return html`<div class="kh"><p class="fkl"><span class="ft">${title}</span> <code class="rid">${f.ruleId}</code>${customBadge(rule)}</p><p class="pills">${[
     severityPill(f.severity),
     confidencePill(f.confidence),
     classPill(f),
@@ -290,7 +305,7 @@ function findingRow(ctx: Ctx, f: ClassifiedFinding, index: number): SafeHtml {
     html`<tbody data-c="${key}" data-sev="${f.severity}" data-conf="${f.confidence}" data-grp="${rule?.manifest.group ?? ''}" data-org="${f.location.origin}" data-fp="${f.fingerprint}" data-o="${index}" data-sv="${severityRank(f.severity)}" data-cv="${confidenceRank(f.confidence)}" data-occ="${f.occurrences}" data-tn="${f.tests.length}" data-cr="${CLASS_ORDER.indexOf(key)}">`,
     html`<tr class="${ROW_CLASS[key] ?? 'base'}">`,
     html`<td>${severityPill(f.severity)}</td><td class="cf">${f.confidence}</td>`,
-    html`<th scope="row" class="rk"><a class="kl" href="#f-${index}"><span class="key">${f.ruleId}</span></a><small class="why">${title}</small></th>`,
+    html`<th scope="row" class="rk"><a class="kl" href="#f-${index}"><span class="key">${f.ruleId}</span></a>${customBadge(rule)}<small class="why">${title}</small></th>`,
     html`<td class="subj"><span class="sv">${subjectView(f.subject)}</span>${f.discriminator === undefined ? null : html`<small class="why">${f.discriminator}</small>`}</td>`,
     html`<td class="num">${f.occurrences}</td><td class="num">${f.tests.length}</td><td>${classPill(f)}</td></tr>`,
     html`<tr class="drow"><td colspan="7"><details id="f-${index}"${key === 'blocking' || key === 'expired' ? html` data-v=""` : null}><summary>Details</summary>`,

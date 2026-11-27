@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- Custom rules (experimental): write your own passive rule with `defineRule()` from the new `playwright-security-scan/rules` entry point and list it in `rules.custom` of the package config. Ids are `custom.<name>`; findings get fingerprints, go into the baseline, block above the gate and appear in every report (a `custom` badge in the HTML report, a `custom` tag and your `docs.url` in SARIF, a `custom` suite in JUnit). Presets and `rules['custom.<name>']` settings work as for built-in rules. A rule that throws is reported as `CUSTOM_RULE_ERROR` with the rule id and the line in your file, and the result is `TOOL_ERROR` (exit code 3); a rule that returns a promise is `CUSTOM_RULE_ASYNC`. Invalid definitions are `CONFIG_INVALID_RULE` or `CONFIG_DUPLICATE_RULE`. The entry point also exports the input types (`ResponseRecord`, now with `kind: 'response'`, `BrowserEvent`) and the helpers `getHeader`, `getHeaders`, `parseSetCookie`, `decodeJwt` and `builtinRuleIds`. See `docs/custom-rules.md`.
+
 ### Removed
 
 - Environment labels: `PW_SEC_ENV`, the `run.env` option, `security-baseline.<env>.json` files, the `env` field of the baseline file, `report.json` and `outcome.json`, the environment in the console, HTML report, SARIF category and JUnit root, and the environments step of the guided setup (now eight steps, `[1/8]` to `[8/8]`). A set `PW_SEC_ENV` only gives the warning `ENV_REMOVED`; `run.env` in the config is an unknown option (`CONFIG_UNKNOWN_OPTION`); an `env` field in an existing baseline file is ignored and dropped by the next `baseline` run. For several environments, set `baseline.path` from your own variable (`docs/faq.md`, "Several environments"). `report.json` and `outcome.json` now have `schemaVersion: 2`. The codes `ENV_INVALID`, `BASELINE_ENV_MISSING` and `BASELINE_ENV_MISMATCH` are gone.

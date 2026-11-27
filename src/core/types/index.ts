@@ -67,6 +67,8 @@ export interface BodyView {
 
 /** One request/response pair, in the memory of the worker only (02, chapter 2). */
 export interface ResponseRecord {
+  /** Tells the rule inputs apart (02, chapter 2; 16-REQ-02). */
+  kind: 'response';
   /** Sequence number within the test. */
   id: number;
   source: Source;

@@ -4,7 +4,7 @@
 import type { Confidence, FindingScope, Severity, Source } from '../types/index.ts';
 
 export type RuleGroup =
-  'header' | 'cookie' | 'cors' | 'transport' | 'data' | 'disclosure' | 'browser';
+  'header' | 'cookie' | 'cors' | 'transport' | 'data' | 'disclosure' | 'browser' | 'custom';
 
 export interface RuleManifest {
   id: string;

@@ -48,6 +48,21 @@ function loadConfigFile(path: string): unknown {
   }
 }
 
+/** A JSON config cannot hold the functions of custom rules (16-REQ-06). */
+function jsonCustomRulesIssue(path: string, input: unknown): ConfigIssue[] {
+  if (extname(path).toLowerCase() !== '.json') return [];
+  const rules = (input as { rules?: { custom?: unknown } } | undefined)?.rules;
+  if (rules?.custom === undefined) return [];
+  return [
+    {
+      code: 'CONFIG_INVALID_TYPE',
+      path: 'rules.custom',
+      message: `rules.custom: custom rules cannot be set in a JSON config (${CONFIG_ENV}); rules are functions`,
+      hint: 'Use a pw-sec.config.ts (or .js) file that imports the rules made with defineRule().',
+    },
+  ];
+}
+
 interface ProjectLike {
   name?: string;
   use?: { baseURL?: string };
@@ -143,8 +158,14 @@ export function withSecurity<T extends PlaywrightTestConfig>(
   const input = fromEnv === '' ? securityConfig : (loadConfigFile(fromEnv) as SecurityConfigInput);
   const resolved = resolveConfig(input);
   const maxTests = mode.mode === 'check' ? readMaxTests(process.env) : undefined;
+  const jsonIssues = jsonCustomRulesIssue(fromEnv, input);
   const issues = [
-    ...(resolved.ok ? [] : resolved.issues),
+    ...jsonIssues,
+    ...(resolved.ok
+      ? []
+      : resolved.issues.filter(
+          (i) => jsonIssues.length === 0 || !i.path.startsWith('rules.custom'),
+        )),
     ...(maxTests === undefined || maxTests.ok ? [] : maxTests.issues),
   ];
   if (!resolved.ok || issues.length > 0) throw new ConfigError(issues);

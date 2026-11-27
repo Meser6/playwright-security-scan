@@ -21,12 +21,13 @@ const error = (message: string): Diagnostic => ({
  * Parses the baseline file text. Unreadable JSON, a wrong schemaVersion, an invalid entry or an
  * unknown rule id is BASELINE_INVALID with the exact place (08-REQ-11). Entries of rules switched
  * off in the config are dropped with an info diagnostic; `until` on a false-positive entry is
- * BASELINE_STALE_STATUS (08-REQ-04).
+ * BASELINE_STALE_STATUS (08-REQ-04). Every `custom.*` id is known: an entry of a custom rule that
+ * is no longer in rules.custom is only switched off (16-REQ-11).
  */
 export function parseBaseline(
   text: string,
   path: string,
-  knownRules: ReadonlySet<string>,
+  knownRules: { has(ruleId: string): boolean },
   enabledRules: ReadonlySet<string>,
 ): BaselineParse {
   let data: unknown;
@@ -76,7 +77,7 @@ export function parseBaseline(
       problems.push(error(`${at}.ruleId must be a string`));
       continue;
     }
-    if (!knownRules.has(e.ruleId)) {
+    if (!knownRules.has(e.ruleId) && !e.ruleId.startsWith('custom.')) {
       problems.push(error(`${at}.ruleId: unknown rule "${e.ruleId}"`));
       continue;
     }

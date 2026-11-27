@@ -108,6 +108,7 @@ Any code other than 0 makes the Playwright command exit with 1.
 - [Configuration](docs/configuration.md): every option
 - [The baseline](docs/baseline.md): workflow, statuses, expiry, partial runs
 - [Rules](docs/rules/README.md): what each rule checks, how to fix it, false positives
+- [Custom rules](docs/custom-rules.md): your own rules with `defineRule()` (experimental)
 - [Reports](docs/reports.md): HTML, JSON, SARIF, JUnit, privacy of the evidence
 - [CI](docs/ci.md): GitHub Actions, GitLab, Azure DevOps, Jenkins
 - [Adoption](docs/adoption.md): existing fixtures, setups and the perf package

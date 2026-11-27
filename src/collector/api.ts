@@ -114,6 +114,7 @@ async function analyze(
     .headersArray()
     .map((h) => ({ name: h.name.toLowerCase(), value: h.value }));
   const record: ResponseRecord = {
+    kind: 'response',
     id: 0,
     source: 'api',
     method: call.method,

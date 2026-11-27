@@ -213,7 +213,7 @@ export function runTab(ctx: Ctx): SafeHtml {
           'config-h',
           'Configuration',
           null,
-          html`<details class="card cfg"><summary>Resolved configuration (defaults applied)</summary><pre>${JSON.stringify(cfg, null, 2)}</pre></details>`,
+          html`<details class="card cfg"><summary>Resolved configuration (defaults applied)</summary><pre>${JSON.stringify({ ...cfg, customRules: cfg.customRules.map((r) => r.id) }, null, 2)}</pre></details>`,
         ),
     section(
       'diag-h',

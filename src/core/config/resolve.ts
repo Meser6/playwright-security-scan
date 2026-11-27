@@ -1,4 +1,6 @@
 // Resolution of the package config: defaults, presets (06, chapter 3) and per-rule settings.
+import { adaptCustomRule } from '../custom/adapt.ts';
+import type { Rule as CustomRule } from '../custom/define.ts';
 import { RULE_MANIFEST } from '../manifest/rules.ts';
 import type { RuleManifest } from '../manifest/rules.ts';
 import { resolveNormalization } from '../normalize/index.ts';
@@ -49,7 +51,10 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
   const i = input ?? {};
   const preset: Preset = i.rules?.preset ?? DEFAULTS.preset;
   const rules: Record<string, ResolvedRule> = {};
-  for (const rule of RULE_MANIFEST) {
+  const customRules: readonly CustomRule[] = i.rules?.custom ?? [];
+  // Presets and settings work on custom rules as on built-in ones (16-REQ-05).
+  const manifests = [...RULE_MANIFEST, ...customRules.map((r) => adaptCustomRule(r).manifest)];
+  for (const rule of manifests) {
     const setting = i.rules?.[rule.id] as RuleSetting | undefined;
     const base = presetRule(rule, preset);
     rules[rule.id] = setting === undefined ? base : applySetting(base, setting);
@@ -61,6 +66,7 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
       scope: { ...DEFAULTS.scope, ...i.scope },
       preset,
       rules,
+      customRules,
       limits: { ...DEFAULTS.limits, ...i.limits },
       browser: { ...DEFAULTS.browser, ...i.browser },
       gate: { ...DEFAULTS.gate, ...i.gate },
@@ -78,4 +84,9 @@ export function resolveConfig(input: SecurityConfigInput | undefined): ResolveRe
 /** Number of enabled rules, for the start banner (04, chapter 3). */
 export function enabledRuleCount(config: ResolvedSecurityConfig): number {
   return Object.values(config.rules).filter((r) => r.enabled).length;
+}
+
+/** Number of enabled custom rules, for the start banner (16-REQ-12). */
+export function enabledCustomRuleCount(config: ResolvedSecurityConfig): number {
+  return config.customRules.filter((r) => config.rules[r.id]?.enabled === true).length;
 }
