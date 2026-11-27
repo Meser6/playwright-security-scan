@@ -1377,14 +1377,6 @@ td.loc {
   display: none;
 }
 
-.js .drow.on {
-  display: table-row;
-}
-
-.js .drow summary {
-  display: none;
-}
-
 .drow summary {
   cursor: pointer;
   color: var(--accent);

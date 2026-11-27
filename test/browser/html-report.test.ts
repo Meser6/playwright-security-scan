@@ -110,15 +110,20 @@ describe('HTML report (09, chapter 3)', () => {
     await page.context().close();
   });
 
-  test('a row click shows its details with the rule reference; #tab= selects a tab', async () => {
+  test('09-AC-05 a row click opens the dialog; Esc, Close and the backdrop close it and restore the focus; Next goes on', async () => {
     const { page, errors } = await open(statesFile);
-    const first = rows(page).first();
-    await first.click();
-    const details = page.locator('#table-findings > tbody').first().locator('details');
-    await expect.poll(() => details.isVisible()).toBe(true);
-    // The rule reference is copied in when the details open (toggle event).
-    await expect.poll(() => details.textContent()).toContain('False positives');
-    const text = (await details.textContent()) ?? '';
+    const dialog = page.locator('dialog#finding-dialog');
+    const row = rows(page).first();
+    const focusOnRow = () =>
+      page.evaluate(() => document.activeElement?.closest('tbody')?.dataset['fp'] ?? null);
+    const fp = await page.locator('#table-findings > tbody').first().getAttribute('data-fp');
+
+    await row.click();
+    await expect.poll(() => dialog.getAttribute('open')).toBe('');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('dlg-title');
+    expect(await dialog.getAttribute('aria-labelledby')).toBe('dlg-title');
+    expect(await page.locator('#dlg-pos').textContent()).toBe('Finding 1 of 7');
+    const text = (await dialog.textContent()) ?? '';
     for (const part of [
       'Fingerprint',
       'Location',
@@ -130,21 +135,73 @@ describe('HTML report (09, chapter 3)', () => {
       'False positives',
       'References',
       'Accept',
+      'Copy link',
     ]) {
       expect(text, part).toContain(part);
     }
-    expect(text).toContain('open the cart');
-    await first.click();
-    await expect.poll(() => details.isVisible()).toBe(false);
-    const run = await open(statesFile, '#tab=run');
-    await expect.poll(() => run.page.locator('#tab-run').isVisible()).toBe(true);
-    expect(await run.page.locator('#tab-findings').isHidden()).toBe(true);
-    const unknown = await open(statesFile, '#tab=nope');
+    expect(page.url()).toContain(`#finding=${encodeURIComponent(fp ?? '')}`);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => dialog.getAttribute('open')).toBeNull();
+    await expect.poll(focusOnRow).toBe(fp);
+    expect(page.url()).toMatch(/#tab=findings$/u);
+    // The block went back to its row.
+    expect(await page.locator('#table-findings > tbody').first().locator('.kd .kh').count()).toBe(
+      1,
+    );
+
+    await row.click();
+    await page.locator('[data-act="close"]').click();
+    await expect.poll(() => dialog.getAttribute('open')).toBeNull();
+    await expect.poll(focusOnRow).toBe(fp);
+
+    await row.click();
+    // The top left corner is outside the centred dialog: a click on the backdrop.
+    await page.mouse.click(4, 4);
+    await expect.poll(() => dialog.getAttribute('open')).toBeNull();
+    await expect.poll(focusOnRow).toBe(fp);
+
+    // Next follows the visible rows with the filters.
+    await page.locator('button[data-f="c"][data-v="accepted"]').click();
+    await expect.poll(() => rows(page).count()).toBe(2);
+    await rows(page).first().click();
+    expect(await page.locator('#dlg-pos').textContent()).toBe('Finding 1 of 2');
+    expect(await page.locator('[data-act="prev"]').isDisabled()).toBe(true);
+    await page.locator('[data-act="next"]').click();
+    expect(await page.locator('#dlg-pos').textContent()).toBe('Finding 2 of 2');
+    expect(await page.locator('[data-act="next"]').isDisabled()).toBe(true);
+    const second = await rows(page).nth(1).getAttribute('data-fp');
+    expect(page.url()).toContain(`#finding=${encodeURIComponent(second ?? '')}`);
+    await page.keyboard.press('Escape');
+    expect(errors).toEqual([]);
+    await page.context().close();
+  });
+
+  test('09-AC-06 #finding=<fingerprint> opens the dialog of that finding; an unknown one is announced', async () => {
+    const input = statesInput();
+    const fp = input.report.findings.find((f) => f.classification === 'wontfix')?.fingerprint ?? '';
+    const { page, errors } = await open(statesFile, `#finding=${encodeURIComponent(fp)}`);
+    const dialog = page.locator('dialog#finding-dialog');
+    await expect.poll(() => dialog.getAttribute('open')).toBe('');
+    expect(await dialog.locator('.fp').textContent()).toBe(fp);
+    expect(await dialog.textContent()).toContain('wontfix');
+    const unknown = await open(statesFile, `#finding=${encodeURIComponent('no|such|finding')}`);
     await expect
       .poll(() => unknown.page.locator('#status').textContent())
+      .toBe('Finding not found in this report');
+    expect(await unknown.page.locator('dialog#finding-dialog').getAttribute('open')).toBeNull();
+    // A selector-like fingerprint is compared as text, never used as a selector.
+    const odd = await open(statesFile, `#finding=${encodeURIComponent('"]*,body')}`);
+    await expect
+      .poll(() => odd.page.locator('#status').textContent())
+      .toBe('Finding not found in this report');
+    const run = await open(statesFile, '#tab=run');
+    await expect.poll(() => run.page.locator('#tab-run').isVisible()).toBe(true);
+    const bad = await open(statesFile, '#tab=nope');
+    await expect
+      .poll(() => bad.page.locator('#status').textContent())
       .toBe('Tab not found in this report');
-    expect([...errors, ...run.errors, ...unknown.errors]).toEqual([]);
-    for (const p of [page, run.page, unknown.page]) await p.context().close();
+    expect([...errors, ...unknown.errors, ...odd.errors, ...run.errors, ...bad.errors]).toEqual([]);
+    for (const p of [page, unknown.page, odd.page, run.page, bad.page]) await p.context().close();
   });
 
   test('09-AC-09 without JavaScript every tab is shown and every finding has its details', async () => {

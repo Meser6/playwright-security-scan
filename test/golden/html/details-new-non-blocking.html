@@ -1,0 +1,19 @@
+<div class="kd">
+<div class="kh"><p class="fkl"><span class="ft">X-Content-Type-Options: nosniff missing</span> <code class="rid">header.xcto-missing</code></p><p class="pills"><span class="pill sev low">low</span><span class="pill ne">high<span class="sr"> confidence</span></span><span class="pill w">new</span><span class="src">browser</span><span class="src">api</span><span class="sub">2 occurrences · 2 tests</span></p></div><p class="msg">header.xcto-missing on https://shop.test (new-non-blocking).</p>
+<div class="bs t-warn"><span class="bi"><svg class="i" aria-hidden="true"><use href="#i-warn"/></svg></span><div><p><b>New, not blocking</b>: not in the baseline; below the gate (severity ≥ medium and confidence ≥ medium).</p></div></div>
+<div class="ds"><h4>Fingerprint</h4><div class="cp"><code class="fp">header.xcto-missing|new-non-blocking|https://shop.test</code><button type="button" class="btn sm js-only" data-copy-prev aria-label="Copy the fingerprint" hidden><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div>
+<div class="ds"><h4>Location</h4><dl class="kvl"><dt>Origin</dt><dd><code>https://shop.test</code></dd></dl></div>
+<div class="ds"><h4>Evidence <span class="sub">redacted</span></h4><ul class="evl"><li><span class="src">cookie</span><b>sid</b><code class="snip">sid=[redacted sha256:9f8e7d]; Path=/</code></li></ul></div>
+<div class="ds"><h4>Tests <span class="sub">2 occurrences in 2 tests</span></h4><ul class="tl two"><li class="first"><span class="tt"><span><code>tests/area-1.spec.ts:2</code> › shop › test 1 › <span class="step">open the cart</span></span><span class="sub">chromium</span></span><span class="num"><span class="pill p">first seen</span></span></li><li><span class="tt"><span><code>tests/area-2.spec.ts:3</code> › shop › test 2</span><span class="sub">chromium</span></span></li></ul></div>
+<div class="ds rref" data-rule="header.xcto-missing"><h4>Why, fix and false positives</h4><p><a href="#rule-header.xcto-missing">Rule reference of <code>header.xcto-missing</code></a></p></div>
+<div class="ds"><h4>Accept <span class="sub">add to security-baseline.json, fill in &quot;note&quot; (and &quot;until&quot; or remove it), commit after review</span></h4><div class="cp"><pre class="code">{
+  &quot;header.xcto-missing|new-non-blocking|https://shop.test&quot;: {
+    &quot;ruleId&quot;: &quot;header.xcto-missing&quot;,
+    &quot;subject&quot;: &quot;https://shop.test&quot;,
+    &quot;severity&quot;: &quot;low&quot;,
+    &quot;status&quot;: &quot;accepted&quot;,
+    &quot;note&quot;: &quot;&quot;,
+    &quot;until&quot;: &quot;&quot;,
+    &quot;addedAt&quot;: &quot;2026-11-24&quot;
+  }
+}</pre><button type="button" class="btn sm js-only" data-copy-prev aria-label="Copy the baseline entry" hidden><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div></div>

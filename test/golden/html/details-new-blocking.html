@@ -1,0 +1,19 @@
+<div class="kd">
+<div class="kh"><p class="fkl"><span class="ft">Session cookie without Secure</span> <code class="rid">cookie.no-secure</code></p><p class="pills"><span class="pill sev high">high</span><span class="pill ne">high<span class="sr"> confidence</span></span><span class="pill fb">new · blocking</span><span class="src">browser</span><span class="src">api</span><span class="sub">2 occurrences · 2 tests</span></p></div><p class="msg">cookie.no-secure on sid@shop.test (new-blocking).</p>
+<div class="bs t-bad"><span class="bi"><svg class="i" aria-hidden="true"><use href="#i-bad"/></svg></span><div><p><b>New, blocking</b>: not in the baseline, and new findings with severity ≥ medium and confidence ≥ medium fail the run.</p></div></div>
+<div class="ds"><h4>Fingerprint</h4><div class="cp"><code class="fp">cookie.no-secure|new-blocking|sid@shop.test</code><button type="button" class="btn sm js-only" data-copy-prev aria-label="Copy the fingerprint" hidden><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div>
+<div class="ds"><h4>Location</h4><dl class="kvl"><dt>Origin</dt><dd><code>https://shop.test</code></dd><dt>Cookie</dt><dd><code>sid@shop.test</code></dd></dl></div>
+<div class="ds"><h4>Evidence <span class="sub">redacted</span></h4><ul class="evl"><li><span class="src">cookie</span><b>sid</b><code class="snip">sid=[redacted sha256:9f8e7d]; Path=/</code></li></ul></div>
+<div class="ds"><h4>Tests <span class="sub">2 occurrences in 2 tests</span></h4><ul class="tl two"><li class="first"><span class="tt"><span><code>tests/area-0.spec.ts:1</code> › shop › test 0 › <span class="step">open the cart</span></span><span class="sub">chromium</span></span><span class="num"><span class="pill p">first seen</span></span></li><li><span class="tt"><span><code>tests/area-1.spec.ts:2</code> › shop › test 1</span><span class="sub">chromium</span></span></li></ul></div>
+<div class="ds rref" data-rule="cookie.no-secure"><h4>Why, fix and false positives</h4><p><a href="#rule-cookie.no-secure">Rule reference of <code>cookie.no-secure</code></a></p></div>
+<div class="ds"><h4>Accept <span class="sub">add to security-baseline.json, fill in &quot;note&quot; (and &quot;until&quot; or remove it), commit after review</span></h4><div class="cp"><pre class="code">{
+  &quot;cookie.no-secure|new-blocking|sid@shop.test&quot;: {
+    &quot;ruleId&quot;: &quot;cookie.no-secure&quot;,
+    &quot;subject&quot;: &quot;sid@shop.test&quot;,
+    &quot;severity&quot;: &quot;high&quot;,
+    &quot;status&quot;: &quot;accepted&quot;,
+    &quot;note&quot;: &quot;&quot;,
+    &quot;until&quot;: &quot;&quot;,
+    &quot;addedAt&quot;: &quot;2026-11-24&quot;
+  }
+}</pre><button type="button" class="btn sm js-only" data-copy-prev aria-label="Copy the baseline entry" hidden><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div></div>
