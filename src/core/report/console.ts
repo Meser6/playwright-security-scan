@@ -31,7 +31,7 @@ export interface TerminalOptions {
 }
 
 export interface BannerInput {
-  mode: 'scan' | 'baseline' | 'check';
+  mode: 'scan' | 'baseline' | 'check' | 'attack' | 'attack-baseline';
   scope: string[];
   enabledRules: number;
   /** Enabled custom rules among them (16-REQ-12). */
@@ -47,7 +47,12 @@ export interface BannerInput {
   shard?: { current: number; total: number } | null;
   /** The Authz row (04-REQ-06, 18-REQ-05); unset when authz.enabled is off. */
   authz?: { text: string; on: boolean } | undefined;
+  /** The Attack row (19-REQ-01); unset outside the attack modes. */
+  attack?: string | undefined;
 }
+
+const isBaselineMode = (mode: string): boolean => mode === 'baseline' || mode === 'attack-baseline';
+const isScanMode = (mode: string): boolean => mode === 'scan' || mode === 'attack';
 
 /** The box of errors (red) or warnings (yellow) with the count in the title (04-REQ-07). */
 function issueBox(
@@ -81,7 +86,9 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
   const rows: [string, string][] = [
     [
       'Mode',
-      `${b.mode} · ${b.authz?.on === true ? 'passive + authorization tests (GET/HEAD replays)' : 'passive only'}`,
+      b.attack !== undefined
+        ? `${b.mode} · passive + ${b.authz?.on === true ? 'authorization tests + ' : ''}ZAP active scan`
+        : `${b.mode} · ${b.authz?.on === true ? 'passive + authorization tests (GET/HEAD replays)' : 'passive only'}`,
     ],
     [
       'Scope',
@@ -93,7 +100,7 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
     ],
     [
       'Gate',
-      b.mode === 'baseline'
+      isBaselineMode(b.mode)
         ? 'off (baseline run)'
         : b.mode === 'check'
           ? 'off (check)'
@@ -104,6 +111,7 @@ export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
       `${b.baselinePath} (${b.baselineEntries === null ? 'not found' : plural(b.baselineEntries, 'entry', 'entries')})`,
     ],
     ...(b.authz === undefined ? [] : [['Authz', b.authz.text] as [string, string]]),
+    ...(b.attack === undefined ? [] : [['Attack', b.attack] as [string, string]]),
     ['Report', b.mode === 'check' ? 'nothing is written (check)' : b.reportPath],
   ];
   const icon = opts.ascii ? '' : '🔒 ';
@@ -226,7 +234,7 @@ export function verdict(report: RunReport, m: Marks): Verdict {
       const warnings: string[] = [];
       // In a baseline run the new findings were just written to the baseline (04-REQ-08).
       const nonBlocking = o.newNonBlocking ?? 0;
-      if (nonBlocking > 0 && report.mode !== 'baseline')
+      if (nonBlocking > 0 && !isBaselineMode(report.mode))
         warnings.push(plural(nonBlocking, 'new non-blocking finding'));
       const expiring = report.findings.filter(isExpiring).length;
       if (expiring > 0) {
@@ -238,10 +246,9 @@ export function verdict(report: RunReport, m: Marks): Verdict {
       }
       const warns = report.diagnostics.filter((d) => d.level === 'warn').length;
       if (warns > 0) warnings.push(plural(warns, 'warning'));
-      const base =
-        report.mode === 'baseline'
-          ? 'baseline written (informational, gate disabled)'
-          : `no new findings ${gate}`;
+      const base = isBaselineMode(report.mode)
+        ? 'baseline written (informational, gate disabled)'
+        : `no new findings ${gate}`;
       if (warnings.length === 0)
         return [m.ok, 'PASSED', 'green', 'badge-green', `${head}: ${base}`];
       return [
@@ -354,7 +361,7 @@ function findingLines(
 function hintLines(report: RunReport, paint: Painter): string[] {
   const lines: string[] = [];
   const n = report.resolved.length;
-  if (n > 0 && report.mode === 'scan') {
+  if (n > 0 && isScanMode(report.mode)) {
     lines.push(
       paint(
         `→ ${plural(n, 'baseline entry', 'baseline entries')} resolved — run baseline mode to remove ${n === 1 ? 'it' : 'them'}`,
@@ -370,9 +377,9 @@ function hintLines(report: RunReport, paint: Painter): string[] {
       ),
     );
   }
-  if (report.mode === 'scan' && (report.outcome.newBlocking ?? 0) > 0) {
+  if (isScanMode(report.mode) && (report.outcome.newBlocking ?? 0) > 0) {
     lines.push(
-      `${paint('Next:', 'bold')} ${paint('PW_SEC_MODE=baseline npx playwright test', 'cyan')}   ${paint('(review the diff before commit)', 'dim')}`,
+      `${paint('Next:', 'bold')} ${paint(`PW_SEC_MODE=${report.mode === 'attack' ? 'attack-baseline' : 'baseline'} npx playwright test`, 'cyan')}   ${paint('(review the diff before commit)', 'dim')}`,
     );
   }
   return lines;

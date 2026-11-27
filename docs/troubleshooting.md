@@ -291,6 +291,104 @@ no finding; the pair stays not covered.
 **Info.** The request templates of one test exceeded 512 KB; the templates with the longest
 digests were dropped, so some endpoints of that test are not replayed.
 
+## Attack mode (ZAP)
+
+See [Attack mode](attack.md).
+
+### ATTACK_ORIGINS_REQUIRED
+
+`PW_SEC_MODE=attack` (or `attack-baseline`) without `attack.allowedOrigins`. The run stops before
+any test. List the origins of your test environment ZAP may attack; there is no default on purpose.
+
+### ATTACK_ORIGIN_DENIED
+
+An origin of `attack.allowedOrigins` is on `attack.denyOrigins` or looks like production (`www.`, a
+`prod` or `production` part, a domain without a subdomain). The run stops before any test. Attack a
+test environment only; `attack.denyOrigins` always wins.
+
+### ATTACK_LOCAL_ORIGIN_UNSUPPORTED
+
+An origin of `attack.allowedOrigins` is local (`localhost`, `127.0.0.1`) and the run is not on
+Linux: a ZAP container on macOS or Windows cannot reach the localhost of your machine. Run the attack
+in CI on Linux, where the container shares the network of the runner, or start ZAP yourself on this
+machine and set `attack.zapUrl`.
+
+### ATTACK_SHARDED
+
+`PW_SEC_MODE=attack` with `--shard` (or `shard` in the Playwright config). The run stops before any
+test: ZAP scans the traffic of all tests at once, so the attack runs as one job without shards.
+
+### ATTACK_ROLE_UNKNOWN
+
+`attack.role` is not a role of the run. Roles are projects with a `storageState` file path, named
+after the project or `authz.roles.<project>.role`; use one of them or `"anonymous"`.
+
+### ATTACK_DOCKER_MISSING
+
+**Error (code 3).** There is no `docker` command or no running Docker daemon, and `attack.zapUrl` is
+not set. Install Docker (GitHub's `ubuntu-latest` runners have it), or start ZAP yourself and set
+`attack.zapUrl`. The passive scan of the run is evaluated and reported anyway.
+
+### ATTACK_ZAP_START_TIMEOUT
+
+**Error (code 3).** The ZAP container did not start, or its API did not answer within 120 seconds.
+Pull the image in a step before the tests (`docker pull zaproxy/zap-stable`), check that the image
+name in `attack.image` exists and that the machine has enough memory (ZAP needs about 1 GB).
+
+### ATTACK_ZAP_API_ERROR
+
+**Error (code 3).** A call to the ZAP API failed; the message names the call and the HTTP status
+(never the API key). With `attack.zapUrl`, check the address and `PW_SEC_ZAP_API_KEY`. The active
+scan result is incomplete, so `zap.*` baseline entries stay not covered.
+
+### ATTACK_ORIGIN_BLOCKED
+
+**Error (code 3).** The package was about to give ZAP a request to an origin outside
+`attack.allowedOrigins` or on the block list, and did not. Templates are only made for allowed
+origins, so this is a bug in the package: please report it.
+
+### ATTACK_BUDGET_EXCEEDED
+
+**Warning.** The scan used up `attack.maxRequests` or `attack.maxDurationMinutes` and was stopped.
+The findings are partial and `zap.*` baseline entries are not covered in this run. Raise the budget
+or exclude endpoints with `attack.exclude`.
+
+### ATTACK_ZAP_CLEANUP_FAILED
+
+**Warning.** The ZAP container could not be stopped. Stop it with the `docker stop` command in the
+message; containers of the package are named `pw-sec-zap-<run id>`.
+
+### ATTACK_MUTATING_METHODS
+
+**Warning.** `attack.methods` has `POST`, `PUT`, `PATCH` or `DELETE`: ZAP sends attacks with methods
+that change data. Use an environment whose data may be changed and reset.
+
+### ATTACK_STATE_MISSING
+
+**Warning.** The `storageState` file of the scan role did not exist after the tests, so ZAP scanned
+without a session (`role: anonymous` in the report). Check the path in `use.storageState`.
+
+### ATTACK_NO_TEMPLATES
+
+**Warning.** No request of the tests can be given to ZAP: no response of `attack.allowedOrigins`
+with a method of `attack.methods` and a status below 400. Check the origins (exact origins, as the
+browser sees them) and that the tests use the fixtures of `withSecurityFixtures()`.
+
+### ATTACK_INTERRUPTED
+
+**Warning.** The run was interrupted (Ctrl+C) before or during the scan; the container is stopped
+and the results are partial.
+
+### ATTACK_SEND_FAILED
+
+**Info.** ZAP could not send one request of the tests (for example the server closed the
+connection). The scan goes on without it.
+
+### ATTACK_TEMPLATES_TRUNCATED
+
+**Info.** The request templates of one test exceeded 512 KB; the longest ones were dropped, so some
+endpoints of that test are not given to ZAP.
+
 ## Reporter
 
 ### REPORTER_ERROR

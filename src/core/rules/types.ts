@@ -67,7 +67,7 @@ export interface Rule {
 
 /** Where the docs of a rule are: docs/rules/<id>.md, or docs.url of a custom rule (16-REQ-12). */
 export function ruleDocsUrl(rule: BuiltInRule, repoUrl: string): string | undefined {
-  if (rule.manifest.group === 'custom') return rule.docs.url;
+  if (rule.manifest.group === 'custom' || rule.manifest.group === 'zap') return rule.docs.url;
   return `${repoUrl}/blob/main/docs/rules/${rule.id}.md`;
 }
 

@@ -16,6 +16,10 @@ import type { BaselineDiff } from '../core/baseline/index.ts';
 import { evaluateAuthz } from '../core/authz/evaluate.ts';
 import { AUTHZ_RULE_IDS } from '../core/authz/manifest.ts';
 import type { AuthzRunData } from '../core/authz/types.ts';
+import type { AttackRunData } from '../core/attack/types.ts';
+import { ZAP_RULE_ID } from '../core/config/validate.ts';
+import { passiveMode } from '../mode/index.ts';
+import type { RunMode } from '../mode/index.ts';
 import type { ResolvedSecurityConfig } from '../core/config/index.ts';
 import { sortCoverage } from '../core/coverage.ts';
 import { compareTests, dedupeRun } from '../core/fingerprint/index.ts';
@@ -49,14 +53,42 @@ export interface RunData {
   testsPassed: boolean;
   /** Replays of the authorization tests (18-REQ-20); null when they are off. */
   authz: AuthzRunData | null;
+  /** The ZAP active scan of an attack run (19); null in the other modes. */
+  attack: AttackRunData | null;
 }
 
-/** Rule ids a baseline may name: passive and authorization tests (18-REQ-17). */
-export const KNOWN_RULE_IDS: ReadonlySet<string> = new Set([...RULE_IDS, ...AUTHZ_RULE_IDS]);
+const KNOWN = new Set([...RULE_IDS, ...AUTHZ_RULE_IDS]);
+
+/** Rule ids a baseline may name: passive, authorization tests and every zap.<id> (19-REQ-09). */
+export const KNOWN_RULE_IDS: { has(ruleId: string): boolean } = {
+  has: (id) => KNOWN.has(id) || ZAP_RULE_ID.test(id),
+};
+
+/** Enabled rules of a config; a zap.<id> is enabled unless rules['zap.<id>'] is 'off'. */
+export class EnabledRules extends Set<string> {
+  readonly #zapOff: ReadonlySet<string>;
+
+  constructor(sec: ResolvedSecurityConfig) {
+    super(
+      Object.entries(sec.rules)
+        .filter(([, r]) => r.enabled)
+        .map(([id]) => id),
+    );
+    this.#zapOff = new Set(
+      Object.entries(sec.attack.rules)
+        .filter(([, r]) => !r.enabled)
+        .map(([id]) => id),
+    );
+  }
+
+  override has(id: string): boolean {
+    return super.has(id) || (ZAP_RULE_ID.test(id) && !this.#zapOff.has(id));
+  }
+}
 
 export interface FinishOptions {
   config: ResolvedSecurityConfig;
-  mode: 'scan' | 'baseline';
+  mode: RunMode;
   /** Scope origins of the run, sorted. */
   scope: string[];
   runId: string;
@@ -100,20 +132,22 @@ function toolError(where: string, error: unknown): Diagnostic {
 
 /** Finishes a scan or baseline run and returns its outcome (00, chapter 11). */
 export function finishRun(data: RunData, options: FinishOptions): OutcomeFile {
-  const { config: sec, mode, scope } = options;
+  const { config: sec, mode: runMode, scope } = options;
+  // attack works like scan, attack-baseline like baseline (19-REQ-01).
+  const mode = passiveMode(runMode);
   const diags = new Diagnostics();
   for (const d of data.diagnostics) diags.add(d);
   const path = (p: string): string => (isAbsolute(p) ? p : resolve(options.configDir, p));
-  const enabled = new Set(
-    Object.entries(sec.rules)
-      .filter(([, r]) => r.enabled)
-      .map(([id]) => id),
-  );
+  const enabled = new EnabledRules(sec);
   const coverage = sortCoverage(data.coverage);
   // The authorization tests are judged with the knowledge of the whole run (18-REQ-20).
   const authz =
     data.authz === null ? null : evaluateAuthz(data.authz, coverage.authzObserved ?? {}, sec);
-  const findings = dedupeRun([...data.findings, ...(authz?.findings ?? [])]);
+  const findings = dedupeRun([
+    ...data.findings,
+    ...(authz?.findings ?? []),
+    ...(data.attack?.findings ?? []),
+  ]);
   const date = today();
 
   // Baseline file (08): only baseline.path (D-17).
@@ -144,6 +178,8 @@ export function finishRun(data: RunData, options: FinishOptions): OutcomeFile {
     coverage,
     enabled,
     authz?.passed,
+    // zap.* entries are covered only by a completed scan of this run (19-REQ-09).
+    data.attack?.summary.completed === true ? new Set(data.attack.coveredKeys) : new Set(),
   );
 
   if (coverage.responses === 0) {
@@ -195,16 +231,17 @@ export function finishRun(data: RunData, options: FinishOptions): OutcomeFile {
     testsPassed: data.testsPassed,
     responses: coverage.responses,
     gate,
-    mode,
+    mode: runMode,
   });
   const report: RunReport = {
     schemaVersion: 2,
     runId: options.runId,
     startedAt: options.startedAt,
     finishedAt: options.finishedAt(),
-    mode,
+    mode: runMode,
     shards: options.shards,
     authz: authz?.summary ?? null,
+    attack: data.attack?.summary ?? null,
     pkgVersion: VERSION,
     playwrightVersion: options.playwrightVersion,
     scope: { origins: scope },

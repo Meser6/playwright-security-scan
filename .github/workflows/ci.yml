@@ -3,7 +3,8 @@ name: CI
 # Every pull request and push to main (13-REQ-05):
 # - checks: lint, format, types, AC coverage, build, package checks;
 # - test: unit, contract and integration tests with Chromium on three cells;
-# - browsers: integration and quality tests in Firefox and WebKit (informational).
+# - browsers: integration and quality tests in Firefox and WebKit (informational);
+# - attack: the ZAP active scan on the reference app, on main and by hand (informational, 19).
 
 on:
   pull_request:
@@ -114,3 +115,29 @@ jobs:
       - run: pnpm vitest run test/integration test/quality
         env:
           TEST_BROWSER: ${{ matrix.browser }}
+
+  # Informational (19, chapter 11; 13-REQ-05): the attack mode with a real ZAP container against
+  # the reference app on localhost (Docker uses --network host on Linux). On main and by hand only.
+  attack:
+    name: Attack (zap)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: docker pull zaproxy/zap-stable
+      - run: pnpm build
+      - run: pnpm vitest run test/integration/attack.test.ts
+        env:
+          ZAP_TEST: '1'
+      - name: No ZAP container is left (19-AC-04)
+        if: always()
+        run: test -z "$(docker ps -q --filter name=pw-sec-zap-)"

@@ -14,7 +14,7 @@ export const DEFAULT_BODY_CONTENT_TYPES: readonly string[] = [
 
 export const DEFAULTS: Omit<
   ResolvedSecurityConfig,
-  'rules' | 'customRules' | 'normalization' | 'authz'
+  'rules' | 'customRules' | 'normalization' | 'authz' | 'attack'
 > = {
   scope: { origins: [], includeBaseURL: true, exclude: [], projects: 'all', api: true },
   preset: 'recommended',

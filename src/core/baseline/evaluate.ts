@@ -131,6 +131,8 @@ export function resolveEntries(
   enabledRules: ReadonlySet<string>,
   /** Authorization pairs replayed with a denial or another answer in this run (18-REQ-17). */
   authzPassed: ReadonlySet<string> = new Set(),
+  /** Endpoint keys a completed ZAP scan of this run covered (19-REQ-09); empty outside one. */
+  zapCovered: ReadonlySet<string> = new Set(),
 ): { resolved: EntryRef[]; notCovered: EntryRef[] } {
   const seen = new Set(findings.map((f) => f.fingerprint));
   const resolved: EntryRef[] = [];
@@ -141,6 +143,11 @@ export function resolveEntries(
     if (seen.has(fingerprint)) continue;
     const ref = { fingerprint, ruleId: entry.ruleId, subject: entry.subject };
     const { scope } = parseFingerprint(fingerprint);
+    if (entry.ruleId.startsWith('zap.')) {
+      if (enabledRules.has(entry.ruleId) && zapCovered.has(entry.subject)) resolved.push(ref);
+      else notCovered.push(ref);
+      continue;
+    }
     if (entry.ruleId.startsWith('authz.')) {
       if (enabledRules.has(entry.ruleId) && authzPassed.has(fingerprint)) resolved.push(ref);
       else notCovered.push(ref);

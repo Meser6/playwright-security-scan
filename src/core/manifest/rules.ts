@@ -14,7 +14,8 @@ export type RuleGroup =
   | 'auth'
   | 'cache'
   | 'authz'
-  | 'custom';
+  | 'custom'
+  | 'zap';
 
 export interface RuleManifest {
   id: string;

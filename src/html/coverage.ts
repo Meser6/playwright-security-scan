@@ -169,7 +169,10 @@ export function runTab(ctx: Ctx): SafeHtml {
           .filter((id) => cfg.rules[id]?.enabled === true)
           .sort(compareText);
   const run: [string, HtmlValue][] = [
-    ['Mode', `${r.mode} · passive only`],
+    [
+      'Mode',
+      `${r.mode} · ${r.attack == null ? 'passive only' : 'passive + ZAP active scan'}${r.authz == null ? '' : ' + authorization tests'}`,
+    ],
     ['Run ID', r.runId === '' ? DASH : html`<code>${r.runId}</code>`],
     ['Started', formatDate(r.startedAt)],
     ['Finished', formatDate(r.finishedAt)],

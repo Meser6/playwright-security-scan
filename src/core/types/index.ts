@@ -1,6 +1,7 @@
 // Types of core (02). File formats are generated from schemas/; the in-memory types of the
 // worker (records, browser events, raw findings) are declared here.
 import type {
+  AttackSummary,
   AuthzSummary,
   ClassifiedFinding,
   Coverage,
@@ -19,6 +20,7 @@ import type {
 } from './generated/formats.ts';
 
 export type {
+  AttackSummary,
   AuthzSummary,
   BaselineEntry,
   BaselineFile,

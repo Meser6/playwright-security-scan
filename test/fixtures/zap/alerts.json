@@ -1,0 +1,101 @@
+{
+  "$comment": "alert/view/alert answers of zaproxy/zap-stable 2.17.0 for the reference app (trimmed: tags and texts shortened); the URLs are the local test app.",
+  "alerts": [
+    {
+      "pluginId": "40012",
+      "alertRef": "40012",
+      "name": "Cross Site Scripting (Reflected)",
+      "alert": "Cross Site Scripting (Reflected)",
+      "risk": "High",
+      "confidence": "Medium",
+      "method": "GET",
+      "url": "https://localhost:4430/attack/search?q=%3C%2Fh1%3E%3CscrIpt%3Ealert%281%29%3B%3C%2FscRipt%3E%3Ch1%3E",
+      "param": "q",
+      "attack": "</h1><scrIpt>alert(1);</scRipt><h1>",
+      "evidence": "</h1><scrIpt>alert(1);</scRipt><h1>",
+      "cweid": "79",
+      "description": "Cross-site Scripting (XSS) is an attack technique that involves echoing attacker-supplied code into a user's browser instance.",
+      "solution": "Validate all input and encode all output.",
+      "tags": {
+        "CWE-79": "https://cwe.mitre.org/data/definitions/79.html",
+        "OWASP_2021_A03": "https://owasp.org/Top10/2021/A03_2021-Injection/",
+        "OWASP_2025_A05": "https://owasp.org/Top10/2025/A05_2025-Injection/"
+      }
+    },
+    {
+      "pluginId": "40026",
+      "name": "Cross Site Scripting (DOM Based)",
+      "risk": "High",
+      "confidence": "High",
+      "method": "GET",
+      "url": "https://localhost:4430/attack/search?q=%3Cscript%3Ealert(5397)%3C/script%3E",
+      "param": "q",
+      "attack": "<script>alert(5397)</script>",
+      "evidence": "",
+      "cweid": "79",
+      "description": "DOM based XSS.",
+      "solution": "Encode output in the DOM.",
+      "tags": { "OWASP_2021_A03": "https://owasp.org/Top10/2021/A03_2021-Injection/" }
+    },
+    {
+      "pluginId": "40018",
+      "name": "SQL Injection",
+      "risk": "High",
+      "confidence": "Low",
+      "method": "GET",
+      "url": "https://localhost:4430/api/items?id=%27",
+      "param": "id",
+      "attack": "'",
+      "evidence": "HTTP/1.1 500 Internal Server Error",
+      "cweid": "89",
+      "description": "SQL injection may be possible.",
+      "solution": "Use prepared statements.",
+      "tags": { "OWASP_2025_A05": "https://owasp.org/Top10/2025/A05_2025-Injection/" }
+    },
+    {
+      "pluginId": "40018",
+      "name": "SQL Injection",
+      "risk": "High",
+      "confidence": "Low",
+      "method": "GET",
+      "url": "https://localhost:4430/api/items?id=1%27+OR+%271%27%3D%271",
+      "param": "id",
+      "attack": "1' OR '1'='1",
+      "evidence": "HTTP/1.1 500 Internal Server Error",
+      "cweid": "89",
+      "description": "SQL injection may be possible.",
+      "solution": "Use prepared statements.",
+      "tags": {}
+    },
+    {
+      "pluginId": "10202",
+      "name": "Absence of Anti-CSRF Tokens",
+      "risk": "Medium",
+      "confidence": "False Positive",
+      "method": "GET",
+      "url": "https://localhost:4430/attack/search?q=tea",
+      "param": "",
+      "attack": "",
+      "evidence": "<form>",
+      "cweid": "352",
+      "description": "No anti-CSRF tokens were found.",
+      "solution": "Use anti-CSRF tokens.",
+      "tags": {}
+    },
+    {
+      "pluginId": "90022",
+      "name": "Application Error Disclosure",
+      "risk": "Low",
+      "confidence": "Medium",
+      "method": "GET",
+      "url": "https://localhost:4430/api/items?id=%27",
+      "param": "",
+      "attack": "",
+      "evidence": "You have an error in your SQL syntax; contact admin@shop.example",
+      "cweid": "550",
+      "description": "Error message.",
+      "solution": "Review the source code.",
+      "tags": {}
+    }
+  ]
+}

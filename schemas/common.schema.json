@@ -74,7 +74,7 @@
       "required": ["kind", "snippet"],
       "properties": {
         "kind": {
-          "enum": ["header", "cookie", "body", "url", "storage", "event", "replay"]
+          "enum": ["header", "cookie", "body", "url", "storage", "event", "replay", "attack"]
         },
         "name": {
           "description": "Header, cookie, parameter or storage key name.",

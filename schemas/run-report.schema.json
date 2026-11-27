@@ -13,6 +13,7 @@
     "mode",
     "shards",
     "authz",
+    "attack",
     "pkgVersion",
     "playwrightVersion",
     "scope",
@@ -40,7 +41,8 @@
       "type": "string"
     },
     "mode": {
-      "enum": ["scan", "baseline"]
+      "description": "Mode of the run; attack and attack-baseline add the ZAP active scan (19-REQ-01).",
+      "enum": ["scan", "baseline", "attack", "attack-baseline"]
     },
     "shards": {
       "description": "Shards of a merged run (17-REQ-12); null for a run without shards.",
@@ -85,6 +87,10 @@
           "$ref": "#/$defs/authzSummary"
         }
       ]
+    },
+    "attack": {
+      "description": "The ZAP active scan of an attack run (19-REQ-10); null in the other modes.",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/attackSummary" }]
     },
     "pkgVersion": {
       "type": "string"
@@ -171,6 +177,106 @@
     }
   },
   "$defs": {
+    "attackSummary": {
+      "title": "AttackSummary",
+      "description": "The ZAP active scan of an attack run (19-REQ-10, 19 chapter 11a).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine",
+        "zap",
+        "zapVersion",
+        "role",
+        "origins",
+        "methods",
+        "durationSeconds",
+        "requests",
+        "templates",
+        "alerts",
+        "budget",
+        "budgetExceeded",
+        "completed",
+        "rules"
+      ],
+      "properties": {
+        "engine": { "const": "zap" },
+        "zap": {
+          "description": "docker: a container started by the package; url: attack.zapUrl.",
+          "enum": ["docker", "url"]
+        },
+        "zapVersion": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+        "role": { "description": "Role of the scan session, or anonymous.", "type": "string" },
+        "origins": {
+          "description": "attack.allowedOrigins.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "methods": {
+          "description": "attack.methods.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "durationSeconds": { "type": "integer", "minimum": 0 },
+        "requests": {
+          "description": "Requests of ZAP: the sent templates and the messages of the active scan.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "templates": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sent", "failed"],
+          "properties": {
+            "sent": { "type": "integer", "minimum": 0 },
+            "failed": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "alerts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mapped", "falsePositive", "passive", "off"],
+          "properties": {
+            "mapped": { "type": "integer", "minimum": 0 },
+            "falsePositive": { "type": "integer", "minimum": 0 },
+            "passive": { "type": "integer", "minimum": 0 },
+            "off": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxRequests", "maxDurationMinutes", "maxRps"],
+          "properties": {
+            "maxRequests": { "type": "integer", "minimum": 1 },
+            "maxDurationMinutes": { "type": "number", "exclusiveMinimum": 0 },
+            "maxRps": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "budgetExceeded": { "type": "boolean" },
+        "completed": {
+          "description": "The scan finished within the budget (19-REQ-09).",
+          "type": "boolean"
+        },
+        "rules": {
+          "description": "Descriptions of the zap.* rules of the findings (19 chapter 11a).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "description", "solution", "helpUri", "cwe", "owasp"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^zap\\.[0-9]+$" },
+              "name": { "type": "string" },
+              "description": { "type": "string", "maxLength": 2000 },
+              "solution": { "type": "string", "maxLength": 2000 },
+              "helpUri": { "type": "string" },
+              "cwe": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+              "owasp": { "oneOf": [{ "type": "null" }, { "type": "string" }] }
+            }
+          }
+        }
+      }
+    },
     "authzSummary": {
       "title": "AuthzSummary",
       "description": "Roles, replays and the role matrix of the authorization tests (18-REQ-21).",

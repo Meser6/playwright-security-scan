@@ -116,7 +116,7 @@ export interface Location {
  * One piece of evidence, already redacted (07, chapter 5).
  */
 export interface Evidence {
-  kind: 'header' | 'cookie' | 'body' | 'url' | 'storage' | 'event' | 'replay';
+  kind: 'header' | 'cookie' | 'body' | 'url' | 'storage' | 'event' | 'replay' | 'attack';
   /**
    * Header, cookie, parameter or storage key name.
    */
@@ -254,7 +254,10 @@ export interface RunReport {
   runId: string;
   startedAt: string;
   finishedAt: string;
-  mode: 'scan' | 'baseline';
+  /**
+   * Mode of the run; attack and attack-baseline add the ZAP active scan (19-REQ-01).
+   */
+  mode: 'scan' | 'baseline' | 'attack' | 'attack-baseline';
   /**
    * Shards of a merged run (17-REQ-12); null for a run without shards.
    */
@@ -270,6 +273,10 @@ export interface RunReport {
    * Authorization tests of the run (18-REQ-21); null when they are off.
    */
   authz: null | AuthzSummary;
+  /**
+   * The ZAP active scan of an attack run (19-REQ-10); null in the other modes.
+   */
+  attack: null | AttackSummary;
   pkgVersion: string;
   playwrightVersion: string;
   scope: {
@@ -370,6 +377,66 @@ export interface AuthzSummary {
   }[];
 }
 /**
+ * The ZAP active scan of an attack run (19-REQ-10, 19 chapter 11a).
+ */
+export interface AttackSummary {
+  engine: 'zap';
+  /**
+   * docker: a container started by the package; url: attack.zapUrl.
+   */
+  zap: 'docker' | 'url';
+  zapVersion: null | string;
+  /**
+   * Role of the scan session, or anonymous.
+   */
+  role: string;
+  /**
+   * attack.allowedOrigins.
+   */
+  origins: string[];
+  /**
+   * attack.methods.
+   */
+  methods: string[];
+  durationSeconds: number;
+  /**
+   * Requests of ZAP: the sent templates and the messages of the active scan.
+   */
+  requests: number;
+  templates: {
+    sent: number;
+    failed: number;
+  };
+  alerts: {
+    mapped: number;
+    falsePositive: number;
+    passive: number;
+    off: number;
+  };
+  budget: {
+    maxRequests: number;
+    maxDurationMinutes: number;
+    maxRps: number;
+  };
+  budgetExceeded: boolean;
+  /**
+   * The scan finished within the budget (19-REQ-09).
+   */
+  completed: boolean;
+  /**
+   * Descriptions of the zap.* rules of the findings (19 chapter 11a).
+   */
+  rules: {
+    id: string;
+    name: string;
+    description: string;
+    solution: string;
+    helpUri: string;
+    cwe: number[];
+    owasp: null | string;
+  }[];
+}
+/**
  * A deduplicated finding (02, chapter 4).
  */
 export interface FindingFields {
@@ -443,9 +510,9 @@ export interface OutcomeFile {
    */
   name: 'OK' | 'NEW_FINDINGS' | 'BASELINE_EXPIRED' | 'TOOL_ERROR' | 'NO_TRAFFIC' | 'SHARD_WRITTEN';
   /**
-   * Mode of the run (scan or baseline; also of a shard or a merge).
+   * Mode of the run (scan, baseline, attack or attack-baseline; also of a shard or a merge).
    */
-  mode: 'scan' | 'baseline';
+  mode: 'scan' | 'baseline' | 'attack' | 'attack-baseline';
   /**
    * Shard i/n of a shard run (17-REQ-03); null otherwise, also for a merge.
    */
