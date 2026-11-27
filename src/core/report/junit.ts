@@ -132,5 +132,5 @@ export function buildJunit(
     );
     total = 1;
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites name="${report.env === null ? 'pw-sec' : `pw-sec (${xml(report.env)})`}" tests="${total}" failures="${failures}" errors="${errors}" skipped="${skipped}" time="0">\n${suites.join('\n')}\n</testsuites>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites name="pw-sec" tests="${total}" failures="${failures}" errors="${errors}" skipped="${skipped}" time="0">\n${suites.join('\n')}\n</testsuites>\n`;
 }

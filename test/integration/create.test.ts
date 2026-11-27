@@ -52,7 +52,7 @@ describe('create package and binary (11, chapter 3)', () => {
     for (const env of envs) {
       const r = run(join(ROOT, 'dist/cli.js'), dir, env);
       expect(r.status, r.output).toBe(0);
-      expect(r.output).toContain('[7/9]');
+      expect(r.output).toContain('[6/8]');
       expect(r.output).toContain('pw-sec.config.ts (new file)');
       expect(r.output).toContain('Planned changes (not written):');
       expect(tree(dir)).toEqual(before);

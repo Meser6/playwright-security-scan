@@ -56,7 +56,6 @@ const en = {
     'Use the command you already run your tests with; the variable goes in front of it. On Windows put npx cross-env in front.',
   usageCommandPlaceholder: '<your test command>',
   variablesTitle: 'Other variables:',
-  varEnv: 'one baseline per environment: security-baseline.<label>.json',
   varMaxTests: 'tests run by a check (default 10)',
   filesTitle: 'Files:',
   fileConfig: 'the package config (commit it)',
@@ -89,13 +88,6 @@ const en = {
   originsFound: 'Other origins found in your sources:',
   originsQuestion: 'Other origins of your app or API to scan (comma-separated, Enter for none)?',
   originsInvalid: '"{value}" is not an origin such as https://api.example.com.',
-  stepEnvs: 'Environments',
-  envsLesson:
-    'If the same tests run against several environments (qa, staging…), each one gets its own baseline file with PW_SEC_ENV=<label>, because headers and cookies differ between them.',
-  envsQuestion: 'Do you run these tests against several environments?',
-  envsLabels: 'Environment labels (comma-separated, e.g. qa, staging)?',
-  envsInvalid:
-    '"{value}" is not a label: use lowercase letters, digits and -, at most 32 characters.',
   stepCommand: 'Test command',
   commandLesson1:
     'Type the command you usually run your tests with, e.g. npm run e2e:qa. The wizard does not change anything in it: it uses it in the commands at the end and for the check.',
@@ -223,7 +215,6 @@ const pl: Messages = {
     'Użyj polecenia, którym już uruchamiasz testy; zmienna idzie przed nim. Na Windowsie dodaj na początku npx cross-env.',
   usageCommandPlaceholder: '<twoje polecenie testów>',
   variablesTitle: 'Inne zmienne:',
-  varEnv: 'osobna baza na środowisko: security-baseline.<etykieta>.json',
   varMaxTests: 'liczba testów w próbnym przebiegu (domyślnie 10)',
   filesTitle: 'Pliki:',
   fileConfig: 'konfiguracja paczki (commituj)',
@@ -259,12 +250,6 @@ const pl: Messages = {
   originsQuestion:
     'Inne originy aplikacji albo API do skanowania (po przecinku, Enter, jeśli brak)?',
   originsInvalid: '"{value}" nie jest originem w rodzaju https://api.example.com.',
-  stepEnvs: 'Środowiska',
-  envsLesson:
-    'Jeśli te same testy działają na kilku środowiskach (qa, staging…), każde dostaje własny plik bazy przez PW_SEC_ENV=<etykieta>, bo nagłówki i ciasteczka się między nimi różnią.',
-  envsQuestion: 'Czy uruchamiasz te testy na kilku środowiskach?',
-  envsLabels: 'Etykiety środowisk (po przecinku, np. qa, staging)?',
-  envsInvalid: '"{value}" nie jest etykietą: użyj małych liter, cyfr i -, najwyżej 32 znaki.',
   stepCommand: 'Polecenie testów',
   commandLesson1:
     'Wpisz polecenie, którym zwykle uruchamiasz testy, np. npm run e2e:qa. Kreator niczego w nim nie zmienia: używa go w poleceniach na końcu i do sprawdzenia.',
@@ -393,7 +378,6 @@ const es: Messages = {
     'Usa el comando con el que ya ejecutas tus tests; la variable va delante. En Windows antepón npx cross-env.',
   usageCommandPlaceholder: '<tu comando de tests>',
   variablesTitle: 'Otras variables:',
-  varEnv: 'una línea base por entorno: security-baseline.<etiqueta>.json',
   varMaxTests: 'tests de una prueba en seco (por defecto 10)',
   filesTitle: 'Archivos:',
   fileConfig: 'la configuración del paquete (haz commit)',
@@ -429,13 +413,6 @@ const es: Messages = {
   originsQuestion:
     '¿Otros orígenes de tu aplicación o API a escanear (separados por comas, Intro si ninguno)?',
   originsInvalid: '"{value}" no es un origen como https://api.example.com.',
-  stepEnvs: 'Entornos',
-  envsLesson:
-    'Si los mismos tests se ejecutan en varios entornos (qa, staging…), cada uno tiene su propio archivo de línea base con PW_SEC_ENV=<etiqueta>, porque las cabeceras y cookies difieren entre ellos.',
-  envsQuestion: '¿Ejecutas estos tests en varios entornos?',
-  envsLabels: '¿Etiquetas de los entornos (separadas por comas, p. ej. qa, staging)?',
-  envsInvalid:
-    '"{value}" no es una etiqueta: usa minúsculas, dígitos y -, como máximo 32 caracteres.',
   stepCommand: 'Comando de tests',
   commandLesson1:
     'Escribe el comando con el que sueles ejecutar tus tests, p. ej. npm run e2e:qa. El asistente no cambia nada en él: lo usa en los comandos del final y para la comprobación.',
@@ -567,7 +544,6 @@ const fr: Messages = {
     'Utilisez la commande avec laquelle vous lancez déjà vos tests ; la variable se place devant. Sous Windows, ajoutez npx cross-env devant.',
   usageCommandPlaceholder: '<votre commande de tests>',
   variablesTitle: 'Autres variables :',
-  varEnv: 'une référence par environnement : security-baseline.<label>.json',
   varMaxTests: 'tests d’un essai à blanc (10 par défaut)',
   filesTitle: 'Fichiers :',
   fileConfig: 'la configuration du paquet (à commiter)',
@@ -603,13 +579,6 @@ const fr: Messages = {
   originsQuestion:
     'Autres origines de votre application ou API à scanner (séparées par des virgules, Entrée si aucune) ?',
   originsInvalid: '« {value} » n’est pas une origine comme https://api.example.com.',
-  stepEnvs: 'Environnements',
-  envsLesson:
-    'Si les mêmes tests tournent sur plusieurs environnements (qa, staging…), chacun a son propre fichier de référence avec PW_SEC_ENV=<label>, car les en-têtes et les cookies diffèrent.',
-  envsQuestion: 'Lancez-vous ces tests sur plusieurs environnements ?',
-  envsLabels: 'Labels des environnements (séparés par des virgules, ex. qa, staging) ?',
-  envsInvalid:
-    '« {value} » n’est pas un label : utilisez des minuscules, des chiffres et -, 32 caractères au plus.',
   stepCommand: 'Commande de tests',
   commandLesson1:
     'Saisissez la commande avec laquelle vous lancez habituellement vos tests, ex. npm run e2e:qa. L’assistant n’y change rien : il l’utilise dans les commandes de la fin et pour la vérification.',
@@ -742,7 +711,6 @@ const it: Messages = {
     'Usa il comando con cui esegui già i test; la variabile va davanti. Su Windows anteponi npx cross-env.',
   usageCommandPlaceholder: '<il tuo comando di test>',
   variablesTitle: 'Altre variabili:',
-  varEnv: 'una baseline per ambiente: security-baseline.<etichetta>.json',
   varMaxTests: 'test di una prova a secco (predefinito 10)',
   filesTitle: 'File:',
   fileConfig: 'la configurazione del pacchetto (in commit)',
@@ -777,13 +745,6 @@ const it: Messages = {
   originsQuestion:
     'Altre origini della tua applicazione o API da scansionare (separate da virgole, Invio se nessuna)?',
   originsInvalid: '"{value}" non è un’origine come https://api.example.com.',
-  stepEnvs: 'Ambienti',
-  envsLesson:
-    'Se gli stessi test girano su più ambienti (qa, staging…), ognuno ha il proprio file di baseline con PW_SEC_ENV=<etichetta>, perché header e cookie cambiano tra loro.',
-  envsQuestion: 'Esegui questi test su più ambienti?',
-  envsLabels: 'Etichette degli ambienti (separate da virgole, es. qa, staging)?',
-  envsInvalid:
-    '"{value}" non è un’etichetta: usa lettere minuscole, cifre e -, al massimo 32 caratteri.',
   stepCommand: 'Comando dei test',
   commandLesson1:
     'Scrivi il comando con cui esegui di solito i test, es. npm run e2e:qa. La procedura non cambia nulla: lo usa nei comandi finali e per la verifica.',
@@ -913,7 +874,6 @@ const uk: Messages = {
     'Використовуйте команду, якою вже запускаєте тести; змінна ставиться перед нею. У Windows додайте на початку npx cross-env.',
   usageCommandPlaceholder: '<ваша команда тестів>',
   variablesTitle: 'Інші змінні:',
-  varEnv: 'окрема база для кожного середовища: security-baseline.<мітка>.json',
   varMaxTests: 'кількість тестів пробного запуску (за замовчуванням 10)',
   filesTitle: 'Файли:',
   fileConfig: 'конфігурація пакета (комітити)',
@@ -947,13 +907,6 @@ const uk: Messages = {
   originsFound: 'Інші origin, знайдені у ваших файлах:',
   originsQuestion: 'Інші origin застосунку або API для сканування (через кому, Enter, якщо немає)?',
   originsInvalid: '"{value}" не є origin на кшталт https://api.example.com.',
-  stepEnvs: 'Середовища',
-  envsLesson:
-    'Якщо ті самі тести запускаються на кількох середовищах (qa, staging…), кожне отримує власний файл бази через PW_SEC_ENV=<мітка>, бо заголовки й cookie між ними різняться.',
-  envsQuestion: 'Чи запускаєте ви ці тести на кількох середовищах?',
-  envsLabels: 'Мітки середовищ (через кому, напр. qa, staging)?',
-  envsInvalid:
-    '"{value}" не є міткою: використовуйте малі літери, цифри та -, щонайбільше 32 символи.',
   stepCommand: 'Команда тестів',
   commandLesson1:
     'Введіть команду, якою зазвичай запускаєте тести, напр. npm run e2e:qa. Майстер нічого в ній не змінює: використовує її в командах наприкінці та для перевірки.',
@@ -1081,7 +1034,6 @@ const ru: Messages = {
     'Используйте команду, которой уже запускаете тесты; переменная ставится перед ней. В Windows добавьте в начале npx cross-env.',
   usageCommandPlaceholder: '<ваша команда тестов>',
   variablesTitle: 'Другие переменные:',
-  varEnv: 'отдельная база для каждого окружения: security-baseline.<метка>.json',
   varMaxTests: 'число тестов пробного запуска (по умолчанию 10)',
   filesTitle: 'Файлы:',
   fileConfig: 'конфигурация пакета (коммитить)',
@@ -1116,13 +1068,6 @@ const ru: Messages = {
   originsQuestion:
     'Другие origin приложения или API для сканирования (через запятую, Enter, если нет)?',
   originsInvalid: '"{value}" не является origin вроде https://api.example.com.',
-  stepEnvs: 'Окружения',
-  envsLesson:
-    'Если одни и те же тесты запускаются на нескольких окружениях (qa, staging…), каждое получает свой файл базы через PW_SEC_ENV=<метка>, потому что заголовки и cookie в них различаются.',
-  envsQuestion: 'Запускаете ли вы эти тесты на нескольких окружениях?',
-  envsLabels: 'Метки окружений (через запятую, напр. qa, staging)?',
-  envsInvalid:
-    '"{value}" не является меткой: используйте строчные буквы, цифры и -, не более 32 символов.',
   stepCommand: 'Команда тестов',
   commandLesson1:
     'Введите команду, которой обычно запускаете тесты, напр. npm run e2e:qa. Мастер ничего в ней не меняет: использует её в командах в конце и для проверки.',

@@ -81,12 +81,11 @@ findings below the gate are reported as non-blocking.
 
 ## Baseline
 
-| Option                   | Type      | Default                    | Meaning                                                                               |
-| ------------------------ | --------- | -------------------------- | ------------------------------------------------------------------------------------- |
-| `baseline.path`          | `string`  | `'security-baseline.json'` | The baseline file, relative to the Playwright config                                  |
-| `baseline.pruneResolved` | `boolean` | `true`                     | A `baseline` run removes entries whose finding is gone                                |
-| `baseline.requireNote`   | `boolean` | `false`                    | Accepted and `wontfix` entries must have a `note` (code 3 otherwise)                  |
-| `run.env`                | `string`  | none                       | Environment label: the file becomes `security-baseline.<env>.json`; `PW_SEC_ENV` wins |
+| Option                   | Type      | Default                    | Meaning                                                              |
+| ------------------------ | --------- | -------------------------- | -------------------------------------------------------------------- |
+| `baseline.path`          | `string`  | `'security-baseline.json'` | The baseline file, relative to the Playwright config                 |
+| `baseline.pruneResolved` | `boolean` | `true`                     | A `baseline` run removes entries whose finding is gone               |
+| `baseline.requireNote`   | `boolean` | `false`                    | Accepted and `wontfix` entries must have a `note` (code 3 otherwise) |
 
 See [The baseline](baseline.md).
 

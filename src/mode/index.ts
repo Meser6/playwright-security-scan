@@ -1,11 +1,10 @@
 // Scan mode from the environment (04, chapter 2). Fixed for the life of the process.
-import { ENV_LABEL, ENV_LABEL_HINT } from '../core/config/index.ts';
 import type { ConfigIssue } from '../core/config/index.ts';
 
 export const MODE_ENV = 'PW_SEC_MODE';
 export const CONFIG_ENV = 'PW_SEC_CONFIG';
-/** Environment label (08-REQ-13); overrides run.env of the config. */
-export const ENV_ENV = 'PW_SEC_ENV';
+/** The removed environment label (D-17): set, it only gives the ENV_REMOVED warning. */
+export const REMOVED_ENV_ENV = 'PW_SEC_ENV';
 /** Set by the main process for the workers: one run id and one redaction salt per run (07-REQ-15). */
 export const RUN_ID_ENV = 'PW_SEC_RUN_ID';
 export const SALT_ENV = 'PW_SEC_RUN_SALT';
@@ -59,30 +58,6 @@ export function scanModeOn(
 ): boolean {
   const mode = readMode(env);
   return mode.ok && mode.mode !== null;
-}
-
-export type EnvLabelResult =
-  { ok: true; env: string | undefined } | { ok: false; issues: ConfigIssue[] };
-
-/**
- * The environment label from PW_SEC_ENV (08-REQ-13): unset or empty → undefined (run.env of the
- * config applies); an invalid value is an error before the run, never a silent fallback (P-12).
- */
-export function readEnvLabel(env: Readonly<Record<string, string | undefined>>): EnvLabelResult {
-  const raw = (env[ENV_ENV] ?? '').trim();
-  if (raw === '') return { ok: true, env: undefined };
-  if (ENV_LABEL.test(raw)) return { ok: true, env: raw };
-  return {
-    ok: false,
-    issues: [
-      {
-        code: 'ENV_INVALID',
-        path: ENV_ENV,
-        message: `${ENV_ENV}=${JSON.stringify(raw)} is not an environment label`,
-        hint: ENV_LABEL_HINT,
-      },
-    ],
-  };
 }
 
 export type MaxTestsResult = { ok: true; maxTests: number } | { ok: false; issues: ConfigIssue[] };

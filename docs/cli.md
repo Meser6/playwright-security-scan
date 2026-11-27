@@ -4,13 +4,12 @@ The scan has no command of its own (the only binary, `npx pw-sec`, starts the
 [guided setup](init.md)). You run your usual Playwright test command with
 `PW_SEC_MODE` set:
 
-| Goal                     | Command                                         |
-| ------------------------ | ----------------------------------------------- |
-| dry run (check)          | `PW_SEC_MODE=check npx playwright test`         |
-| accept the current state | `PW_SEC_MODE=baseline npx playwright test`      |
-| scan (CI and locally)    | `PW_SEC_MODE=scan npx playwright test`          |
-| scan with an npm script  | `PW_SEC_MODE=scan npm run e2e`                  |
-| scan of one environment  | `PW_SEC_MODE=scan PW_SEC_ENV=qa npm run e2e:qa` |
+| Goal                     | Command                                    |
+| ------------------------ | ------------------------------------------ |
+| dry run (check)          | `PW_SEC_MODE=check npx playwright test`    |
+| accept the current state | `PW_SEC_MODE=baseline npx playwright test` |
+| scan (CI and locally)    | `PW_SEC_MODE=scan npx playwright test`     |
+| scan with an npm script  | `PW_SEC_MODE=scan npm run e2e`             |
 
 Run the command from the directory you always run your tests from. Everything your script does
 still happens: its variables, setup steps and Playwright flags. Without `PW_SEC_MODE` your tests
@@ -38,15 +37,15 @@ run with a filter keeps the entries it could not confirm as resolved; see
 | Variable           | Meaning                                                                                                           |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
 | `PW_SEC_MODE`      | `check`, `baseline` or `scan`; the package is off when it is unset or empty                                       |
-| `PW_SEC_ENV`       | environment label: the run uses `security-baseline.<label>.json`; overrides `run.env` of the config               |
 | `PW_SEC_MAX_TESTS` | in a check: tests to run, 1 to 1000 (default 10)                                                                  |
 | `PW_SEC_CONFIG`    | path of a package config file (`.json`, or a module with a default export); wins over `withSecurity()`'s argument |
 | `PW_SEC_RUN_ID`    | id of the run, set by the package for the workers; do not set it yourself                                         |
 | `PW_SEC_RUN_SALT`  | redaction salt of the run, set by the package; do not set it yourself                                             |
 
-`PW_SEC_ENV` is 1 to 32 lowercase letters, digits and `-`, starting with a letter or a digit. An
-invalid label stops the run before the tests with [`ENV_INVALID`](troubleshooting.md#env_invalid);
-an invalid `PW_SEC_MAX_TESTS` with [`MAX_TESTS_INVALID`](troubleshooting.md#max_tests_invalid).
+An invalid `PW_SEC_MAX_TESTS` stops a check before the tests with
+[`MAX_TESTS_INVALID`](troubleshooting.md#max_tests_invalid). `PW_SEC_ENV` (environment labels of
+0.2) is no longer read: when set, the run warns with
+[`ENV_REMOVED`](troubleshooting.md#env_removed).
 
 ## Windows
 
@@ -108,7 +107,7 @@ failure from a test failure. In a `baseline` run new findings never fail the run
 
 ## Console output
 
-The run starts with a banner (mode, environment, scope, rules, gate, baseline, report) and ends
+The run starts with a banner (mode, scope, rules, gate, baseline, report) and ends
 with a summary of at most 30 lines: errors and warnings in boxes, the counters and the blocking
 findings in tables, the verdict in a box (`✅ PASSED`, `⚠ PASSED WITH WARNINGS`, `❌ FAILED`,
 `❌ ERROR`) with the result name and code, and one `Report:` line with the absolute path of the

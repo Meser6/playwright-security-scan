@@ -26,7 +26,7 @@ run and what the scan does not cover. 1000 findings open in under two seconds.
 
 ## JSON
 
-`report.json` follows `schemas/run-report.schema.json` of the package: mode, environment label,
+`report.json` follows `schemas/run-report.schema.json` of the package (`schemaVersion` 2): mode,
 scope, coverage (responses per origin and endpoint, traffic outside the scope, bodies analysed and
 skipped, rules run), every finding with its classification and baseline entry, resolved and not
 covered entries, tests without traffic, diagnostics and the outcome.
@@ -35,10 +35,9 @@ covered entries, tests without traffic, diagnostics and the outcome.
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "code": 1,
   "name": "NEW_FINDINGS",
-  "env": null,
   "testsPassed": true,
   "newBlocking": 2,
   "newNonBlocking": 5,
@@ -54,13 +53,13 @@ covered entries, tests without traffic, diagnostics and the outcome.
 findings (`report.sarifIncludeAccepted: true` adds baseline entries as suppressed results with the
 note as justification). A scanner of the traffic knows no line of your application code, so each
 result points to the **test** that first saw it; its fingerprint keeps GitHub from duplicating
-alerts when the test moves. The category is `pw-sec`, or `pw-sec/<env>` with an
-[environment label](baseline.md#one-baseline-per-environment).
+alerts when the test moves. The category is `pw-sec` (`automationDetails.id` is
+`pw-sec/<runId>`); for several environments set `category` in the upload step, see
+[Several environments](faq.md#several-environments).
 
 ## JUnit XML
 
-One `<testsuites name="pw-sec">` (`pw-sec (<env>)` with a label), one suite per rule group and one
-test case per finding:
+One `<testsuites name="pw-sec">`, one suite per rule group and one test case per finding:
 
 | Finding                           | Test case                                                 |
 | --------------------------------- | --------------------------------------------------------- |

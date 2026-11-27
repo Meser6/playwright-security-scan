@@ -21,7 +21,6 @@ function answers(...list: string[]): () => Prompt {
 }
 
 const READY: CheckInput = {
-  env: null,
   tests: { ran: 2, selected: 5, passed: 2, failed: 0, skipped: 3 },
   maxTests: 10,
   origins: [{ origin: 'http://localhost:3000', source: 'baseURL', responses: 12, documents: 2 }],
@@ -106,9 +105,8 @@ async function wizardWithCheck(
   cpSync(join(import.meta.dirname, '../../projects/init-ts-fixtures'), dir, { recursive: true });
   const fake = fakeCliHost({
     cwd: dir,
-    // tutorial, language, Enter, preset, gate, origins, environments, command, four changes,
-    // the check.
-    prompt: answers('y', 'en', '', '', '', '', 'n', '', 'y', 'y', 'y', 'y', 'y'),
+    // tutorial, language, Enter, preset, gate, origins, command, four changes, the check.
+    prompt: answers('y', 'en', '', '', '', '', '', 'y', 'y', 'y', 'y', 'y'),
     onSpawn: (f) => {
       if (input !== null) f.child.print(printed(input, false));
       f.child.exit(code);
@@ -156,7 +154,7 @@ describe('init wizard: the check (11, chapter 7)', () => {
     cpSync(join(import.meta.dirname, '../../projects/init-ts-fixtures'), dir, { recursive: true });
     const fake = fakeCliHost({
       cwd: dir,
-      prompt: answers('y', 'en', '', '', '', '', 'n', '', 'y', 'y', 'y', 'y', 'y'),
+      prompt: answers('y', 'en', '', '', '', '', '', 'y', 'y', 'y', 'y', 'y'),
       onSpawn: (f) => f.child.exit(null, 'SIGINT'),
     });
     expect(await main([], fake.host)).toBe(130);

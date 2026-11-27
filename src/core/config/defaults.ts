@@ -28,7 +28,6 @@ export const DEFAULTS: Omit<ResolvedSecurityConfig, 'rules' | 'normalization'> =
     failOnNoTraffic: true,
   },
   baseline: { path: 'security-baseline.json', pruneResolved: true, requireNote: false },
-  run: { env: null },
   report: {
     dir: 'reports/pw-sec',
     html: true,

@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Removed
+
+- Environment labels: `PW_SEC_ENV`, the `run.env` option, `security-baseline.<env>.json` files, the `env` field of the baseline file, `report.json` and `outcome.json`, the environment in the console, HTML report, SARIF category and JUnit root, and the environments step of the guided setup (now eight steps, `[1/8]` to `[8/8]`). A set `PW_SEC_ENV` only gives the warning `ENV_REMOVED`; `run.env` in the config is an unknown option (`CONFIG_UNKNOWN_OPTION`); an `env` field in an existing baseline file is ignored and dropped by the next `baseline` run. For several environments, set `baseline.path` from your own variable (`docs/faq.md`, "Several environments"). `report.json` and `outcome.json` now have `schemaVersion: 2`. The codes `ENV_INVALID`, `BASELINE_ENV_MISSING` and `BASELINE_ENV_MISMATCH` are gone.
+
 ### Changed
 
 - The check of the guided setup (`npx pw-sec`) is one quick trial run with `PW_SEC_MODE=check` (up to 10 tests, nothing written) instead of three runs (`check`, `baseline`, `scan` with a temporary baseline). Its result is read from the check output: "The scan sees your app's traffic." or the cause (no traffic in scope with the origins seen outside it, or the first error). The internal `PW_SEC_BASELINE_DIR` variable is gone.

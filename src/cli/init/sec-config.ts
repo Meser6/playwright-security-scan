@@ -6,14 +6,12 @@ import type { Preset } from '../../core/config/index.ts';
 import type { Severity } from '../../core/types/index.ts';
 import { DOCS_URL, PACKAGE_NAME } from '../constants.ts';
 
-/** The answers of the wizard (steps 2 to 6). */
+/** The answers of the wizard (steps 2 to 6; step IDs of 11, chapter 4). */
 export interface InitAnswers {
   preset: Preset;
   minSeverity: Severity;
   /** Origins of step 4 (scope.origins). */
   origins: string[];
-  /** Environment labels of step 5; empty: one baseline. */
-  envs: string[];
   /** The test command of step 6. */
   command: string;
   /** Run the check of step 8 (a terminal and step 6 not skipped). */
@@ -119,8 +117,7 @@ function sections(a: InitAnswers): Section[] {
           key: 'path',
           value: d.baseline.path,
           default: d.baseline.path,
-          comment:
-            'Relative to the Playwright config; with PW_SEC_ENV=qa it becomes security-baseline.qa.json.',
+          comment: 'Relative to the Playwright config.',
         },
         {
           key: 'requireNote',
@@ -172,7 +169,6 @@ export function renderSecConfig(a: InitAnswers, format: ConfigFormat): string {
     ...(format === 'ts' ? [] : ['// @ts-check']),
     `// Config of ${PACKAGE_NAME}. Every option: ${DOCS_URL}/configuration.md`,
     '// Objects are merged with the defaults; an array you set replaces the default one.',
-    '// One baseline per environment: set PW_SEC_ENV=<label> (or run.env here).',
     format === 'cjs'
       ? `const { defineSecurityConfig } = require('${PACKAGE_NAME}/config');`
       : `import { defineSecurityConfig } from '${PACKAGE_NAME}/config';`,

@@ -33,8 +33,6 @@ export interface SecurityConfigInput {
     failOnNoTraffic?: boolean;
   };
   baseline?: { path?: string; pruneResolved?: boolean; requireNote?: boolean };
-  /** Environment label (08-REQ-13); PW_SEC_ENV overrides it. */
-  run?: { env?: string };
   report?: {
     dir?: string;
     html?: boolean;
@@ -74,7 +72,6 @@ export interface ResolvedSecurityConfig {
     failOnNoTraffic: boolean;
   };
   baseline: { path: string; pruneResolved: boolean; requireNote: boolean };
-  run: { env: string | null };
   report: {
     dir: string;
     html: boolean;

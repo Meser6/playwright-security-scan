@@ -1,5 +1,5 @@
-// The init wizard (11): the tutorial question (0a), the language (0) and nine steps, each with a
-// short lesson. Interactive only when stdin and stdout are terminals; without a terminal it takes
+// The init wizard (11): the tutorial question (0a), the language (0) and eight steps shown as
+// [n/8] (step IDs of 11, chapter 4, without step 5, D-17), each with a short lesson. Interactive only when stdin and stdout are terminals; without a terminal it takes
 // the default answers and only shows the plan, like PW_SEC_DRY_RUN=1 (11-REQ-04). Declining the
 // tutorial (or PW_SEC_NO_TUTORIAL=1) prints the manual setup and changes nothing. Texts in the
 // chosen language (11-REQ-05), colors by 04-REQ-05. Nothing is written before step 7 (11-REQ-14).
@@ -9,7 +9,6 @@ import type { BoxLine } from '../../core/report/term/box.ts';
 import { SEVERITIES } from '../../core/types/index.ts';
 import type { Severity } from '../../core/types/index.ts';
 import type { Preset } from '../../core/config/index.ts';
-import { ENV_LABEL } from '../../core/config/index.ts';
 import { colorEnabled, painter } from '../../core/report/term/color.ts';
 import type { ColorStyle, Painter } from '../../core/report/term/color.ts';
 import { BINARY_NAME, DOCS_URL, INIT_COMMAND, PACKAGE_NAME, REPORT_DIR } from '../constants.ts';
@@ -63,8 +62,8 @@ export function versionAtLeast(version: string, minimum: string): boolean {
   return true;
 }
 
-/** Steps shown as [n/9] (11, chapter 4); a skipped step keeps its number. */
-const STEPS = 9;
+/** Steps shown as [n/8] (11, chapter 4; no environment step, D-17); a skipped step keeps its number. */
+const STEPS = 8;
 /** Step 0a and step 0 come before the language is known: English (11, chapter 4). */
 const TUTORIAL_QUESTION = `Set up ${PACKAGE_NAME} with a guided tutorial?`;
 const LANGUAGE_QUESTION = `Language / Język? [${LANGUAGES.join('/')}]`;
@@ -108,7 +107,7 @@ class Dialog {
     this.say(`${indent}${this.paint(text, style)}`);
   }
 
-  /** Step header in cyan ("[1/9] The package") and the lesson dimmed. */
+  /** Step header in cyan ("[1/8] The package") and the lesson dimmed. */
   step(n: number | string, title: string, ...lesson: string[]): void {
     this.say('', this.paint(`[${n}/${STEPS}] ${title}`, 'cyan'));
     for (const l of lesson) this.line(l, 'dim');
@@ -217,14 +216,11 @@ function printUsage(dialog: Dialog, platform: string, configFile: string): void 
   dialog.line(t('usageCommand'), 'dim');
   dialog.say(
     `  ${paint(t('variablesTitle'), 'bold')}`,
-    ...table([
-      ['PW_SEC_ENV=<label>', t('varEnv')],
-      ['PW_SEC_MAX_TESTS=<n>', t('varMaxTests')],
-    ]),
+    ...table([['PW_SEC_MAX_TESTS=<n>', t('varMaxTests')]]),
     `  ${paint(t('filesTitle'), 'bold')}`,
     ...table([
       [configFile, t('fileConfig')],
-      ['security-baseline*.json', t('fileBaseline')],
+      [BASELINE_FILE, t('fileBaseline')],
       [`${REPORT_DIR}/`, t('fileReport')],
     ]),
   );
@@ -333,23 +329,8 @@ async function askAnswers(dialog: Dialog, info: ProjectInfo): Promise<InitAnswer
     () => t('originsInvalid', { value: badOrigin.value }),
   );
 
-  dialog.stepOf(5, 'stepEnvs', 'envsLesson');
-  const several = await dialog.confirm(t('envsQuestion'), false);
-  let envs: string[] = [];
-  if (several) {
-    const badLabel = { value: '' };
-    envs = await dialog.ask<string[]>(
-      t('envsLabels'),
-      '-',
-      [],
-      (a) => listAnswer(a, (x) => (ENV_LABEL.test(x) ? x : null), badLabel),
-      '-',
-      () => t('envsInvalid', { value: badLabel.value }),
-    );
-  }
-
   // Step 6: the test command C as typed; Enter keeps the default, 'skip' also skips the check.
-  dialog.stepOf(6, 'stepCommand', 'commandLesson1', 'commandLesson2');
+  dialog.stepOf(5, 'stepCommand', 'commandLesson1', 'commandLesson2');
   const suggested = defaultTestCommand(info.packageManager, info.scriptTexts);
   // An answer is never empty (Enter gives the default), so '' stands for 'skip'.
   const typed = await dialog.ask<string>(
@@ -366,7 +347,7 @@ async function askAnswers(dialog: Dialog, info: ProjectInfo): Promise<InitAnswer
   if (scriptHints(command, info.scriptTexts).reporter)
     dialog.line(`⚠ ${t('commandReporter')}`, 'yellow');
 
-  return { preset, minSeverity, origins, envs, command, runCheck: dialog.interactive && !skipped };
+  return { preset, minSeverity, origins, command, runCheck: dialog.interactive && !skipped };
 }
 
 /** Words of `text` in lines of at most `width` characters. */
@@ -585,12 +566,8 @@ async function runCheck(
   }
 }
 
-/** Baseline files to review and commit: one per environment label, else the default one. */
-function baselineFiles(answers: InitAnswers): string[] {
-  return answers.envs.length === 0
-    ? ['security-baseline.json']
-    : answers.envs.map((env) => `security-baseline.${env}.json`);
-}
+/** The baseline file the wizard leaves at its default (baseline.path). */
+const BASELINE_FILE = 'security-baseline.json';
 
 export async function runInit(
   cmd: InitCommand,
@@ -658,10 +635,10 @@ export async function runInit(
 
     const answers = await askAnswers(dialog, info);
     const plan = planInitChanges(info, answers, lang);
-    const commands = runCommands(answers.command, host.platform, answers.envs);
+    const commands = runCommands(answers.command, host.platform);
 
     dialog.stepOf(
-      7,
+      6,
       'stepChanges',
       plan.changes.length === 0 ? 'nothingToChange' : 'changesLesson',
     );
@@ -696,7 +673,7 @@ export async function runInit(
     const wrapped = info.existing.wrappedConfig || written.includes(configPath);
     const setUp = written.length > 0 || plan.changes.length === 0;
     let checkResult: CheckResult | null = null;
-    dialog.stepOf(8, 'stepCheck', 'checkLesson');
+    dialog.stepOf(7, 'stepCheck', 'checkLesson');
     if (answers.runCheck && write && setUp && wrapped && testObject === null) {
       if (await dialog.confirm(t('checkQuestion'), true)) {
         prompt?.close();
@@ -711,7 +688,7 @@ export async function runInit(
       dialog.line(t('skipped'), 'dim');
     }
 
-    dialog.step(9, t('stepSummary'));
+    dialog.step(8, t('stepSummary'));
     if (written.length > 0) {
       dialog.say(
         `  ${t('changedFiles')}`,
@@ -751,7 +728,7 @@ export async function runInit(
         {
           t,
           commands,
-          files: baselineFiles(answers),
+          files: [BASELINE_FILE],
           reportDir: REPORT_DIR,
           fixFirst: redBox !== null,
           windows: host.platform === 'win32',

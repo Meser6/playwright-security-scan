@@ -63,12 +63,11 @@ function report(count: number): RunReport {
   coverage.rulesRun['header.xcto-missing'] = 30;
   const findings = Array.from({ length: count }, (_, i) => finding(i));
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     runId: 'r1',
     startedAt: '2026-11-24T20:00:00.000Z',
     finishedAt: '2026-11-24T20:05:00.000Z',
     mode: 'scan',
-    env: null,
     pkgVersion: '0.1.0',
     playwrightVersion: '1.57.0',
     scope: { origins: ['https://shop.test'] },
@@ -99,9 +98,8 @@ function report(count: number): RunReport {
     },
     diagnostics: [{ code: 'BODY_READ_FAILED', level: 'info', message: 'one body' }],
     outcome: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       code: 1,
-      env: null,
       name: 'NEW_FINDINGS',
       testsPassed: true,
       newBlocking: 143,

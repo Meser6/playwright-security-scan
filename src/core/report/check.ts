@@ -20,7 +20,6 @@ export interface CheckOrigin {
 }
 
 export interface CheckInput {
-  env: string | null;
   tests: { ran: number; selected: number; passed: number; failed: number; skipped: number };
   maxTests: number;
   origins: CheckOrigin[];
@@ -73,7 +72,6 @@ export function formatCheck(c: CheckInput, opts: TerminalOptions): string[] {
       [
         PACKAGE_NAME,
         'check',
-        ...(c.env === null ? [] : [`env: ${c.env}`]),
         `${t.ran} of ${plural(t.selected, 'test')} run (${t.passed} passed${failed})`,
         `${t.skipped} skipped by check (PW_SEC_MAX_TESTS=${c.maxTests})`,
       ].join(' · '),
@@ -212,9 +210,8 @@ export function formatCheck(c: CheckInput, opts: TerminalOptions): string[] {
     ),
   );
   // Next (item 7).
-  const envPart = c.env === null ? '' : ` PW_SEC_ENV=${c.env}`;
   lines.push(
-    `${paint('Next:', 'bold')} ${paint(`PW_SEC_MODE=baseline${envPart} npx playwright test`, 'cyan')}   ${paint('(the first baseline; review it before commit)', 'dim')}`,
+    `${paint('Next:', 'bold')} ${paint('PW_SEC_MODE=baseline npx playwright test', 'cyan')}   ${paint('(the first baseline; review it before commit)', 'dim')}`,
   );
   return lines;
 }

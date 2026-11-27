@@ -11,7 +11,6 @@
     "startedAt",
     "finishedAt",
     "mode",
-    "env",
     "pkgVersion",
     "playwrightVersion",
     "scope",
@@ -26,7 +25,8 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "description": "Version 2 (02-REQ-06): without the env field of version 1.",
+      "const": 2
     },
     "runId": {
       "type": "string"
@@ -39,10 +39,6 @@
     },
     "mode": {
       "enum": ["scan", "baseline"]
-    },
-    "env": {
-      "description": "Environment label of the run, or null (08-REQ-16).",
-      "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" }]
     },
     "pkgVersion": {
       "type": "string"

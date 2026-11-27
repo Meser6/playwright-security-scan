@@ -54,9 +54,8 @@ describe('init wizard on a real project (11, chapter 7)', () => {
         stdin: { isTTY: true },
         stdout: { write: (text: string) => out.push(text), isTTY: true, columns: 100 },
         stderr: { write: (text: string) => out.push(text) },
-        // tutorial, language, Enter, preset, gate, origins, environments, command, four changes,
-        // the check.
-        createPrompt: answers('y', 'en', '', '', '', '', 'n', '', 'y', 'y', 'y', 'y', 'y'),
+        // tutorial, language, Enter, preset, gate, origins, command, four changes, the check.
+        createPrompt: answers('y', 'en', '', '', '', '', '', 'y', 'y', 'y', 'y', 'y'),
       };
       const code = await main([], host);
       const text = out.join('');

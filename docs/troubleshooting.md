@@ -57,11 +57,12 @@ the scan off.
 `PW_SEC_MODE=active` is reserved for the active scan of later versions. This version is passive
 only.
 
-### ENV_INVALID
+### ENV_REMOVED
 
-`PW_SEC_ENV` is not an environment label. Use 1 to 32 lowercase letters, digits and `-`, starting
-with a letter or a digit (e.g. `qa`, `staging-eu`). An invalid `run.env` in the config is reported
-as `CONFIG_INVALID_VALUE`.
+**Warning.** `PW_SEC_ENV` is set, but environment labels were removed after 0.2: the value is ignored
+and the run uses `baseline.path` (`security-baseline.json` by default). Remove the variable; for
+several environments see [Several environments](faq.md#several-environments). A `run.env` option
+left in the config is reported as [`CONFIG_UNKNOWN_OPTION`](#config_unknown_option).
 
 ### MAX_TESTS_INVALID
 
@@ -199,20 +200,6 @@ A `false-positive` entry has an `until` date. False positives never expire; remo
 ### BASELINE_NOTE_REQUIRED
 
 `baseline.requireNote` is on and accepted entries have no `note`. Add the reason of each decision.
-
-### BASELINE_ENV_MISSING
-
-**Warning.** An environment label is set (`PW_SEC_ENV` or `run.env`), its baseline file (e.g.
-`security-baseline.qa.json`) does not exist, but the file without a label does. The file without a
-label is not used for a labelled run, so every finding is new. Run
-`PW_SEC_MODE=baseline PW_SEC_ENV=qa npx playwright test` and commit the new file, or copy the file
-without a label to the labelled name.
-
-### BASELINE_ENV_MISMATCH
-
-**Warning.** The baseline file records another environment label (`"env"`) than the one of this
-run, or the run has no label. Check `PW_SEC_ENV` and `run.env`; the findings are still classified
-against the file.
 
 ### PARTIAL_RUN
 

@@ -32,8 +32,6 @@ export interface TerminalOptions {
 
 export interface BannerInput {
   mode: 'scan' | 'baseline' | 'check';
-  /** Environment label (08-REQ-16); the row is left out without one. */
-  env?: string | null;
   scope: string[];
   enabledRules: number;
   preset: string;
@@ -76,7 +74,6 @@ function issueBox(
 export function formatBanner(b: BannerInput, opts: TerminalOptions): string[] {
   const rows: [string, string][] = [
     ['Mode', `${b.mode} · passive only`],
-    ...(b.env == null ? [] : [['Env', b.env] as [string, string]]),
     [
       'Scope',
       b.scope.length === 0 ? '(none: set use.baseURL or scope.origins)' : b.scope.join(', '),
@@ -342,7 +339,6 @@ export function formatSummary(
       [
         PACKAGE_NAME,
         `mode: ${report.mode}`,
-        ...(report.env === null ? [] : [`env: ${report.env}`]),
         `${c.responses} responses in scope${c.apiResponses > 0 ? ` (${c.apiResponses} API)` : ''}`,
         plural(Object.keys(c.endpoints).length, 'endpoint'),
         plural(c.documents, 'document'),

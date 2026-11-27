@@ -12,7 +12,6 @@ import type {
   TestResult,
 } from '@playwright/test/reporter';
 import {
-  baselineFileFor,
   classify,
   missingNotes,
   outcome as computeOutcome,
@@ -175,7 +174,7 @@ export default class SecurityReporter implements Reporter {
         notes.push(w);
       }
       let entries: number | null = null;
-      const baselineName = baselineFileFor(sec.baseline.path, sec.run.env);
+      const baselineName = sec.baseline.path;
       const file = this.#path(baselineName);
       if (existsSync(file)) {
         try {
@@ -189,7 +188,6 @@ export default class SecurityReporter implements Reporter {
       const banner = formatBanner(
         {
           mode,
-          env: sec.run.env,
           scope,
           enabledRules: enabledRuleCount(sec),
           preset: sec.preset,
@@ -287,7 +285,7 @@ export default class SecurityReporter implements Reporter {
         .filter(([, r]) => r.enabled)
         .map(([id]) => id),
     );
-    const baselineName = baselineFileFor(sec.baseline.path, sec.run.env);
+    const baselineName = sec.baseline.path;
     const baselinePath = this.#path(baselineName);
     let baseline: BaselineFile | undefined;
     let baselineState = `${baselineName} (not found)`;
@@ -336,7 +334,6 @@ export default class SecurityReporter implements Reporter {
     const max = readMaxTests(process.env);
     const lines = formatCheck(
       {
-        env: sec.run.env,
         tests: { ran, selected: tests.length, passed, failed, skipped },
         maxTests: max.ok ? max.maxTests : 10,
         origins,
@@ -373,9 +370,8 @@ export default class SecurityReporter implements Reporter {
     const coverage = sortCoverage(this.#coverage);
     const date = today();
 
-    // Baseline file (08), per environment label (08-REQ-14).
-    const env = sec.run.env;
-    const baselineName = baselineFileFor(sec.baseline.path, env);
+    // Baseline file (08): only baseline.path (D-17).
+    const baselineName = sec.baseline.path;
     const baselinePath = this.#path(baselineName);
     let baseline: BaselineFile | undefined;
     let baselineOk = true;
@@ -389,19 +385,6 @@ export default class SecurityReporter implements Reporter {
       for (const d of parsed.diagnostics) this.#diag(d);
       if (parsed.ok) baseline = parsed.file;
       else baselineOk = false;
-      if (parsed.ok && parsed.file.env !== undefined && parsed.file.env !== env) {
-        this.#diag({
-          code: 'BASELINE_ENV_MISMATCH',
-          level: 'warn',
-          message: `${baselineName} was written for the environment "${parsed.file.env}", but this run ${env === null ? 'has no environment label' : `is "${env}"`}; check PW_SEC_ENV and run.env`,
-        });
-      }
-    } else if (env !== null && existsSync(this.#path(sec.baseline.path))) {
-      this.#diag({
-        code: 'BASELINE_ENV_MISSING',
-        level: 'warn',
-        message: `${baselineName} does not exist, so ${sec.baseline.path} (without a label) is not used for "${env}"; run PW_SEC_MODE=baseline with PW_SEC_ENV=${env}, or copy the file`,
-      });
     }
     if (mode === 'scan' && sec.baseline.requireNote) {
       for (const d of missingNotes(baseline)) this.#diag(d);
@@ -438,7 +421,6 @@ export default class SecurityReporter implements Reporter {
         today: date,
         generatedBy: `playwright-security-scan@${VERSION}`,
         prune: sec.baseline.pruneResolved && !partial,
-        env,
       });
       try {
         mkdirSync(dirname(baselinePath), { recursive: true });
@@ -457,15 +439,13 @@ export default class SecurityReporter implements Reporter {
       testsPassed: result.status === 'passed',
       responses: coverage.responses,
       gate,
-      env,
     });
     const report: RunReport = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       runId: process.env[RUN_ID_ENV] ?? getRegistered()?.runId ?? '',
       startedAt: this.#startedAt.toISOString(),
       finishedAt: new Date().toISOString(),
       mode,
-      env,
       pkgVersion: VERSION,
       playwrightVersion: this.#config?.version ?? '',
       scope: { origins: scope },

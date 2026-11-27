@@ -9,9 +9,8 @@ export interface RunCommands {
   /** The test command as the user runs it (step 6). */
   base: string;
   check: string;
-  /** One baseline command per environment label of step 5, or one without a label. */
-  baseline: string[];
-  scan: string[];
+  baseline: string;
+  scan: string;
 }
 
 /** The default C for the package manager (perf 04-REQ-55). */
@@ -84,24 +83,13 @@ export function scriptHints(
 }
 
 /**
- * The run commands of every mode (11-REQ-13): `PW_SEC_MODE=m C` with C as typed, with
- * `PW_SEC_ENV=<label>` for each environment label of step 5, on Windows with cross-env.
+ * The run commands of every mode (11-REQ-13): `PW_SEC_MODE=m C` with C as typed, on Windows with
+ * cross-env.
  */
-export function runCommands(
-  command: string,
-  platform: string,
-  envs: readonly string[] = [],
-): RunCommands {
+export function runCommands(command: string, platform: string): RunCommands {
   const prefix = platform === 'win32' ? 'npx cross-env ' : '';
-  const mode = (m: string, env?: string): string =>
-    `${prefix}PW_SEC_MODE=${m}${env === undefined ? '' : ` PW_SEC_ENV=${env}`} ${command}`;
-  const labels: (string | undefined)[] = envs.length === 0 ? [undefined] : [...envs];
-  return {
-    base: command,
-    check: mode('check'),
-    baseline: labels.map((env) => mode('baseline', env)),
-    scan: labels.map((env) => mode('scan', env)),
-  };
+  const mode = (m: string): string => `${prefix}PW_SEC_MODE=${m} ${command}`;
+  return { base: command, check: mode('check'), baseline: mode('baseline'), scan: mode('scan') };
 }
 
 export interface CheckRun {

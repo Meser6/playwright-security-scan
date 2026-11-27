@@ -4,10 +4,9 @@
 +reports/pw-sec/
 --- /dev/null
 +++ b/pw-sec.config.ts
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,48 @@
 +// Config of playwright-security-scan. Every option: https://github.com/Meser6/playwright-security-scan/blob/main/docs/configuration.md
 +// Objects are merged with the defaults; an array you set replaces the default one.
-+// One baseline per environment: set PW_SEC_ENV=<label> (or run.env here).
 +import { defineSecurityConfig } from 'playwright-security-scan/config';
 +
 +export default defineSecurityConfig({
@@ -41,8 +40,7 @@
 +
 +  // The baseline file you commit.
 +  baseline: {
-+    // Relative to the Playwright config; with PW_SEC_ENV=qa it becomes
-+    // security-baseline.qa.json.
++    // Relative to the Playwright config.
 +    path: 'security-baseline.json',
 +    // Require a note on every accepted entry.
 +    requireNote: false,

@@ -31,7 +31,25 @@ it never expires, and the entry stays even when the finding is gone.
 - The fingerprint changed: the subject is part of it, so a renamed cookie, a moved origin or a new
   endpoint key is a new finding. Run `baseline` again and remove the old entry if it is not
   resolved automatically.
-- Another environment: with `PW_SEC_ENV` the scan reads `security-baseline.<env>.json`.
+
+## Several environments
+
+The package has one baseline file per configuration (`baseline.path`); there is no environment
+setting. Most teams scan one test environment. When the same tests really run against several
+environments whose headers or cookies differ, pick the file from your own variable in
+`pw-sec.config.ts`:
+
+```ts
+import { defineSecurityConfig } from 'playwright-security-scan/config';
+
+export default defineSecurityConfig({
+  baseline: { path: `security-baseline.${process.env.TEST_ENV ?? 'qa'}.json` },
+});
+```
+
+Run `baseline` and `scan` once per environment with `TEST_ENV` set, and commit each file. For SARIF
+in GitHub code scanning give each upload its own `category` (`category: pw-sec-${{ matrix.env }}`
+in `github/codeql-action/upload-sarif`), so one environment does not close the alerts of another.
 
 ## The scan says NO_TRAFFIC
 

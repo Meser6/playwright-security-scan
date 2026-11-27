@@ -15,7 +15,7 @@ const INDENT = 3;
 export interface ImportantBoxInput {
   t: Translate;
   commands: RunCommands;
-  /** Baseline files to review and commit (one per environment label). */
+  /** Baseline files to review and commit. */
   files: readonly string[];
   /** report.dir, relative to the playwright.config directory. */
   reportDir: string;
@@ -59,7 +59,7 @@ export function importantBox(input: ImportantBoxInput, opts: ImportantBoxOptions
     ...(input.fixFirst ? [{ text: t('importantFixFirst'), style: 'red' } as const] : []),
     { text: '' },
     point(1, t('importantBaseline')),
-    ...commands.baseline.map(command),
+    command(commands.baseline),
     { text: '' },
     point(
       2,
@@ -69,7 +69,7 @@ export function importantBox(input: ImportantBoxInput, opts: ImportantBoxOptions
     point(3, t('importantCommit', { files: input.files.join(', ') })),
     { text: '' },
     point(4, t('importantScan')),
-    ...commands.scan.map(command),
+    command(commands.scan),
     under(t('importantResults', { outcome: `${reportDir}/outcome.json`, url: input.ciUrl })),
     ...(input.windows ? [{ text: '' }, { text: t('windowsNote'), style: 'dim' } as const] : []),
   ];

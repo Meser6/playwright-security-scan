@@ -123,29 +123,11 @@ Two branches that accept different findings both add entries to the file. With o
 fingerprint, sorted, the conflict is usually two neighbouring blocks: keep both sides, then run
 `PW_SEC_MODE=baseline` again to rewrite the file in order.
 
-## One baseline per environment
+## Several environments
 
-Headers, cookies and origins often differ between environments (a staging proxy, a production
-CDN), so one baseline for all of them mixes accepted risks. Give each environment its own file with
-an environment label:
-
-```sh
-PW_SEC_MODE=baseline PW_SEC_ENV=qa npx playwright test   # writes security-baseline.qa.json
-PW_SEC_MODE=scan PW_SEC_ENV=qa npx playwright test       # reads security-baseline.qa.json
-```
-
-`run.env` in the config sets a default label; `PW_SEC_ENV` overrides it. A label is 1 to 32
-lowercase letters, digits and `-`, starting with a letter or a digit; anything else stops the run
-before the tests ([`ENV_INVALID`](troubleshooting.md#env_invalid)).
-
-- A labelled run uses only its own file and never falls back to the file without a label. When
-  only that one exists, the run warns with
-  [`BASELINE_ENV_MISSING`](troubleshooting.md#baseline_env_missing): run `baseline` with the label,
-  or copy the file.
-- A `baseline` run writes the label into the file (`"env": "qa"`). A file used by a run with
-  another label warns with [`BASELINE_ENV_MISMATCH`](troubleshooting.md#baseline_env_mismatch).
-- The label is shown in the console and written to every report; in SARIF it is part of the
-  category, so GitHub code scanning keeps the alerts of each environment apart.
+There is one baseline file per configuration: `baseline.path`. For tests that run against several
+environments with different headers or cookies, see
+[Several environments](faq.md#several-environments).
 
 ## Invalid file
 

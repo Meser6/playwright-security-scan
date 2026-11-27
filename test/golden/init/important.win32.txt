@@ -2,19 +2,17 @@
 │ What to do next, in this order:                                              │
 │                                                                              │
 │ 1. Accept the current state into the baseline:                               │
-│    npx cross-env PW_SEC_MODE=baseline PW_SEC_ENV=qa npm run e2e              │
-│    npx cross-env PW_SEC_MODE=baseline PW_SEC_ENV=staging npm run e2e         │
+│    npx cross-env PW_SEC_MODE=baseline npm run e2e                            │
 │                                                                              │
-│ 2. Review security-baseline.qa.json, security-baseline.staging.json and      │
-│    reports/pw-sec/report.html: fix what is cheap to fix, add a note to each  │
-│    entry you accept, mark false positives as false-positive.                 │
+│ 2. Review security-baseline.json and reports/pw-sec/report.html: fix what is │
+│    cheap to fix, add a note to each entry you accept, mark false positives   │
+│    as false-positive.                                                        │
 │                                                                              │
-│ 3. Commit security-baseline.qa.json, security-baseline.staging.json.         │
+│ 3. Commit security-baseline.json.                                            │
 │                                                                              │
 │ 4. From then on run the scan, locally and in CI; it fails only on new        │
 │    findings:                                                                 │
-│    npx cross-env PW_SEC_MODE=scan PW_SEC_ENV=qa npm run e2e                  │
-│    npx cross-env PW_SEC_MODE=scan PW_SEC_ENV=staging npm run e2e             │
+│    npx cross-env PW_SEC_MODE=scan npm run e2e                                │
 │    Result and exit code details: reports/pw-sec/outcome.json. CI recipes:    │
 │    https://example.invalid/docs/ci.md                                        │
 │                                                                              │
