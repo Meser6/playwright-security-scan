@@ -158,16 +158,15 @@ const en = {
   finished: 'Setup finished.',
   stepCheck: 'Check',
   checkLesson:
-    "The check runs your test command three times, like real runs: a dry run (PW_SEC_MODE=check), then baseline and scan with the baseline in a temporary folder that is removed afterwards. Your project's baseline is not touched; reports go to the usual folder.",
-  checkQuestion: 'Run a check now?',
+    "The check runs your test command once with PW_SEC_MODE=check: at most 10 tests, nothing is written (no baseline, no reports). It answers one question: does the scan see your app's traffic?",
+  checkQuestion: 'Run a quick trial run now (one run of up to 10 tests, nothing is written)?',
   checkManual: 'The check cannot start the command here; run it yourself: {command}',
   checkExit: '{mode} run: exit code {code}',
   checkCause: 'Most likely cause: {cause}',
   checkNoTraffic:
     "no response was in scope: set use.baseURL or add your app's origin to scope.origins in {configFile}.",
-  checkUnstable:
-    'the scan found new findings right after the baseline: some traffic differs between runs (see the report).',
-  checkPassed: 'The check passed: the scan sees your traffic and the baseline works.',
+  checkOutOfScope: 'Traffic outside the scope: {origins}.',
+  checkPassed: "The scan sees your app's traffic.",
   runLine: 'Run: {command}',
   runLesson: 'A scan is your usual test command with PW_SEC_MODE set.',
   windowsNote: 'PowerShell and cmd forms of the commands: docs/cli.md (Windows).',
@@ -328,16 +327,16 @@ const pl: Messages = {
   finished: 'Konfiguracja zakończona.',
   stepCheck: 'Sprawdzenie',
   checkLesson:
-    'Sprawdzenie uruchamia polecenie testów trzy razy, jak prawdziwe runy: próbny przebieg (PW_SEC_MODE=check), potem baseline i scan z bazą w katalogu tymczasowym, usuwanym na końcu. Baza projektu nie jest ruszana; raporty trafiają do zwykłego katalogu.',
-  checkQuestion: 'Uruchomić teraz sprawdzenie?',
+    'Sprawdzenie uruchamia polecenie testów raz, z PW_SEC_MODE=check: najwyżej 10 testów, niczego nie zapisuje (ani bazy, ani raportów). Odpowiada na jedno pytanie: czy skan widzi ruch Twojej aplikacji?',
+  checkQuestion:
+    'Uruchomić teraz krótki próbny przebieg (jeden run, najwyżej 10 testów, nic nie jest zapisywane)?',
   checkManual: 'Sprawdzenie nie może tu uruchomić polecenia; uruchom je sam: {command}',
   checkExit: 'run {mode}: kod wyjścia {code}',
   checkCause: 'Najbardziej prawdopodobna przyczyna: {cause}',
   checkNoTraffic:
     'żadna odpowiedź nie była w zakresie: ustaw use.baseURL albo dodaj origin aplikacji do scope.origins w {configFile}.',
-  checkUnstable:
-    'skan znalazł nowe znaleziska zaraz po bazie: część ruchu różni się między runami (zobacz raport).',
-  checkPassed: 'Sprawdzenie przeszło: skan widzi Twój ruch, a baza działa.',
+  checkOutOfScope: 'Ruch spoza zakresu: {origins}.',
+  checkPassed: 'Skan widzi ruch Twojej aplikacji.',
   runLine: 'Uruchom: {command}',
   runLesson: 'Skan to Twoje zwykłe polecenie testów z ustawionym PW_SEC_MODE.',
   windowsNote: 'Postacie poleceń dla PowerShell i cmd: docs/cli.md (Windows).',
@@ -502,16 +501,16 @@ const es: Messages = {
   finished: 'Configuración terminada.',
   stepCheck: 'Comprobación',
   checkLesson:
-    'La comprobación ejecuta tu comando de tests tres veces, como ejecuciones reales: una prueba en seco (PW_SEC_MODE=check), luego baseline y scan con la línea base en una carpeta temporal que se borra al final. La línea base del proyecto no se toca; los informes van a la carpeta habitual.',
-  checkQuestion: '¿Ejecutar ahora la comprobación?',
+    'La comprobación ejecuta tu comando de tests una vez con PW_SEC_MODE=check: como mucho 10 tests, no escribe nada (ni línea base ni informes). Responde a una pregunta: ¿el escaneo ve el tráfico de tu aplicación?',
+  checkQuestion:
+    '¿Hacer ahora una ejecución de prueba rápida (una ejecución de hasta 10 tests, no se escribe nada)?',
   checkManual: 'La comprobación no puede ejecutar el comando aquí; ejecútalo tú: {command}',
   checkExit: 'ejecución {mode}: código de salida {code}',
   checkCause: 'Causa más probable: {cause}',
   checkNoTraffic:
     'ninguna respuesta estaba en el alcance: define use.baseURL o añade el origen de tu aplicación a scope.origins en {configFile}.',
-  checkUnstable:
-    'el escaneo encontró hallazgos nuevos justo después de la línea base: parte del tráfico cambia entre ejecuciones (ver el informe).',
-  checkPassed: 'La comprobación pasó: el escaneo ve tu tráfico y la línea base funciona.',
+  checkOutOfScope: 'Tráfico fuera del alcance: {origins}.',
+  checkPassed: 'El escaneo ve el tráfico de tu aplicación.',
   runLine: 'Ejecuta: {command}',
   runLesson: 'Un escaneo es tu comando de tests habitual con PW_SEC_MODE definido.',
   windowsNote: 'Formas de los comandos para PowerShell y cmd: docs/cli.md (Windows).',
@@ -676,17 +675,17 @@ const fr: Messages = {
   finished: 'Configuration terminée.',
   stepCheck: 'Vérification',
   checkLesson:
-    'La vérification lance votre commande de tests trois fois, comme de vraies exécutions : un essai à blanc (PW_SEC_MODE=check), puis baseline et scan avec la référence dans un dossier temporaire supprimé à la fin. La référence du projet n’est pas touchée ; les rapports vont dans le dossier habituel.',
-  checkQuestion: 'Lancer la vérification maintenant ?',
+    'La vérification lance votre commande de tests une fois avec PW_SEC_MODE=check : au plus 10 tests, rien n’est écrit (ni référence, ni rapports). Elle répond à une question : le scan voit-il le trafic de votre application ?',
+  checkQuestion:
+    'Lancer maintenant un essai rapide (une exécution d’au plus 10 tests, rien n’est écrit) ?',
   checkManual:
     'La vérification ne peut pas lancer la commande ici ; lancez-la vous-même : {command}',
   checkExit: 'exécution {mode} : code de sortie {code}',
   checkCause: 'Cause la plus probable : {cause}',
   checkNoTraffic:
     'aucune réponse n’était dans le périmètre : définissez use.baseURL ou ajoutez l’origine de votre application à scope.origins dans {configFile}.',
-  checkUnstable:
-    'le scan a trouvé de nouveaux résultats juste après la référence : une partie du trafic change d’une exécution à l’autre (voir le rapport).',
-  checkPassed: 'La vérification a réussi : le scan voit votre trafic et la référence fonctionne.',
+  checkOutOfScope: 'Trafic hors du périmètre : {origins}.',
+  checkPassed: 'Le scan voit le trafic de votre application.',
   runLine: 'Lancez : {command}',
   runLesson: 'Un scan, c’est votre commande de tests habituelle avec PW_SEC_MODE défini.',
   windowsNote: 'Formes des commandes pour PowerShell et cmd : docs/cli.md (Windows).',
@@ -849,16 +848,16 @@ const it: Messages = {
   finished: 'Configurazione completata.',
   stepCheck: 'Verifica',
   checkLesson:
-    'La verifica esegue il comando dei test tre volte, come esecuzioni vere: una prova a secco (PW_SEC_MODE=check), poi baseline e scan con la baseline in una cartella temporanea cancellata alla fine. La baseline del progetto non viene toccata; i report vanno nella cartella solita.',
-  checkQuestion: 'Eseguire ora la verifica?',
+    'La verifica esegue il comando dei test una volta con PW_SEC_MODE=check: al massimo 10 test, non scrive nulla (né baseline né report). Risponde a una domanda: la scansione vede il traffico della tua app?',
+  checkQuestion:
+    'Eseguire ora una prova rapida (un’esecuzione di al massimo 10 test, non viene scritto nulla)?',
   checkManual: 'La verifica non può avviare il comando qui; eseguilo tu: {command}',
   checkExit: 'esecuzione {mode}: codice di uscita {code}',
   checkCause: 'Causa più probabile: {cause}',
   checkNoTraffic:
     'nessuna risposta era nel perimetro: imposta use.baseURL o aggiungi l’origine dell’applicazione a scope.origins in {configFile}.',
-  checkUnstable:
-    'la scansione ha trovato risultati nuovi subito dopo la baseline: parte del traffico cambia tra un’esecuzione e l’altra (vedi il report).',
-  checkPassed: 'La verifica è passata: la scansione vede il tuo traffico e la baseline funziona.',
+  checkOutOfScope: 'Traffico fuori ambito: {origins}.',
+  checkPassed: 'La scansione vede il traffico della tua app.',
   runLine: 'Esegui: {command}',
   runLesson: 'Una scansione è il tuo solito comando di test con PW_SEC_MODE impostato.',
   windowsNote: 'Forme dei comandi per PowerShell e cmd: docs/cli.md (Windows).',
@@ -1016,16 +1015,16 @@ const uk: Messages = {
   finished: 'Налаштування завершено.',
   stepCheck: 'Перевірка',
   checkLesson:
-    'Перевірка запускає вашу команду тестів тричі, як справжні запуски: пробний запуск (PW_SEC_MODE=check), потім baseline і scan з базою в тимчасовому каталозі, який видаляється наприкінці. Базу проєкту не змінено; звіти потрапляють у звичайний каталог.',
-  checkQuestion: 'Запустити перевірку зараз?',
+    'Перевірка запускає вашу команду тестів один раз із PW_SEC_MODE=check: щонайбільше 10 тестів, нічого не записує (ні бази, ні звітів). Вона відповідає на одне питання: чи бачить сканування трафік вашого застосунку?',
+  checkQuestion:
+    'Запустити зараз швидкий пробний запуск (один запуск, до 10 тестів, нічого не записується)?',
   checkManual: 'Перевірка не може запустити команду тут; запустіть її самі: {command}',
   checkExit: 'запуск {mode}: код виходу {code}',
   checkCause: 'Найімовірніша причина: {cause}',
   checkNoTraffic:
     'жодна відповідь не була в межах: задайте use.baseURL або додайте origin застосунку до scope.origins у {configFile}.',
-  checkUnstable:
-    'сканування знайшло нові знахідки одразу після бази: частина трафіку різниться між запусками (див. звіт).',
-  checkPassed: 'Перевірку пройдено: сканування бачить ваш трафік, а база працює.',
+  checkOutOfScope: 'Трафік поза областю: {origins}.',
+  checkPassed: 'Сканування бачить трафік вашого застосунку.',
   runLine: 'Запуск: {command}',
   runLesson: 'Сканування — це ваша звичайна команда тестів із заданим PW_SEC_MODE.',
   windowsNote: 'Форми команд для PowerShell і cmd: docs/cli.md (Windows).',
@@ -1185,16 +1184,16 @@ const ru: Messages = {
   finished: 'Настройка завершена.',
   stepCheck: 'Проверка',
   checkLesson:
-    'Проверка запускает вашу команду тестов три раза, как настоящие запуски: пробный запуск (PW_SEC_MODE=check), затем baseline и scan с базой во временном каталоге, который удаляется в конце. База проекта не затрагивается; отчёты попадают в обычный каталог.',
-  checkQuestion: 'Запустить проверку сейчас?',
+    'Проверка запускает вашу команду тестов один раз с PW_SEC_MODE=check: не больше 10 тестов, ничего не записывает (ни базы, ни отчётов). Она отвечает на один вопрос: видит ли сканирование трафик вашего приложения?',
+  checkQuestion:
+    'Запустить сейчас быстрый пробный прогон (один запуск, до 10 тестов, ничего не записывается)?',
   checkManual: 'Проверка не может запустить команду здесь; запустите её сами: {command}',
   checkExit: 'запуск {mode}: код выхода {code}',
   checkCause: 'Наиболее вероятная причина: {cause}',
   checkNoTraffic:
     'ни один ответ не был в области: задайте use.baseURL или добавьте origin приложения в scope.origins в {configFile}.',
-  checkUnstable:
-    'сканирование нашло новые находки сразу после базы: часть трафика различается между запусками (см. отчёт).',
-  checkPassed: 'Проверка пройдена: сканирование видит ваш трафик, а база работает.',
+  checkOutOfScope: 'Трафик вне области: {origins}.',
+  checkPassed: 'Сканирование видит трафик вашего приложения.',
   runLine: 'Запуск: {command}',
   runLesson: 'Сканирование — это ваша обычная команда тестов с заданным PW_SEC_MODE.',
   windowsNote: 'Формы команд для PowerShell и cmd: docs/cli.md (Windows).',

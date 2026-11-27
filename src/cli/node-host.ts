@@ -2,8 +2,7 @@
 // the project and the check child process (perf 04-REQ-58, NF-05, V-03).
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { mkdir, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { MIN_PLAYWRIGHT_VERSION } from './constants.ts';
@@ -91,8 +90,6 @@ export function nodeHost(): CliHost {
       await mkdir(dirname(path), { recursive: true });
       await writeFile(path, text, 'utf8');
     },
-    makeTempDir: (prefix) => mkdtemp(join(tmpdir(), prefix)),
-    removeDir: (path) => rm(path, { recursive: true, force: true }),
     createPrompt: () => readlinePrompt(process.stdin, process.stdout),
   };
 }
