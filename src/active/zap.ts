@@ -23,6 +23,8 @@ export const PROBE_HEADER = 'x-pw-sec-probe';
 /** How long ZAP may take to answer after the start (19-REQ-04). */
 export const START_TIMEOUT_MS = 120_000;
 export const POLL_MS = 5_000;
+/** ZAP rules that start a browser in the container: 40026 Cross Site Scripting (DOM Based). */
+export const BROWSER_RULES = ['40026'];
 const CALL_TIMEOUT_MS = 60_000;
 const SEND_TIMEOUT_MS = 30_000;
 /** Without a terminal the progress line is printed every 30 s (19-REQ-07). */
@@ -421,6 +423,11 @@ export async function runAttack(o: AttackOptions): Promise<AttackRunData> {
       attackStrength: a.strength.toUpperCase(),
     });
     created.policy = policy;
+    // Rules that run a browser load page resources of other origins too (19-AC-03).
+    await zap.call('ascan/action/disableScanners', {
+      ids: BROWSER_RULES.join(','),
+      scanPolicyName: policy,
+    });
     await zap.call('ascan/action/setOptionThreadPerHost', { Integer: '1' });
     await zap.call('ascan/action/setOptionDelayInMs', {
       Integer: String(Math.ceil(1000 / a.maxRps)),

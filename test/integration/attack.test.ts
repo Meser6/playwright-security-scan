@@ -98,7 +98,10 @@ describe('attack mode without Docker (19)', () => {
       passed(r);
       expect(r.outcome?.code, r.output).toBe(3);
       expect(r.output).toContain('ATTACK_DOCKER_MISSING');
-      expect(r.output).toContain('install Docker or set attack.zapUrl');
+      // The console wraps long messages; the report has the whole text.
+      expect(
+        r.report?.diagnostics.find((d) => d.code === 'ATTACK_DOCKER_MISSING')?.message,
+      ).toContain('install Docker or set attack.zapUrl');
       expect(r.report?.mode).toBe('attack');
       expect(r.report?.attack?.completed).toBe(false);
       expect(r.report?.coverage.responses).toBeGreaterThan(0);

@@ -176,6 +176,10 @@ describe('the ZAP driver (19, chapter 5)', () => {
     expect(sent[0]?.params.followRedirects).toBe('false');
     const scan = f.calls.find((c) => c.path === 'ascan/action/scan')?.params;
     expect(scan).toMatchObject({ contextId: '1', inScopeOnly: 'true', recurse: 'true' });
+    expect(f.calls.find((c) => c.path === 'ascan/action/disableScanners')?.params).toEqual({
+      ids: '40026',
+      scanPolicyName: 'pw-sec-run1',
+    });
     expect(f.calls.find((c) => c.path === 'ascan/action/setOptionDelayInMs')?.params.Integer).toBe(
       '100',
     );
