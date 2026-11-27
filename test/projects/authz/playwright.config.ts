@@ -9,8 +9,6 @@ import type { SecurityConfigInput } from 'playwright-security-scan/config';
 // TEST_BROWSER: firefox or webkit in the informational browser cells of CI (10-AC-01).
 const browser = (process.env.TEST_BROWSER ?? 'chromium') as 'chromium' | 'firefox' | 'webkit';
 const app = process.env.APP_URL ?? '';
-// TEST_BROWSER: firefox or webkit in the informational browser cells of CI (10-AC-01).
-const browser = (process.env.TEST_BROWSER ?? 'chromium') as 'chromium' | 'firefox' | 'webkit';
 const authz: SecurityConfigInput['authz'] =
   process.env.AUTHZ === '1'
     ? {
@@ -40,7 +38,7 @@ export default withSecurity(
     testDir: './tests',
     workers: 2,
     reporter: [['json', { outputFile: 'results.json' }]],
-    use: { baseURL: app, ignoreHTTPSErrors: true, browserName: browser },
+    use: { baseURL: app, ignoreHTTPSErrors: true },
     projects: [
       { name: 'setup', testMatch: /auth\.setup\.ts/ },
       role('admin', 'admin'),
