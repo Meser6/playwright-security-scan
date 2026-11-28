@@ -32,7 +32,7 @@ afterAll(async () => {
 
 describe('browser collector (05)', () => {
   test('every test passes with and without the scan (P-08)', () => {
-    expect(scan.results.length, scan.output).toBe(107);
+    expect(scan.results.length, scan.output).toBe(108);
     expect(
       scan.results.filter((r) => r.status !== 'passed').map((r) => r.title),
       scan.output,
@@ -97,6 +97,21 @@ describe('browser collector (05)', () => {
     const r = byTitle(scan, 'context closed while a body is read');
     expect(r.status).toBe('passed');
     expect(r.attachment?.diagnostics.map((d) => d.code)).toContain('BODY_READ_FAILED');
+  });
+
+  test('05-AC-05 a no-store response without requestfinished is analysed without its body', () => {
+    const r = byTitle(scan, 'no-store response without requestfinished');
+    expect(r.status).toBe('passed');
+    const a = r.attachment;
+    // The record is not dropped: the endpoint is counted, so analyzeRecord ran the header rules on
+    // it, and a header finding is in the report (the no-store response has no nosniff).
+    expect(a?.coverage.endpoints['GET /nostore'], r.error ?? r.status).toBe(1);
+    expect(ruleIds(r)).toContain('header.xcto-missing');
+    // On Chromium there is no requestfinished, so it becomes a header-only record (05-REQ-29);
+    // Firefox and WebKit do fire it and read the (small) body.
+    if ((process.env.TEST_BROWSER ?? 'chromium') === 'chromium') {
+      expect(a?.coverage.bodiesSkipped.incomplete).toBeGreaterThanOrEqual(1);
+    }
   });
 
   test('Web Storage is scanned at the end of the test (05-REQ-23)', () => {
