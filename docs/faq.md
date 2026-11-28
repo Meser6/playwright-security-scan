@@ -88,7 +88,9 @@ Evidence is redacted before it leaves the test worker; see
 
 ## What are the limits?
 
-- Responses mocked with `route.fulfill()` are skipped: they are not your server.
+- Responses mocked with `route.fulfill()` are skipped: they are not your server. In WebKit a mocked
+  redirect (3xx) that the browser follows is analysed like a real one: WebKit gives no server address
+  for redirects.
 - WebSockets, Server-Sent Events and service worker traffic are not analysed.
 - `transport.weak-tls` needs a server offering TLS 1.0 or 1.1, which current browsers refuse anyway.
 - A response body is analysed up to `limits.maxBodyBytes` (1 MB by default).

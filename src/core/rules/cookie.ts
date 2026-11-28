@@ -15,7 +15,7 @@ interface CookieInput {
   httpOnly: boolean;
   /** undefined: the attribute is missing (headers) or unknown (jar). */
   sameSite: string | undefined;
-  /** The jar cannot tell a missing SameSite from Lax. */
+  /** The jar cannot tell a missing SameSite from the engine default (Lax or None). */
   sameSiteKnown: boolean;
   /** Lifetime in seconds, when known. */
   lifetime: number | undefined;
@@ -76,7 +76,8 @@ function fromJar(event: Extract<BrowserEvent, { kind: 'cookie-jar' }>): CookieIn
       value: c.value,
       secure: c.secure,
       httpOnly: c.httpOnly,
-      sameSite: c.sameSite,
+      // The engine's value for a missing attribute cannot be told from the attribute (06, 4.9).
+      sameSite: c.sameSite === (event.missingSameSite ?? 'Lax') ? undefined : c.sameSite,
       sameSiteKnown: false,
       lifetime: undefined,
       domain: c.domain,

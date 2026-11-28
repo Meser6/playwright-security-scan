@@ -42,6 +42,8 @@ export interface TestResult {
   project: string;
   title: string;
   status: string;
+  /** The errors of a failed attempt (with the call log), compacted, for assertion messages. */
+  error?: string;
   /** The pw-sec-findings attachment, parsed; null when the test has none. */
   attachment: TestAttachment | null;
   /** The pw-perf-samples attachment of the perf package, parsed; null when none. */
@@ -117,9 +119,25 @@ interface JsonSuite {
     title: string;
     tests: {
       projectName: string;
-      results: { status: string; attachments: { name: string; body?: string; path?: string }[] }[];
+      results: {
+        status: string;
+        errors?: { message?: string }[];
+        attachments: { name: string; body?: string; path?: string }[];
+      }[];
     }[];
   }[];
+}
+
+/** All error messages of an attempt on one line, without colours, at most 600 characters. */
+function compactErrors(errors: { message?: string }[]): string {
+  const text = errors
+    .map((e) => e.message ?? '')
+    .join(' | ')
+    // eslint-disable-next-line no-control-regex
+    .replace(/\u001b\[[0-9;]*m/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > 600 ? `${text.slice(0, 600)}…` : text;
 }
 
 function readResults(path: string): TestResult[] {
@@ -151,6 +169,9 @@ function readResults(path: string): TestResult[] {
             project: t.projectName,
             title: spec.title,
             status: r.status,
+            ...(r.errors === undefined || r.errors.length === 0
+              ? {}
+              : { error: compactErrors(r.errors) }),
             attachment,
             perf,
           });

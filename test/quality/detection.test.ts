@@ -74,7 +74,9 @@ describe('rule quality on the reference app (10, chapter 3)', () => {
   test('every test of every instance passes', () => {
     expect(run.results.length, run.output.slice(-2000)).toBe(13 * (APP_RULES.length + 1));
     expect(
-      run.results.filter((r) => r.status !== 'passed').map((r) => `${r.project}: ${r.title}`),
+      run.results
+        .filter((r) => r.status !== 'passed')
+        .map((r) => `${r.project}: ${r.title}: ${r.error ?? r.status}`),
     ).toEqual([]);
   });
 

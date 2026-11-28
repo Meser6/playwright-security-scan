@@ -28,6 +28,11 @@ All notable changes to this project are documented in this file. The format is b
 - The HTML report has the look of the playwright-performance-regression report: an app bar, the verdict card, six counter tiles that open the filtered list, tabs (Findings, Coverage, Run & config), filter chips, search and sortable columns, a light and a dark theme, and a Content-Security-Policy that allows only its own script and styles. The page is rendered in Node and works without JavaScript (every tab shown, details of each finding in its row). The details show the state against the baseline, the fingerprint with Copy, the location, the evidence, the tests that saw the finding (from the test tree, the first with its step), the rule's Why, Fix, False positives and references, and the baseline entry to paste. Grouping is now done by sorting the Rule or Subject column.
 - The check of the guided setup (`npx pw-sec`) is one quick trial run with `PW_SEC_MODE=check` (up to 10 tests, nothing written) instead of three runs (`check`, `baseline`, `scan` with a temporary baseline). Its result is read from the check output: "The scan sees your app's traffic." or the cause (no traffic in scope with the origins seen outside it, or the first error). The internal `PW_SEC_BASELINE_DIR` variable is gone.
 
+### Fixed
+
+- WebKit: redirects are analysed again (`browser.open-redirect-candidate` and the headers of 3xx responses); they were skipped as mocked because WebKit gives no server address for them.
+- Firefox and WebKit: a session cookie without `SameSite` read from the cookie jar no longer gives `cookie.samesite-none`; these engines report a missing attribute as `None`. The same app now gives the same findings in every browser. The `cookie-jar` event of custom rules has the new optional field `missingSameSite`.
+
 ## [0.2.0-beta.0] - 2026-11-26
 
 ### Fixed

@@ -130,7 +130,16 @@ export type BrowserEvent =
       entries: { key: string; value: string }[];
       context: TestContextRef;
     }
-  | { kind: 'cookie-jar'; cookies: CookieView[]; context: TestContextRef };
+  | {
+      kind: 'cookie-jar';
+      cookies: CookieView[];
+      context: TestContextRef;
+      /**
+       * The SameSite the engine reports for a cookie without the attribute (05-REQ-23): Chromium
+       * `Lax`, Firefox and WebKit `None`. A jar value equal to it is unknown. Missing = `Lax`.
+       */
+      missingSameSite?: 'Lax' | 'None';
+    };
 
 export type BrowserEventKind = BrowserEvent['kind'];
 

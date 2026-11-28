@@ -32,11 +32,13 @@ export class ResponseTracker {
   /** Order of the responses within the test (06, chapter 4.14). */
   readonly #order = new WeakMap<Request, number>();
   #accepting = true;
+  readonly #webkit: boolean;
 
   constructor(context: BrowserContext, collector: TestCollector, keys: KeyBuilder) {
     this.context = context;
     this.#collector = collector;
     this.#keys = keys;
+    this.#webkit = context.browser()?.browserType().name() === 'webkit';
     // Responses whose body has not arrived yet: a context closed during the read loses them
     // without requestfinished (05-REQ-09, 05-AC-03).
     const awaiting = this.#awaiting;
@@ -130,6 +132,16 @@ export class ResponseTracker {
     this.#detach.length = 0;
   }
 
+  /** WebKit has no server address for a real 3xx the browser followed (05-REQ-26 v0.7). */
+  #followedRedirect(response: Response): boolean {
+    return (
+      this.#webkit &&
+      response.status() >= 300 &&
+      response.status() <= 399 &&
+      response.request().redirectedTo() !== null
+    );
+  }
+
   async #process(request: Request): Promise<void> {
     const response: Response | null = await request.response();
     if (response === null) return;
@@ -146,7 +158,7 @@ export class ResponseTracker {
     const key = this.#keys({ method: request.method(), url, resourceType });
     if (!key.ok) return;
 
-    if (inScope && (await response.serverAddr()) === null) {
+    if (inScope && (await response.serverAddr()) === null && !this.#followedRedirect(response)) {
       // route.fulfill(): not analysed (05-REQ-26).
       collector.skipBody('mocked');
       return;
