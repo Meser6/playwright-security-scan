@@ -38,6 +38,18 @@ test('context closed while a body is read', async ({ browser, security }) => {
   await context.close();
 });
 
+test('no-store response without requestfinished', async ({ page }) => {
+  await page.goto('/page');
+  // The page starts the fetch but never reads the body. On Chromium no-store means no
+  // requestfinished, so the collector builds a header-only record at the end of the test
+  // (05-REQ-29); waiting for the response event keeps the request in scope without reading it.
+  const response = page.waitForResponse('**/nostore');
+  await page.evaluate(() => {
+    void fetch('/nostore');
+  });
+  await response;
+});
+
 test('listeners and bindings only in scan mode', async ({ page, context }) => {
   await page.goto('/page');
   const scanning = (process.env.PW_SEC_MODE ?? '') !== '';

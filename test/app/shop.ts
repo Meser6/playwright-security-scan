@@ -233,9 +233,10 @@ function appHandler(
       h.server = 'nginx/1.25.3';
       h['x-powered-by'] = 'PHP/8.2.12';
     }
-    // Personal responses stay out of shared caches. Not no-store: Chromium never finishes a no-store
-    // fetch whose body the page does not read, so the record would be lost (05-REQ-09).
-    if (!on('cache.sensitive-cacheable')) h['cache-control'] = 'private';
+    // Personal responses stay out of shared caches with no-store. Chromium never fires
+    // requestfinished for a no-store response whose body the page does not read, but the collector
+    // now keeps a header-only record for it (05-REQ-29), so no workaround is needed.
+    if (!on('cache.sensitive-cacheable')) h['cache-control'] = 'no-store';
     return h;
   };
 
@@ -653,9 +654,11 @@ function partnerHandler(ports: () => Ports, probes: { app: number; partner: numb
       res.writeHead(200, { ...base, 'content-type': 'text/html' });
       res.end(
         `<!doctype html><title>Partner</title><script>
+// Read the bodies: the app answers with no-store, and an unread no-store response keeps the page
+// from reaching networkidle (Chromium never fires requestfinished for it).
 window.done = Promise.allSettled([
-  fetch(${JSON.stringify(`${app}/api/cors`)}, { credentials: 'include' }),
-  fetch(${JSON.stringify(`${app}/api/me`)}, { headers: { authorization: 'Basic ${SECRETS.basicAuth}' } }),
+  fetch(${JSON.stringify(`${app}/api/cors`)}, { credentials: 'include' }).then((r) => r.text()),
+  fetch(${JSON.stringify(`${app}/api/me`)}, { headers: { authorization: 'Basic ${SECRETS.basicAuth}' } }).then((r) => r.text()),
 ]).then(() => true);
 </script>`,
       );

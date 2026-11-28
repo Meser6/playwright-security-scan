@@ -113,6 +113,13 @@ function handle(req: IncomingMessage, res: ServerResponse): void {
     });
     return;
   }
+  if (path === '/nostore') {
+    // no-store JSON without X-Content-Type-Options: Chromium never fires requestfinished for it
+    // when the page does not read the body, so the collector builds a header-only record (05-AC-05).
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
   if (path === '/slow') {
     res.writeHead(200, { 'content-type': 'application/json', 'x-content-type-options': 'nosniff' });
     res.write(`{"data":"${'z'.repeat(10_000)}`);

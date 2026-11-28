@@ -30,6 +30,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Fixed
 
+- Chromium: a `no-store` response whose body the page never reads is analysed again. Chromium never fires `requestfinished` for it, so the whole record (headers included) used to be dropped with only an info `BODY_READ_FAILED`; the collector now keeps a header-only record for such a response, so the header, cookie, CORS, transport, cache and auth rules still run (content rules that need the body do not). This matters for authenticated APIs that send `no-store`. The skipped body is counted as `bodiesSkipped.incomplete`.
 - WebKit: redirects are analysed again (`browser.open-redirect-candidate` and the headers of 3xx responses); they were skipped as mocked because WebKit gives no server address for them.
 - Firefox and WebKit: a session cookie without `SameSite` read from the cookie jar no longer gives `cookie.samesite-none`; these engines report a missing attribute as `None`. The same app now gives the same findings in every browser. The `cookie-jar` event of custom rules has the new optional field `missingSameSite`.
 

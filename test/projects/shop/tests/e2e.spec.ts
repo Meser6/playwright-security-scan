@@ -14,8 +14,11 @@ test('login, profile and token in the browser', async ({ page }) => {
   await open(page, '/account');
   const status = await page.evaluate(async () => {
     const login = await fetch('/api/login', { method: 'POST' });
-    await fetch('/api/me');
-    await fetch('/api/token');
+    // Read the bodies: the app answers with no-store, which Chromium never finishes when the body
+    // is left unread, so the content rules would not see them.
+    await login.text();
+    await (await fetch('/api/me')).text();
+    await (await fetch('/api/token')).text();
     return login.status;
   });
   expect(status).toBe(200);
@@ -42,10 +45,16 @@ test('partner page calls the API', async ({ page }) => {
 
 test('error page and static directory', async ({ page }) => {
   await open(page, '/account');
-  const statuses = await page.evaluate(async () => [
-    (await fetch('/api/fail')).status,
-    (await fetch('/static/')).status,
-  ]);
+  const statuses = await page.evaluate(async () => {
+    const fail = await fetch('/api/fail');
+    const dir = await fetch('/static/');
+    // Read the bodies so the content rules see them: no-store responses left unread never finish
+    // on Chromium (directory listing, error body).
+    const out = [fail.status, dir.status];
+    await fail.text();
+    await dir.text();
+    return out;
+  });
   expect(statuses.every((s) => s >= 200)).toBe(true);
 });
 

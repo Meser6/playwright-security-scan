@@ -11,6 +11,14 @@ import type { TestCollector } from './test-collector.ts';
 export const CONCURRENCY = 4;
 /** How long the teardown waits for records still being built. */
 export const DRAIN_BUDGET_MS = 10_000;
+/**
+ * How long the drain waits for a late requestfinished once the active body reads have settled
+ * (05-REQ-09). A body that finishes right after the test fires it within this grace; a no-store
+ * response Chromium never finishes (05-REQ-29) then gets a header-only record instead.
+ */
+export const AWAITING_GRACE_MS = 1000;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 export type KeyBuilder = (sample: KeySample) => KeyResult;
 
@@ -107,19 +115,28 @@ export class ResponseTracker {
   /** Waits for queued records (before the base fixture closes the context, 05-REQ-09), then detaches. */
   async drain(budgetMs = DRAIN_BUDGET_MS): Promise<void> {
     const deadline = Date.now() + budgetMs;
-    // Bodies still arriving (a fetch whose body the page did not read) finish within the budget;
-    // their requestfinished then queues the record (05-REQ-09).
-    const busy = (): boolean =>
-      this.#running.size > 0 || this.#pending.length > 0 || this.#awaiting.size > 0;
-    while (busy() && Date.now() < deadline) {
-      await Promise.race([
-        this.#running.size > 0
-          ? Promise.all([...this.#running])
-          : new Promise((r) => setTimeout(r, 20)),
-        new Promise((resolve) => setTimeout(resolve, Math.max(0, deadline - Date.now()))),
-      ]);
+    const busyReads = (): boolean => this.#running.size > 0 || this.#pending.length > 0;
+    // Wait for active body reads, and for flowing bodies to fire requestfinished (a fetch whose
+    // body the page did not read finishes right after the test, 05-REQ-09). Once only responses
+    // without requestfinished are left, give them a short grace and then move on: a no-store
+    // response Chromium never finishes would otherwise hold the drain for the whole budget.
+    let graceUntil = Number.POSITIVE_INFINITY;
+    while ((busyReads() || this.#awaiting.size > 0) && Date.now() < deadline) {
+      if (busyReads()) {
+        graceUntil = Number.POSITIVE_INFINITY;
+        await Promise.race([
+          this.#running.size > 0 ? Promise.all([...this.#running]) : sleep(20),
+          sleep(Math.max(0, deadline - Date.now())),
+        ]);
+      } else {
+        if (graceUntil === Number.POSITIVE_INFINITY) graceUntil = Date.now() + AWAITING_GRACE_MS;
+        if (Date.now() >= graceUntil) break;
+        await sleep(Math.min(20, Math.max(0, graceUntil - Date.now())));
+      }
     }
     this.#accepting = false;
+    for (const detach of this.#detach) detach();
+    this.#detach.length = 0;
     if (this.#pending.length > 0 || this.#running.size > 0) {
       this.#collector.diagnostic(
         'BODY_READ_FAILED',
@@ -128,8 +145,24 @@ export class ResponseTracker {
       );
       this.#pending.length = 0;
     }
-    for (const detach of this.#detach) detach();
-    this.#detach.length = 0;
+    // Responses with headers but no requestfinished (Chromium never fires it for a no-store
+    // response whose body the page did not read): build a header-only record so the header rules
+    // still run (05-REQ-29, 05-AC-05). The context is still open here, so the headers are
+    // readable; the body is not read.
+    if (this.#awaiting.size > 0) {
+      const awaiting = [...this.#awaiting];
+      this.#awaiting.clear();
+      for (const request of awaiting) this.#pending.push(() => this.#process(request, true));
+      this.#pump();
+      const flushDeadline = Date.now() + AWAITING_GRACE_MS;
+      while ((this.#running.size > 0 || this.#pending.length > 0) && Date.now() < flushDeadline) {
+        await Promise.race([
+          this.#running.size > 0 ? Promise.all([...this.#running]) : sleep(20),
+          sleep(Math.max(0, flushDeadline - Date.now())),
+        ]);
+      }
+      this.#pending.length = 0;
+    }
   }
 
   /** WebKit has no server address for a real 3xx the browser followed (05-REQ-26 v0.7). */
@@ -142,7 +175,7 @@ export class ResponseTracker {
     );
   }
 
-  async #process(request: Request): Promise<void> {
+  async #process(request: Request, bodyUnavailable = false): Promise<void> {
     const response: Response | null = await request.response();
     if (response === null) return;
     // Service worker traffic is out of the MVP (05-REQ-26).
@@ -220,6 +253,21 @@ export class ResponseTracker {
     if (resourceType === 'document' && url.startsWith('https:')) {
       const details = await response.securityDetails().catch(() => null);
       if (details?.protocol !== undefined) record.tls = { protocol: details.protocol };
+    }
+
+    if (bodyUnavailable) {
+      // No requestfinished arrived by the end of the drain (Chromium never fires it for a no-store
+      // response whose body the page did not read): keep a header-only record so the header rules
+      // still run (05-REQ-29). Content rules that need a body do not run for it.
+      collector.skipBody('incomplete');
+      collector.diagnostic(
+        'BODY_READ_FAILED',
+        'info',
+        `collector: a ${resourceType} response had no requestfinished by the end of the test; it was analysed without its body`,
+      );
+      if (collector.templates?.wants(record) === true) collector.templates.add(record, undefined);
+      collector.analyzeRecord(record);
+      return;
     }
 
     const header = (name: string): string | undefined =>
